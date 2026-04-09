@@ -1,217 +1,271 @@
 import React, { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
+import { api } from "../services/api";
 import AOS from "aos";
 import "aos/dist/aos.css";
 
-// Composant Navbar
-function Navbar({ onLoginClick }) {
-  const [isMenuOpen, setIsMenuOpen] = useState(false);
-  const [scrolled, setScrolled] = useState(false);
+export default function Accueil() {
+  const navigate = useNavigate();
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
 
   useEffect(() => {
-    const handleScroll = () => {
-      setScrolled(window.scrollY > 50);
-    };
-    window.addEventListener("scroll", handleScroll);
-    return () => window.removeEventListener("scroll", handleScroll);
+    AOS.init({
+      duration: 1000,
+      once: true,
+    });
   }, []);
 
-  // Réinitialiser AOS après chaque rendu
-  useEffect(() => {
-    AOS.refresh();
-  }, []);
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setLoading(true);
+    setError("");
 
-  return (
-    <nav
-      className={`
-      fixed top-0 w-full h-20 z-50 transition-all duration-500
-      ${
-        scrolled
-          ? "bg-white/95 backdrop-blur-xl shadow-lg"
-          : "bg-white/80 backdrop-blur-xl shadow-[0px_20px_40px_rgba(25,28,30,0.06)]"
+    try {
+      const response = await api.login({ email, password });
+
+      if (response && response.role) {
+        localStorage.setItem("user", JSON.stringify(response));
+        localStorage.setItem("role", response.role);
+
+        if (response.role === "MANAGER") {
+          window.location.href = "/manager";
+        } else if (response.role === "SERVEUR") {
+          window.location.href = "/serveur";
+        }
+      } else {
+        setError("Email ou mot de passe incorrect");
       }
-      flex justify-between items-center px-4 md:px-8
-    `}
-    >
-      <div className="flex items-center gap-8">
-        <span className="text-xl font-bold text-[#191c1e] font-headline flex items-center group">
-          <span className="material-symbols-outlined align-middle mr-2 text-2xl transition-transform group-hover:rotate-12 duration-300">
-            chef_hat
-          </span>
-          <span className="relative">
-            La petite bouffe
-            <span className="absolute -bottom-1 left-0 w-0 h-0.5 bg-primary transition-all duration-300 group-hover:w-full"></span>
-          </span>
-        </span>
-        <div className="hidden md:flex items-center gap-8">
-          {["Accueil", "Notre Carte", "Réservations"].map((item, idx) => (
-            <a
-              key={idx}
-              href="#"
-              className="text-[#585e6c] hover:text-primary transition-all duration-300 relative group"
-            >
-              {item}
-              <span className="absolute -bottom-1 left-0 w-0 h-0.5 bg-primary transition-all duration-300 group-hover:w-full"></span>
-            </a>
-          ))}
-        </div>
-      </div>
-      <div className="flex items-center gap-4">
-        <button
-          onClick={onLoginClick}
-          className="relative overflow-hidden bg-gradient-to-br from-primary to-primary-container text-on-primary px-6 py-3 rounded-md font-body font-semibold text-sm transition-all hover:scale-105 active:scale-90 group"
-          data-aos="fade-left"
-          data-aos-delay="200"
-        >
-          <span className="relative z-10">Se connecter</span>
-          <span className="absolute inset-0 bg-white/20 translate-y-full group-hover:translate-y-0 transition-transform duration-300"></span>
-        </button>
-        <button
-          onClick={() => setIsMenuOpen(!isMenuOpen)}
-          className="md:hidden p-2 text-secondary hover:bg-gray-100 rounded-lg transition-all"
-        >
-          <span
-            className="material-symbols-outlined transition-transform duration-300"
-            style={{ transform: isMenuOpen ? "rotate(90deg)" : "rotate(0)" }}
-          >
-            {isMenuOpen ? "close" : "menu"}
-          </span>
-        </button>
-      </div>
+    } catch (err) {
+      setError("Email ou mot de passe incorrect");
+    } finally {
+      setLoading(false);
+    }
+  };
 
-      {/* Menu mobile animé */}
-      <div
-        className={`
-        absolute top-20 left-0 right-0 bg-white/95 backdrop-blur-lg shadow-lg md:hidden overflow-hidden transition-all duration-500
-        ${isMenuOpen ? "max-h-64 opacity-100" : "max-h-0 opacity-0"}
-      `}
-      >
-        <div className="flex flex-col p-4 gap-3">
-          {["Accueil", "Notre Carte", "Réservations"].map((item, idx) => (
-            <a
-              key={idx}
-              href="#"
-              className="text-[#585e6c] hover:text-primary py-2 px-4 transition-all duration-300 hover:translate-x-2"
-              style={{ transitionDelay: `${idx * 100}ms` }}
-            >
-              {item}
-            </a>
-          ))}
-        </div>
-      </div>
-    </nav>
-  );
-}
-
-// Composant Hero Section avec AOS
-function HeroSection({ onStartClick }) {
   return (
-    <section className="relative min-h-screen w-full bg-gradient-to-br from-surface-container-low to-surface overflow-hidden">
-      {/* Background animated gradient */}
-      <div className="absolute inset-0 opacity-30">
-        <div className="absolute top-20 left-10 w-72 h-72 bg-primary/20 rounded-full blur-3xl animate-pulse"></div>
-        <div className="absolute bottom-20 right-10 w-96 h-96 bg-primary/10 rounded-full blur-3xl animate-pulse delay-1000"></div>
+    <div className="font-body bg-surface text-on-surface min-h-screen flex flex-col items-center justify-center relative overflow-hidden">
+      {/* Background Layer */}
+      <div className="absolute inset-0 z-0">
+        <img
+          className="w-full h-full object-cover filter brightness-[0.7] blur-[4px]"
+          alt="Gourmet dish background"
+          src="https://lh3.googleusercontent.com/aida-public/AB6AXuC6RxvHE1mQwUfKaYMoypfECYU0A7le7z5maPcfWqGljU9aTJlh5oCm3iu9rAQpltrVlfJKb6srUnnp5cW3h0T7-RO3hZBBj8upcVwnYPTfBzUUDA4it2r217ns-Uf0fgNfPc70RcxMsOg-1K5sPm0mAzlORHBngAVLi7VpbVmP4fysaar9uJv3oULNGOODdPU2pvM38RqD7aulUr7Vn8ZuFGklQpvrtb7Y7guul5LLp62ePcscaE8iUmk8t9zcryrwsi9-NDW4BCA"
+        />
+        <div className="absolute inset-0 bg-black/10"></div>
       </div>
 
-      <div className="max-w-7xl mx-auto px-4 md:px-8 w-full flex flex-col md:flex-row items-center gap-12 py-20 relative z-10">
-        {/* Texte avec AOS */}
-        <div
-          className="w-full md:w-[55%] space-y-8"
-          data-aos="fade-right"
-          data-aos-duration="1000"
-        >
-          <h1 className="font-headline font-extrabold text-5xl md:text-7xl text-on-surface leading-tight">
-            Bienvenue chez <br />
-            <span className="text-primary relative inline-block">
-              Petite Bouffe
-              <svg
-                className="absolute -bottom-2 left-0 w-full"
-                height="8"
-                viewBox="0 0 200 8"
-                xmlns="http://www.w3.org/2000/svg"
-              >
-                <path
-                  d="M0 4 L200 4"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                  strokeDasharray="5 5"
-                  className="text-primary/50"
-                />
-              </svg>
-            </span>
-          </h1>
-          <p
-            className="font-body text-lg md:text-xl text-secondary max-w-xl leading-relaxed"
-            data-aos="fade-up"
-            data-aos-delay="200"
-            data-aos-duration="800"
-          >
-            Une expérience culinaire d'exception où la tradition rencontre
-            l'innovation. Découvrez une cuisine raffinée dans un cadre
-            architectural unique.
-          </p>
-          <div
-            className="flex flex-col sm:flex-row gap-4"
-            data-aos="fade-up"
-            data-aos-delay="400"
-            data-aos-duration="800"
-          >
-            <button
-              onClick={onStartClick}
-              className="group relative overflow-hidden bg-gradient-to-br from-primary to-primary-container text-on-primary px-8 py-4 rounded-md font-body font-semibold text-base transition-all hover:scale-105 hover:shadow-xl active:scale-95 flex items-center justify-center gap-2"
-            >
-              <span className="relative z-10">
-                Appuyer pour commencer la gestion
-              </span>
-              <span className="material-symbols-outlined transition-transform duration-300 group-hover:translate-x-1 group-hover:rotate-12">
-                arrow_forward
-              </span>
-              <span className="absolute inset-0 bg-white/20 translate-x-full group-hover:translate-x-0 transition-transform duration-500"></span>
-            </button>
-          </div>
-        </div>
-
-        {/* Image avec AOS */}
-        <div
-          className="w-full md:w-[45%]"
-          data-aos="fade-left"
-          data-aos-duration="1000"
-          data-aos-delay="200"
-        >
-          <div className="relative p-3 bg-white rounded-[2rem] shadow-[0_32px_64px_-16px_rgba(0,48,125,0.12)] transform rotate-2 hover:rotate-0 transition-all duration-500 group">
-            <div className="overflow-hidden rounded-[1.5rem]">
-              <img
-                alt="Restaurant interior"
-                className="w-full h-[550px] object-cover transition-transform duration-700 group-hover:scale-110"
-                src="https://lh3.googleusercontent.com/aida-public/AB6AXuB7VekucTnZBRokzoO6jKhecgY--NPZu_rsfMyunN544UwK13NJ3MT5EqHI8rWExHLtvMAExkzm6ZEArk3vCHbQQsOHdgbLjr2bmbxH_waXWpHsGOmuZ7bo-9plXiSss-rY4XEAiQXUF5SFdSH9iIjli3NMBWsIFwhJaaTVxhi5hWXYxZbdmDVfJ7yHXRVLI7Ape3QaH7jsVsZ_rYIKDhb3PoPXjj5pQutWDLRg_14QE2tODdwIOIdwjQ2abRO_afPB-xYUjZg8_1Y"
-              />
-            </div>
-            <div className="absolute inset-0 rounded-[2rem] bg-gradient-to-t from-black/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none"></div>
-          </div>
-        </div>
-      </div>
-
-      {/* Flèche animée */}
-      <div
-        className="absolute bottom-8 left-1/2 -translate-x-1/2 text-primary/40 hidden md:block animate-bounce-slow"
+      {/* Login Container */}
+      <main
+        className="relative z-10 w-full max-w-[480px] px-6 py-12 md:py-16"
         data-aos="fade-up"
-        data-aos-delay="600"
+        data-aos-duration="800"
       >
-        <span className="material-symbols-outlined text-3xl">
-          keyboard_double_arrow_down
-        </span>
-      </div>
-    </section>
-  );
-}
+        <div className="glass-card p-8 md:p-10 rounded-2xl shadow-2xl flex flex-col items-center border border-white/20">
+          {/* Logo Section */}
+          <div
+            className="mb-8 text-center"
+            data-aos="fade-down"
+            data-aos-delay="200"
+          >
+            <div className="inline-flex items-center justify-center w-14 h-14 bg-primary rounded-xl mb-4 shadow-lg shadow-primary/20">
+              <span
+                className="material-symbols-outlined text-white text-3xl"
+                style={{ fontVariationSettings: "'FILL' 1" }}
+              >
+                restaurant
+              </span>
+            </div>
+            <h1 className="font-headline font-bold text-3xl tracking-tight text-[#111827]">
+              Petite Bouffe
+            </h1>
+            <p className="font-body text-sm font-medium text-secondary mt-1 tracking-wider uppercase">
+              Connexion Gestionnaire
+            </p>
+          </div>
 
-// Page principale
-export default function Accueil({ onLoginClick, onStartClick }) {
-  return (
-    <div className="min-h-screen flex flex-col bg-surface">
-      <Navbar onLoginClick={onLoginClick} />
-      <main className="flex-1 pt-20">
-        <HeroSection onStartClick={onStartClick} />
+          {/* Form Section */}
+          <form className="w-full space-y-5" onSubmit={handleSubmit}>
+            {/* Email Input */}
+            <div
+              className="space-y-2"
+              data-aos="fade-right"
+              data-aos-delay="300"
+            >
+              <label className="block text-[11px] font-bold tracking-wider text-on-surface-variant px-1 uppercase">
+                ADRESSE EMAIL
+              </label>
+              <div className="relative group">
+                <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-outline group-focus-within:text-primary transition-colors">
+                  <span className="material-symbols-outlined text-[20px]">
+                    mail
+                  </span>
+                </div>
+                <input
+                  type="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  className="w-full pl-12 pr-4 py-3.5 bg-white border border-gray-200 rounded-xl focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition-all duration-200 text-on-surface placeholder:text-outline/40 shadow-sm"
+                  placeholder="admin@petitebouffe.com"
+                  required
+                />
+              </div>
+            </div>
+
+            {/* Password Input */}
+            <div
+              className="space-y-2"
+              data-aos="fade-left"
+              data-aos-delay="400"
+            >
+              <label className="block text-[11px] font-bold tracking-wider text-on-surface-variant px-1 uppercase">
+                MOT DE PASSE
+              </label>
+              <div className="relative group">
+                <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-outline group-focus-within:text-primary transition-colors">
+                  <span className="material-symbols-outlined text-[20px]">
+                    lock
+                  </span>
+                </div>
+                <input
+                  type={showPassword ? "text" : "password"}
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  className="w-full pl-12 pr-12 py-3.5 bg-white border border-gray-200 rounded-xl focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition-all duration-200 text-on-surface placeholder:text-outline/40 shadow-sm"
+                  placeholder="••••••••"
+                  required
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="absolute inset-y-0 right-0 pr-4 flex items-center text-outline hover:text-primary transition-colors"
+                  title="Afficher le mot de passe"
+                >
+                  <span className="material-symbols-outlined text-[20px]">
+                    {showPassword ? "visibility" : "visibility_off"}
+                  </span>
+                </button>
+              </div>
+              <div className="flex justify-end pt-0.5">
+                <a
+                  href="#"
+                  className="text-[12px] font-semibold text-primary hover:underline transition-all"
+                >
+                  Mot de passe oublié ?
+                </a>
+              </div>
+            </div>
+
+            {/* Error Message */}
+            {error && (
+              <div
+                className="text-red-500 text-sm text-center py-2"
+                data-aos="fade-up"
+                data-aos-delay="500"
+              >
+                {error}
+              </div>
+            )}
+
+            {/* Submit Button */}
+            <div className="pt-3" data-aos="fade-up" data-aos-delay="600">
+              <button
+                type="submit"
+                disabled={loading}
+                className="w-full py-4 px-6 bg-primary hover:bg-[#003d80] text-white rounded-xl font-headline font-bold text-sm tracking-[0.05rem] shadow-lg shadow-primary/25 active:scale-[0.98] transition-all duration-200 uppercase flex items-center justify-center gap-2"
+              >
+                {loading ? (
+                  <>
+                    <svg
+                      className="animate-spin h-5 w-5 text-white"
+                      xmlns="http://www.w3.org/2000/svg"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                      aria-label="Chargement"
+                    >
+                      <circle
+                        className="opacity-25"
+                        cx="12"
+                        cy="12"
+                        r="10"
+                        stroke="currentColor"
+                        strokeWidth="4"
+                      ></circle>
+                      <path
+                        className="opacity-75"
+                        fill="currentColor"
+                        d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                      ></path>
+                    </svg>
+                    CONNEXION...
+                  </>
+                ) : (
+                  "SE CONNECTER"
+                )}
+              </button>
+            </div>
+          </form>
+
+          {/* Card Footer */}
+          <div
+            className="mt-8 flex items-center space-x-2 text-[11px] text-secondary font-medium uppercase tracking-tight"
+            data-aos="fade-up"
+            data-aos-delay="700"
+          >
+            <span
+              className="material-symbols-outlined text-[16px]"
+              style={{ fontVariationSettings: "'FILL' 1" }}
+            >
+              lock
+            </span>
+            <p>Accès sécurisé réservé au personnel</p>
+          </div>
+        </div>
+
+        {/* Global Footer */}
+        <footer
+          className="mt-8 flex justify-center space-x-10"
+          data-aos="fade-up"
+          data-aos-delay="800"
+        >
+          <a
+            href="#"
+            className="text-[11px] font-bold text-white/90 hover:text-white transition-colors tracking-[0.15em] uppercase"
+          >
+            Support
+          </a>
+          <a
+            href="#"
+            className="text-[11px] font-bold text-white/90 hover:text-white transition-colors tracking-[0.15em] uppercase"
+          >
+            Sécurité
+          </a>
+          <a
+            href="#"
+            className="text-[11px] font-bold text-white/90 hover:text-white transition-colors tracking-[0.15em] uppercase"
+          >
+            Petite Bouffe RMS
+          </a>
+        </footer>
       </main>
+
+      <style jsx>{`
+        .glass-card {
+          background: rgba(255, 255, 255, 0.85);
+          backdrop-filter: blur(16px);
+          -webkit-backdrop-filter: blur(16px);
+        }
+        .material-symbols-outlined {
+          font-variation-settings:
+            "FILL" 0,
+            "wght" 300,
+            "GRAD" 0,
+            "opsz" 24;
+        }
+      `}</style>
     </div>
   );
 }
