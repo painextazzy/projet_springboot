@@ -37,30 +37,5 @@ public class AuthService {
         return null;  // Authentification échouée
     }
     
-    /**
-     * Crée des utilisateurs de test au démarrage
-     */
-    public void initUsers() {
-        if (userRepository.count() == 0) {
-            // Serveur
-            User serveur = new User();
-            serveur.setNom("Jean Dupont");
-            serveur.setEmail("serveur@resto.com");
-            serveur.setPassword("password");
-            serveur.setRole("SERVEUR");
-            userRepository.save(serveur);
-            
-            // Manager
-            User manager = new User();
-            manager.setNom("Sophie Martin");
-            manager.setEmail("manager@resto.com");
-            manager.setPassword("password");
-            manager.setRole("MANAGER");
-            userRepository.save(manager);
-            
-            System.out.println("✅ 2 utilisateurs de test créés !");
-            System.out.println("   Serveur: serveur@resto.com / password");
-            System.out.println("   Manager: manager@resto.com / password");
-        }
-    }
+
 }
