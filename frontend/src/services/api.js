@@ -10,6 +10,14 @@ const handleResponse = async (response) => {
 };
 
 export const api = {
+  login: async (credentials) => {
+    const response = await fetch(`${API_URL}/auth/login`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(credentials),
+    });
+    return handleResponse(response);
+  },
   // Tables
   getTables: async () => {
     const response = await fetch(`${API_URL}/tables`);
