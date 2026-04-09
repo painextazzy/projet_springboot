@@ -27,6 +27,6 @@ public class RestaurantBackendApplication implements CommandLineRunner {
         System.out.println(" Heure actuelle: " + java.time.LocalDateTime.now());
         System.out.println("API disponible sur http://localhost:8080");
         
-        authService.initUsers();
+        
     }
 }
