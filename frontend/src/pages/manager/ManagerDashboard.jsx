@@ -32,7 +32,7 @@ export default function ManagerDashboard() {
   const handleLogout = () => {
     localStorage.removeItem("user");
     localStorage.removeItem("role");
-    navigate("/");
+    window.location.href = "/";
   };
 
   // ✅ Liste des routes valides

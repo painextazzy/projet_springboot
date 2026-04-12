@@ -11,6 +11,7 @@ export default function Accueil() {
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const [isCheckingAuth, setIsCheckingAuth] = useState(true);
 
   useEffect(() => {
     AOS.init({
@@ -18,6 +19,38 @@ export default function Accueil() {
       once: true,
     });
   }, []);
+
+  // ✅ Vérifier si l'utilisateur est déjà connecté au chargement
+  useEffect(() => {
+    const user = localStorage.getItem("user");
+    const role = localStorage.getItem("role");
+    const token = localStorage.getItem("token");
+
+    console.log("🔍 Vérification connexion existante:", {
+      user: !!user,
+      role,
+      token: !!token,
+    });
+
+    if (user && role && token) {
+      console.log("✅ Utilisateur déjà connecté, redirection...");
+      if (role === "SERVEUR") {
+        window.location.href = "/serveur";
+      } else if (role === "MANAGER" || role === "ADMIN") {
+        window.location.href = "/manager";
+      }
+    }
+    setIsCheckingAuth(false);
+  }, []);
+
+  // Afficher un loader pendant la vérification
+  if (isCheckingAuth) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-gray-100">
+        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-600"></div>
+      </div>
+    );
+  }
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -27,19 +60,33 @@ export default function Accueil() {
     try {
       const response = await api.login({ email, password });
 
+      console.log("📝 Réponse login:", response);
+
       if (response && response.role) {
+        // ✅ Sauvegarder TOUTES les données
         localStorage.setItem("user", JSON.stringify(response));
         localStorage.setItem("role", response.role);
+        localStorage.setItem("token", response.token || "dummy-token");
+        localStorage.setItem("lastLogin", new Date().toISOString());
 
-        if (response.role === "MANAGER") {
-          window.location.href = "/manager";
-        } else if (response.role === "SERVEUR") {
+        console.log("💾 Données sauvegardées:", {
+          role: localStorage.getItem("role"),
+          user: localStorage.getItem("user"),
+        });
+
+        // ✅ Redirection avec window.location.href pour forcer le rechargement
+        if (response.role === "SERVEUR") {
           window.location.href = "/serveur";
+        } else if (response.role === "MANAGER" || response.role === "ADMIN") {
+          window.location.href = "/manager";
+        } else {
+          setError("Rôle non reconnu");
         }
       } else {
         setError("Email ou mot de passe incorrect");
       }
     } catch (err) {
+      console.error("❌ Erreur login:", err);
       setError("Email ou mot de passe incorrect");
     } finally {
       setLoading(false);

@@ -75,7 +75,7 @@ export default function ServeurDashboard() {
   const handleLogout = () => {
     localStorage.removeItem("user");
     localStorage.removeItem("role");
-    navigate("/");
+    window.location.href = "/";
   };
 
   const showNotification = (message, type = "success") => {
