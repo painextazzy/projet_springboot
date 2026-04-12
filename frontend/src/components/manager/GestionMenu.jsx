@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { api } from "../../services/api";
+import webSocketService from "../../services/websocketService";
 
 export default function GestionMenu() {
   const [plats, setPlats] = useState([]);
@@ -26,20 +27,21 @@ export default function GestionMenu() {
     imageUrl: "",
   });
 
-  // Compteur de plats épuisés pour la bulle
-  const [nbEpuises, setNbEpuises] = useState(0);
-
+  // ✅ Chargement initial + WebSocket
   useEffect(() => {
     chargerDonnees();
-  }, []);
+    webSocketService.connect();
 
-  // Mettre à jour le compteur de plats épuisés
-  useEffect(() => {
-    const count = plats.filter(
-      (plat) => plat.quantite === 0 && plat.disponible,
-    ).length;
-    setNbEpuises(count);
-  }, [plats]);
+    const unsubscribe = webSocketService.subscribe(() => {
+      console.log("🔄 WebSocket: rechargement du menu");
+      chargerDonnees();
+    });
+
+    return () => {
+      unsubscribe();
+      webSocketService.disconnect();
+    };
+  }, []);
 
   const chargerDonnees = async () => {
     try {
@@ -54,6 +56,12 @@ export default function GestionMenu() {
       setLoading(false);
     }
   };
+
+  // ✅ Calcul DIRECT du nombre de plats épuisés (temps réel, sans état)
+  // Cette valeur est recalculée à chaque render, donc toujours à jour !
+  const nbEpuisesDirect = plats.filter(
+    (plat) => plat.quantite === 0 && plat.disponible === true,
+  ).length;
 
   const uploadImage = async (file) => {
     const formData = new FormData();
@@ -117,12 +125,20 @@ export default function GestionMenu() {
     }
   };
 
+  // ✅ Filtrage en temps réel (sans actualisation)
   const platsFiltres = plats.filter((plat) => {
-    if (filtreCategorie !== "TOUS" && plat.categorie !== filtreCategorie)
+    if (filtreCategorie !== "TOUS" && plat.categorie !== filtreCategorie) {
       return false;
-    if (filtreEpuise && plat.quantite > 0) return false;
-    if (recherche && !plat.nom.toLowerCase().includes(recherche.toLowerCase()))
+    }
+    if (filtreEpuise && plat.quantite > 0) {
       return false;
+    }
+    if (
+      recherche &&
+      !plat.nom.toLowerCase().includes(recherche.toLowerCase())
+    ) {
+      return false;
+    }
     return true;
   });
 
@@ -151,7 +167,10 @@ export default function GestionMenu() {
         categorie: formData.categorie,
       };
       const response = await api.createPlat(nouveauPlat);
-      setPlats([...plats, response]);
+
+      // ✅ Mise à jour immédiate du state
+      setPlats((prevPlats) => [...prevPlats, response]);
+
       setShowModal(false);
       resetForm();
       alert("Plat ajouté avec succès");
@@ -187,7 +206,12 @@ export default function GestionMenu() {
         categorie: formData.categorie,
       };
       const response = await api.updatePlat(platEdit.id, platModifie);
-      setPlats(plats.map((p) => (p.id === platEdit.id ? response : p)));
+
+      // ✅ Mise à jour immédiate du state
+      setPlats((prevPlats) =>
+        prevPlats.map((p) => (p.id === platEdit.id ? response : p)),
+      );
+
       setShowModal(false);
       setPlatEdit(null);
       resetForm();
@@ -203,7 +227,10 @@ export default function GestionMenu() {
     if (confirm(`Supprimer le plat "${nom}" ?`)) {
       try {
         await api.deletePlat(id);
-        setPlats(plats.filter((p) => p.id !== id));
+
+        // ✅ Mise à jour immédiate du state
+        setPlats((prevPlats) => prevPlats.filter((p) => p.id !== id));
+
         setShowActionMenu(null);
         alert("Plat supprimé avec succès");
       } catch (error) {
@@ -340,6 +367,7 @@ export default function GestionMenu() {
                       : "Boissons"}
               </button>
             ))}
+            {/* ✅ Bouton Épuisé avec BULLE EN TEMPS RÉEL (calcul direct) */}
             <button
               onClick={() => {
                 setFiltreEpuise(!filtreEpuise);
@@ -352,9 +380,10 @@ export default function GestionMenu() {
               }`}
             >
               Épuisé
-              {nbEpuises > 0 && !filtreEpuise && (
-                <span className="absolute -top-1 -right-1 bg-red-500 text-white text-[10px] font-bold rounded-full w-4 h-4 flex items-center justify-center">
-                  {nbEpuises}
+              {/* ✅ BULLE : nombre de plats épuisés calculé DIRECTEMENT */}
+              {nbEpuisesDirect > 0 && !filtreEpuise && (
+                <span className="absolute -top-2 -right-2 bg-red-500 text-white text-[10px] font-bold rounded-full min-w-[18px] h-[18px] flex items-center justify-center px-1 shadow-sm">
+                  {nbEpuisesDirect > 99 ? "99+" : nbEpuisesDirect}
                 </span>
               )}
             </button>
@@ -476,7 +505,6 @@ export default function GestionMenu() {
                         </span>
                       </button>
 
-                      {/* Menu déroulant Modifier/Supprimer */}
                       {showActionMenu === plat.id && (
                         <div className="absolute bottom-8 right-0 bg-white rounded-xl shadow-lg border border-outline-variant/10 overflow-hidden z-10 min-w-[120px]">
                           <button

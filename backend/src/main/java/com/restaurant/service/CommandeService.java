@@ -35,7 +35,7 @@ public class CommandeService {
     private TableRepository tableRepository;
     
     @Autowired
-    private WebSocketService webSocketService;  // ← AJOUTEZ CECI
+    private WebSocketService webSocketService;
     
     private LocalDateTime nowMadagascar() {
         return LocalDateTime.now().plusHours(3);
@@ -72,7 +72,6 @@ public class CommandeService {
         double total = 0;
         List<LigneCommande> lignes = new ArrayList<>();
         
-        // Ajouter les lignes
         for (CommandeRequest.LigneRequest ligneReq : request.getLignes()) {
             Menu plat = menuRepository.findById(ligneReq.getPlatId())
                 .orElseThrow(() -> new RuntimeException("Plat non trouvé ID: " + ligneReq.getPlatId()));
@@ -93,49 +92,126 @@ public class CommandeService {
             total += ligneReq.getQuantite() * plat.getPrix();
         }
         
+        commande.setLignes(lignes);
         commande.setTotal(total);
         commande = commandeRepository.save(commande);
         
-        // ✅ Notifier le frontend
         webSocketService.notifyCommandeChanged();
         
-        return convertToDTOOptimized(commande);
+        return convertToDTO(commande);
     }
     
+    // ✅ OPTIMISÉ : 1 seule requête pour les commandes
     public List<CommandeResponse> getAllCommandes() {
-        return commandeRepository.findAllWithDetails().stream()
-                .map(this::convertToDTOOptimized)
-                .collect(Collectors.toList());
+        // Récupérer toutes les commandes en 1 requête
+        List<Commande> commandes = commandeRepository.findAll();
+        
+        if (commandes.isEmpty()) {
+            return new ArrayList<>();
+        }
+        
+        // Récupérer tous les IDs des commandes
+        List<Long> commandeIds = commandes.stream()
+            .map(Commande::getId)
+            .collect(Collectors.toList());
+        
+        // ✅ Récupérer TOUTES les lignes en 1 seule requête
+        List<LigneCommande> toutesLignes = ligneCommandeRepository.findByCommandeIdIn(commandeIds);
+        
+        // ✅ Récupérer TOUS les plats en 1 seule requête
+        List<Long> platIds = toutesLignes.stream()
+            .map(LigneCommande::getPlatId)
+            .distinct()
+            .collect(Collectors.toList());
+        List<Menu> tousPlats = menuRepository.findAllById(platIds);
+        
+        // Créer des maps pour un accès rapide
+        java.util.Map<Long, List<LigneCommande>> lignesParCommande = toutesLignes.stream()
+            .collect(Collectors.groupingBy(LigneCommande::getCommandeId));
+        
+        java.util.Map<Long, Menu> platsParId = tousPlats.stream()
+            .collect(Collectors.toMap(Menu::getId, p -> p));
+        
+        // Construire les réponses
+        return commandes.stream()
+            .map(commande -> convertToDTOOptimized(commande, 
+                lignesParCommande.getOrDefault(commande.getId(), new ArrayList<>()),
+                platsParId))
+            .collect(Collectors.toList());
     }
     
     public List<CommandeResponse> getCommandesByStatut(String statut) {
-        return commandeRepository.findByStatutWithDetails(statut).stream()
-                .map(this::convertToDTOOptimized)
-                .collect(Collectors.toList());
+        List<Commande> commandes = commandeRepository.findByStatut(statut);
+        
+        if (commandes.isEmpty()) {
+            return new ArrayList<>();
+        }
+        
+        List<Long> commandeIds = commandes.stream()
+            .map(Commande::getId)
+            .collect(Collectors.toList());
+        
+        List<LigneCommande> toutesLignes = ligneCommandeRepository.findByCommandeIdIn(commandeIds);
+        
+        List<Long> platIds = toutesLignes.stream()
+            .map(LigneCommande::getPlatId)
+            .distinct()
+            .collect(Collectors.toList());
+        List<Menu> tousPlats = menuRepository.findAllById(platIds);
+        
+        java.util.Map<Long, List<LigneCommande>> lignesParCommande = toutesLignes.stream()
+            .collect(Collectors.groupingBy(LigneCommande::getCommandeId));
+        
+        java.util.Map<Long, Menu> platsParId = tousPlats.stream()
+            .collect(Collectors.toMap(Menu::getId, p -> p));
+        
+        return commandes.stream()
+            .map(commande -> convertToDTOOptimized(commande,
+                lignesParCommande.getOrDefault(commande.getId(), new ArrayList<>()),
+                platsParId))
+            .collect(Collectors.toList());
     }
     
     public CommandeResponse getCommandeById(Long id) {
-        Commande commande = commandeRepository.findByIdWithDetails(id)
+        Commande commande = commandeRepository.findById(id)
             .orElseThrow(() -> new RuntimeException("Commande non trouvée"));
-        return convertToDTOOptimized(commande);
+        List<LigneCommande> lignes = ligneCommandeRepository.findByCommandeId(id);
+        
+        java.util.Map<Long, Menu> platsParId = new java.util.HashMap<>();
+        for (LigneCommande ligne : lignes) {
+            if (!platsParId.containsKey(ligne.getPlatId())) {
+                menuRepository.findById(ligne.getPlatId()).ifPresent(plat -> 
+                    platsParId.put(ligne.getPlatId(), plat));
+            }
+        }
+        
+        return convertToDTOOptimized(commande, lignes, platsParId);
     }
     
     @Transactional
     public CommandeResponse payerCommande(Long id) {
-        Commande commande = commandeRepository.findByIdWithDetails(id)
+        Commande commande = commandeRepository.findById(id)
             .orElseThrow(() -> new RuntimeException("Commande non trouvée"));
         
         commande.setStatut("PAYEE");
         commande.setDateCloture(nowMadagascar());
         commande = commandeRepository.save(commande);
         
-        // ✅ Notifier le frontend
         webSocketService.notifyCommandeChanged();
         
-        return convertToDTOOptimized(commande);
+        List<LigneCommande> lignes = ligneCommandeRepository.findByCommandeId(id);
+        java.util.Map<Long, Menu> platsParId = new java.util.HashMap<>();
+        for (LigneCommande ligne : lignes) {
+            if (!platsParId.containsKey(ligne.getPlatId())) {
+                menuRepository.findById(ligne.getPlatId()).ifPresent(plat -> 
+                    platsParId.put(ligne.getPlatId(), plat));
+            }
+        }
+        
+        return convertToDTOOptimized(commande, lignes, platsParId);
     }
     
-    private CommandeResponse convertToDTOOptimized(Commande commande) {
+    private CommandeResponse convertToDTOOptimized(Commande commande, List<LigneCommande> lignes, java.util.Map<Long, Menu> platsParId) {
         CommandeResponse response = new CommandeResponse();
         response.setId(commande.getId());
         response.setNumeroFacture(commande.getNumeroFacture());
@@ -149,7 +225,7 @@ public class CommandeService {
             response.setTableNom(table.getNom())
         );
         
-        List<CommandeResponse.LigneCommandeDTO> lignesDTO = commande.getLignes().stream().map(ligne -> {
+        List<CommandeResponse.LigneCommandeDTO> lignesDTO = lignes.stream().map(ligne -> {
             CommandeResponse.LigneCommandeDTO dto = new CommandeResponse.LigneCommandeDTO();
             dto.setId(ligne.getId());
             dto.setPlatId(ligne.getPlatId());
@@ -157,14 +233,27 @@ public class CommandeService {
             dto.setPrixUnitaire(ligne.getPrixUnitaire());
             dto.setTotal(ligne.getTotal());
             
-            menuRepository.findById(ligne.getPlatId()).ifPresent(plat -> 
-                dto.setPlatNom(plat.getNom())
-            );
+            Menu plat = platsParId.get(ligne.getPlatId());
+            if (plat != null) {
+                dto.setPlatNom(plat.getNom());
+            }
             
             return dto;
         }).collect(Collectors.toList());
         
         response.setLignes(lignesDTO);
         return response;
+    }
+    
+    private CommandeResponse convertToDTO(Commande commande) {
+        List<LigneCommande> lignes = ligneCommandeRepository.findByCommandeId(commande.getId());
+        java.util.Map<Long, Menu> platsParId = new java.util.HashMap<>();
+        for (LigneCommande ligne : lignes) {
+            if (!platsParId.containsKey(ligne.getPlatId())) {
+                menuRepository.findById(ligne.getPlatId()).ifPresent(plat -> 
+                    platsParId.put(ligne.getPlatId(), plat));
+            }
+        }
+        return convertToDTOOptimized(commande, lignes, platsParId);
     }
 }

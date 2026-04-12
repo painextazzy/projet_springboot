@@ -12,8 +12,7 @@ import java.util.List;
 public class Commande {
 
     @Id
-    @GeneratedValue(strategy = GenerationType.SEQUENCE, generator = "commande_seq")
-    @SequenceGenerator(name = "commande_seq", sequenceName = "commande_sequence", allocationSize = 1)
+    @GeneratedValue(strategy = GenerationType.IDENTITY)  // ← Changé pour Railway (MySQL)
     private Long id;
 
     @Column(name = "numero_facture")
@@ -31,8 +30,8 @@ public class Commande {
     private String statut;
     private Double total;
 
-    // ✅ Relation correcte
-    @OneToMany(fetch = FetchType.LAZY)
-    @JoinColumn(name = "commande_id")
+    // ✅ Relation correcte pour Railway
+    @OneToMany(fetch = FetchType.LAZY, cascade = CascadeType.ALL)
+    @JoinColumn(name = "commande_id", referencedColumnName = "id")
     private List<LigneCommande> lignes = new ArrayList<>();
 }

@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from "react";
-import { Routes, Route, useNavigate } from "react-router-dom";
+import { Routes, Route, useNavigate, useLocation } from "react-router-dom";
 import Sidebar from "../../components/manager/Sidebar";
 import DashboardHome from "../../components/manager/DashboardHome";
 import GestionMenu from "../../components/manager/GestionMenu";
@@ -7,9 +7,11 @@ import GestionTables from "../../components/manager/GestionTables";
 import GestionCommandes from "../../components/manager/GestionCommandes";
 import Sauvegarde from "../../components/manager/Sauvegarde";
 import GestionUtilisateurs from "../../components/manager/GestionUtilisateurs";
+import NotFound from "../../pages/NotFound";
 
 export default function ManagerDashboard() {
   const navigate = useNavigate();
+  const location = useLocation();
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const dropdownRef = useRef(null);
 
@@ -32,6 +34,23 @@ export default function ManagerDashboard() {
     localStorage.removeItem("role");
     navigate("/");
   };
+
+  // ✅ Liste des routes valides
+  const validRoutes = [
+    "/manager",
+    "/manager/menu",
+    "/manager/tables",
+    "/manager/commandes",
+    "/manager/utilisateurs",
+    "/manager/sauvegarde",
+  ];
+  const isNotFound =
+    !validRoutes.includes(location.pathname) && location.pathname !== "";
+
+  // ✅ Si page 404, afficher en plein écran sans sidebar ni navbar
+  if (isNotFound) {
+    return <NotFound />;
+  }
 
   return (
     <div className="min-h-screen bg-surface">

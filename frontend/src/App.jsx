@@ -3,6 +3,7 @@ import { Routes, Route, Navigate } from "react-router-dom";
 import Accueil from "./public/Accueil";
 import ManagerDashboard from "./pages/manager/ManagerDashboard";
 import ServeurDashboard from "./pages/serveur/ServeurDashboard";
+import NotFound from "./pages/NotFound";
 
 function App() {
   const user = localStorage.getItem("user");
@@ -16,7 +17,7 @@ function App() {
 
       {/* Route Serveur - Protection */}
       <Route
-        path="/serveur/*"
+        path="/serveur"
         element={
           isAuthenticated && role === "SERVEUR" ? (
             <ServeurDashboard />
@@ -39,7 +40,7 @@ function App() {
       />
 
       {/* Redirection pour les routes non trouvées */}
-      <Route path="*" element={<Navigate to="/" replace />} />
+      <Route path="*" element={<NotFound />} />
     </Routes>
   );
 }
