@@ -16,7 +16,6 @@ public class CommandeController {
     @Autowired
     private CommandeService commandeService;
     
-    // POST /api/commandes - Créer une commande
     @PostMapping
     public ResponseEntity<?> createCommande(@RequestBody CommandeRequest request) {
         try {
@@ -27,19 +26,16 @@ public class CommandeController {
         }
     }
     
-    // GET /api/commandes - Récupérer toutes les commandes
     @GetMapping
     public List<CommandeResponse> getAllCommandes() {
         return commandeService.getAllCommandes();
     }
     
-    // GET /api/commandes?statut=EN_COURS - Récupérer par statut
     @GetMapping(params = "statut")
     public List<CommandeResponse> getCommandesByStatut(@RequestParam String statut) {
         return commandeService.getCommandesByStatut(statut);
     }
     
-    // GET /api/commandes/{id} - Récupérer une commande par ID
     @GetMapping("/{id}")
     public ResponseEntity<CommandeResponse> getCommandeById(@PathVariable Long id) {
         try {
@@ -50,7 +46,6 @@ public class CommandeController {
         }
     }
     
-    // PATCH /api/commandes/{id}/payer - Marquer comme payée
     @PatchMapping("/{id}/payer")
     public ResponseEntity<CommandeResponse> payerCommande(@PathVariable Long id) {
         try {

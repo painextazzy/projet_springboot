@@ -23,5 +23,10 @@ public class LigneCommande {
     @Column(name = "prix_unitaire")
     private Double prixUnitaire;
 
-    private Double total;  // Plus de GENERATED, on calcule en Java
+    private Double total;
+    
+    // ✅ AJOUTEZ CETTE RELATION
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "plat_id", insertable = false, updatable = false)
+    private Menu plat;
 }
