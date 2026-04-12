@@ -11,26 +11,28 @@ import java.util.List;
 @Data
 public class Commande {
 
-   @Id
-@GeneratedValue(strategy = GenerationType.AUTO)
-private Long id;
+    @Id
+    @GeneratedValue(strategy = GenerationType.SEQUENCE, generator = "commande_seq")
+    @SequenceGenerator(name = "commande_seq", sequenceName = "commande_sequence", allocationSize = 1)
+    private Long id;
 
+    @Column(name = "numero_facture")
     private String numeroFacture;
-    
+
     @Column(name = "table_id")
     private Long tableId;
-    
+
     @Column(name = "date_ouverture")
     private LocalDateTime dateOuverture;
-    
+
     @Column(name = "date_cloture")
     private LocalDateTime dateCloture;
-    
+
     private String statut;
     private Double total;
-    
-    // ✅ AJOUTEZ CETTE RELATION (unidirectionnelle)
+
+    // ✅ Relation correcte
     @OneToMany(fetch = FetchType.LAZY)
-    @JoinColumn(name = "commande_id")  // ← correspond à commandeId dans LigneCommande
+    @JoinColumn(name = "commande_id")
     private List<LigneCommande> lignes = new ArrayList<>();
 }

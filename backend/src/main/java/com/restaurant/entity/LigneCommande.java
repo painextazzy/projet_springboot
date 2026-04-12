@@ -9,8 +9,9 @@ import lombok.Data;
 public class LigneCommande {
 
     @Id
-@GeneratedValue(strategy = GenerationType.AUTO)
-private Long id;
+    @GeneratedValue(strategy = GenerationType.SEQUENCE, generator = "lignes_commande_seq")
+    @SequenceGenerator(name = "lignes_commande_seq", sequenceName = "lignes_commande_sequence", allocationSize = 1)
+    private Long id;
 
     @Column(name = "commande_id")
     private Long commandeId;
@@ -24,7 +25,7 @@ private Long id;
     private Double prixUnitaire;
 
     private Double total;
-    
+
     // ✅ AJOUTEZ CETTE RELATION
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "plat_id", insertable = false, updatable = false)
