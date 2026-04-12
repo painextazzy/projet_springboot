@@ -19,7 +19,7 @@ import java.util.List;
 import java.util.stream.Collectors;
 
 @Service
-@Transactional  // ← CRUCIAL !
+@Transactional
 public class CommandeService {
     
     @Autowired
@@ -33,6 +33,9 @@ public class CommandeService {
     
     @Autowired
     private TableRepository tableRepository;
+    
+    @Autowired
+    private WebSocketService webSocketService;  // ← AJOUTEZ CECI
     
     private LocalDateTime nowMadagascar() {
         return LocalDateTime.now().plusHours(3);
@@ -93,24 +96,24 @@ public class CommandeService {
         commande.setTotal(total);
         commande = commandeRepository.save(commande);
         
+        // ✅ Notifier le frontend
+        webSocketService.notifyCommandeChanged();
+        
         return convertToDTOOptimized(commande);
     }
     
-    // ✅ OPTIMISÉ : 1 seule requête !
     public List<CommandeResponse> getAllCommandes() {
         return commandeRepository.findAllWithDetails().stream()
                 .map(this::convertToDTOOptimized)
                 .collect(Collectors.toList());
     }
     
-    // ✅ OPTIMISÉ : 1 seule requête !
     public List<CommandeResponse> getCommandesByStatut(String statut) {
         return commandeRepository.findByStatutWithDetails(statut).stream()
                 .map(this::convertToDTOOptimized)
                 .collect(Collectors.toList());
     }
     
-    // ✅ OPTIMISÉ : 1 seule requête !
     public CommandeResponse getCommandeById(Long id) {
         Commande commande = commandeRepository.findByIdWithDetails(id)
             .orElseThrow(() -> new RuntimeException("Commande non trouvée"));
@@ -126,10 +129,12 @@ public class CommandeService {
         commande.setDateCloture(nowMadagascar());
         commande = commandeRepository.save(commande);
         
+        // ✅ Notifier le frontend
+        webSocketService.notifyCommandeChanged();
+        
         return convertToDTOOptimized(commande);
     }
     
-    // ✅ OPTIMISÉ : Plus de requêtes supplémentaires !
     private CommandeResponse convertToDTOOptimized(Commande commande) {
         CommandeResponse response = new CommandeResponse();
         response.setId(commande.getId());
@@ -140,12 +145,10 @@ public class CommandeService {
         response.setStatut(commande.getStatut());
         response.setTotal(commande.getTotal());
         
-        // Récupérer le nom de la table (si nécessaire)
         tableRepository.findById(commande.getTableId()).ifPresent(table -> 
             response.setTableNom(table.getNom())
         );
         
-        // ✅ Les lignes sont DÉJÀ chargées par JOIN FETCH !
         List<CommandeResponse.LigneCommandeDTO> lignesDTO = commande.getLignes().stream().map(ligne -> {
             CommandeResponse.LigneCommandeDTO dto = new CommandeResponse.LigneCommandeDTO();
             dto.setId(ligne.getId());
@@ -154,10 +157,9 @@ public class CommandeService {
             dto.setPrixUnitaire(ligne.getPrixUnitaire());
             dto.setTotal(ligne.getTotal());
             
-            // Le plat est DÉJÀ chargé par JOIN FETCH !
-            if (ligne.getPlat() != null) {
-                dto.setPlatNom(ligne.getPlat().getNom());
-            }
+            menuRepository.findById(ligne.getPlatId()).ifPresent(plat -> 
+                dto.setPlatNom(plat.getNom())
+            );
             
             return dto;
         }).collect(Collectors.toList());

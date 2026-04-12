@@ -405,7 +405,7 @@ export default function GestionMenu() {
                     <img
                       alt={plat.nom}
                       className="w-full h-full object-cover"
-                      src={`http://localhost:8080${plat.imageUrl}`}
+                      src={`http://localhost:8080/uploads/${plat.imageUrl?.split("/").pop() || ""}`}
                       onError={(e) => {
                         e.target.onerror = null;
                         e.target.src =
