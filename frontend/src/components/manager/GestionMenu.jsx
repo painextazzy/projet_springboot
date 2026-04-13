@@ -249,7 +249,9 @@ export default function GestionMenu() {
       imageUrl: plat.imageUrl || "",
     });
     setImagePreview(
-      plat.imageUrl ? `http://localhost:8080${plat.imageUrl}` : "",
+      plat.imageUrl
+        ? `https://projetspringboot-production.up.railway.app${plat.imageUrl}`
+        : "",
     );
     setImageFile(null);
     setShowModal(true);
