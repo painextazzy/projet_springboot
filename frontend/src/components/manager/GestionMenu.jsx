@@ -78,10 +78,13 @@ export default function GestionMenu() {
     formData.append("file", file);
 
     try {
-      const response = await fetch("http://localhost:8080/api/upload", {
-        method: "POST",
-        body: formData,
-      });
+      const response = await fetch(
+        "https://projetspringboot-production.up.railway.app/api/upload",
+        {
+          method: "POST",
+          body: formData,
+        },
+      );
       const data = await response.json();
       return data.url;
     } catch (error) {
