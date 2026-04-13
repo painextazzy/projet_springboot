@@ -436,10 +436,7 @@ export default function GestionMenu() {
                     <img
                       alt={plat.nom}
                       className="w-full h-full object-cover"
-                      src={
-                        getImageUrl(plat.imageUrl) ||
-                        "https://placehold.co/400x300/e2e8f0/64748b?text=Image+non+disponible"
-                      }
+                      src={getImageUrl(plat.imageUrl)}
                       onError={(e) => {
                         e.target.onerror = null;
                         e.target.src =
