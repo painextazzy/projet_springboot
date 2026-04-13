@@ -430,7 +430,7 @@ export default function GestionMenu() {
                     <img
                       alt={plat.nom}
                       className="w-full h-full object-cover"
-                      src={`http://localhost:8080/uploads/${plat.imageUrl?.split("/").pop() || ""}`}
+                      src={`https://projetspringboot-production.up.railway.app/uploads/${plat.imageUrl?.split("/").pop() || ""}`}
                       onError={(e) => {
                         e.target.onerror = null;
                         e.target.src =
