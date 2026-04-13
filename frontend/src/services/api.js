@@ -1,5 +1,5 @@
 // src/services/api.js
-const API_URL = "http://localhost:8080/api";
+const API_URL = import.meta.env.VITE_API_URL || "http://localhost:8080/api";
 
 const handleResponse = async (response) => {
   if (!response.ok) {
@@ -27,7 +27,6 @@ export const api = {
     return response.json();
   },
 
-  // Ajouter une table
   createTable: async (table) => {
     const response = await fetch(`${API_URL}/tables`, {
       method: "POST",
@@ -37,7 +36,6 @@ export const api = {
     return response.json();
   },
 
-  // Modifier une table
   updateTable: async (id, table) => {
     const response = await fetch(`${API_URL}/tables/${id}`, {
       method: "PUT",
@@ -47,7 +45,6 @@ export const api = {
     return response.json();
   },
 
-  // Changer le statut
   updateTableStatus: async (id, status) => {
     const response = await fetch(
       `${API_URL}/tables/${id}/status?status=${status}`,
@@ -58,7 +55,6 @@ export const api = {
     return response.json();
   },
 
-  // Supprimer une table
   deleteTable: async (id) => {
     const response = await fetch(`${API_URL}/tables/${id}`, {
       method: "DELETE",
@@ -87,7 +83,7 @@ export const api = {
     );
     return response.json();
   },
-  // src/services/api.js
+
   getOccupiedTablesCount: async () => {
     const response = await fetch(`${API_URL}/tables/occupied/count`);
     return response.json();
@@ -137,6 +133,7 @@ export const api = {
     );
     return response.json();
   },
+
   // ========== COMMANDES ==========
   createCommande: async (commande) => {
     const response = await fetch(`${API_URL}/commandes`, {
@@ -168,9 +165,8 @@ export const api = {
     });
     return handleResponse(response);
   },
-  // src/services/api.js
 
-  // Utilisateurs
+  // ========== UTILISATEURS ==========
   getUtilisateurs: async () => {
     const response = await fetch(`${API_URL}/users`);
     return handleResponse(response);
@@ -205,9 +201,8 @@ export const api = {
     });
     return handleResponse(response);
   },
-  // src/services/api.js
 
-  // Sauvegarde
+  // ========== SAUVEGARDE ==========
   getSauvegardeTables: async () => {
     const response = await fetch(`${API_URL}/sauvegarde/tables`);
     return handleResponse(response);
