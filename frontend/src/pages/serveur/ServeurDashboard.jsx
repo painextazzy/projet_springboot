@@ -3,6 +3,7 @@ import React, { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { api } from "../../services/api";
 import POSModal from "../../components/serveur/POSModal";
+import SkeletonServeurDashboard from "./skeletons/SkeletonServeurDashboard";
 
 export default function ServeurDashboard() {
   const navigate = useNavigate();
@@ -172,48 +173,83 @@ export default function ServeurDashboard() {
     switch (status) {
       case "LIBRE":
         return {
-          bg: "bg-green-100",
-          text: "text-green-700",
+          bg: "bg-emerald-50",
+          text: "text-emerald-600",
           label: "Disponible",
-          btnBg: "bg-[#10b981]",
-          iconBg: "bg-surface-container-high",
-          iconColor: "text-primary",
+          btnBg: "bg-emerald-500 hover:bg-emerald-600",
+          btnText: "text-white",
+          iconBg: "bg-slate-50",
+          iconColor: "text-slate-400",
+          icon: "table_bar",
+          arrowColor: "text-white",
+          cardShadow: "shadow-emerald-100/50",
+          btnShadow: "shadow-emerald-500/30",
+          badgeRadius: "rounded-full",
+          btnRadius: "rounded-2xl",
         };
       case "OCCUPEE":
         return {
-          bg: "bg-secondary-container",
-          text: "text-on-secondary-container",
+          bg: "bg-blue-50",
+          text: "text-blue-600",
           label: "Occupée",
-          btnBg: "bg-[#004A99]",
-          iconBg: "bg-primary-container",
-          iconColor: "text-on-primary",
+          btnBg: "bg-blue-600 hover:bg-blue-700",
+          btnText: "text-white",
+          iconBg: "bg-blue-50",
+          iconColor: "text-blue-500",
+          icon: "table_restaurant",
+          arrowColor: "text-white",
+          cardShadow: "shadow-blue-100/50",
+          btnShadow: "shadow-blue-600/30",
+          badgeRadius: "rounded-xl",
+          btnRadius: "rounded-xl",
         };
       case "A_NETTOYER":
         return {
-          bg: "bg-amber-100",
-          text: "text-amber-700",
+          bg: "bg-amber-50",
+          text: "text-amber-600",
           label: "À nettoyer",
-          btnBg: "bg-[#10b981]",
-          iconBg: "bg-surface-container-high",
-          iconColor: "text-primary",
+          btnBg: "bg-emerald-500 hover:bg-emerald-600",
+          btnText: "text-white",
+          iconBg: "bg-slate-50",
+          iconColor: "text-slate-400",
+          icon: "cleaning",
+          arrowColor: "text-white",
+          cardShadow: "shadow-amber-100/50",
+          btnShadow: "shadow-emerald-500/30",
+          badgeRadius: "rounded-lg",
+          btnRadius: "rounded-xl",
         };
       case "COMMANDE_EN_COURS":
         return {
-          bg: "bg-orange-100",
-          text: "text-orange-700",
+          bg: "bg-orange-50",
+          text: "text-orange-600",
           label: "Commande en cours",
-          btnBg: "bg-orange-500",
-          iconBg: "bg-orange-100",
-          iconColor: "text-orange-600",
+          btnBg: "bg-orange-500 hover:bg-orange-600",
+          btnText: "text-white",
+          iconBg: "bg-orange-50",
+          iconColor: "text-orange-500",
+          icon: "receipt",
+          arrowColor: "text-white",
+          cardShadow: "shadow-orange-100/50",
+          btnShadow: "shadow-orange-500/30",
+          badgeRadius: "rounded-2xl",
+          btnRadius: "rounded-xl",
         };
       default:
         return {
           bg: "bg-gray-100",
-          text: "text-gray-700",
+          text: "text-gray-600",
           label: status || "Inconnu",
-          btnBg: "bg-gray-400",
+          btnBg: "bg-gray-500 hover:bg-gray-600",
+          btnText: "text-white",
           iconBg: "bg-gray-100",
-          iconColor: "text-gray-500",
+          iconColor: "text-gray-400",
+          icon: "table_restaurant",
+          arrowColor: "text-white",
+          cardShadow: "shadow-gray-100/50",
+          btnShadow: "shadow-gray-500/30",
+          badgeRadius: "rounded-md",
+          btnRadius: "rounded-lg",
         };
     }
   };
@@ -248,12 +284,9 @@ export default function ServeurDashboard() {
     }).length;
   };
 
+  // Afficher le skeleton pendant le chargement
   if (loading) {
-    return (
-      <div className="min-h-screen bg-surface flex items-center justify-center">
-        <div className="text-secondary">Chargement des tables...</div>
-      </div>
-    );
+    return <SkeletonServeurDashboard />;
   }
 
   return (
@@ -284,7 +317,7 @@ export default function ServeurDashboard() {
                 {/* En-tête avec infos utilisateur */}
                 <div className="px-4 py-3 border-b border-gray-100 bg-gray-50/50">
                   <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-full bg-gradient-to-br from-primary to-primary-container flex items-center justify-center text-white">
+                    <div className="w-10 h-10 rounded-full bg-gradient-to-br from-primary to-primary-dark flex items-center justify-center text-white">
                       <span className="material-symbols-outlined text-lg">
                         person
                       </span>
@@ -321,88 +354,86 @@ export default function ServeurDashboard() {
         </div>
       </nav>
 
-      {/* ========== CONTENU PRINCIPAL ========== */}
+      {/* ========== MAIN CONTENT ========== */}
       <main className="pt-24 pb-20 px-8 max-w-7xl mx-auto">
-        {/* Header Section */}
-        <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 mb-10">
-          <div>
-            <h1 className="text-3xl font-extrabold text-primary mb-2 tracking-tight">
-              Aperçu des Tables
-            </h1>
-            <p className="text-secondary font-body">
-              Gérez le plan de salle et la disponibilité en temps réel.
-            </p>
-          </div>
+        {/* Title Section */}
+        <div className="mb-12">
+          <h1 className="text-4xl font-extrabold text-primary mb-2 tracking-tight">
+            Aperçu des Tables
+          </h1>
+          <p className="text-secondary font-medium">
+            Gérez le plan de salle et la disponibilité en temps réel.
+          </p>
         </div>
 
         {/* Notification */}
         {notification.show && (
           <div
-            className={`fixed top-24 right-4 z-50 px-4 py-2 rounded-lg shadow-lg ${
+            className={`fixed top-24 right-4 z-50 px-4 py-3 rounded-xl shadow-lg transition-all duration-300 ${
               notification.type === "error"
                 ? "bg-red-500 text-white"
-                : "bg-green-500 text-white"
+                : "bg-emerald-500 text-white"
             }`}
           >
             {notification.message}
           </div>
         )}
 
-        {/* Filter Tabs + Search Bar */}
-        <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6 mb-8">
-          <div className="flex items-center gap-1 bg-surface-container-low p-1 rounded-xl w-fit shrink-0">
+        {/* Filter & Search Bar */}
+        <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6 mb-12">
+          <div className="flex items-center p-1 bg-slate-100/50 rounded-2xl w-fit">
             <button
               onClick={() => setFiltre("TOUTES")}
-              className={`px-6 py-2 text-sm font-semibold rounded-lg transition-all ${
+              className={`px-6 py-2.5 text-sm font-semibold rounded-xl transition-all ${
                 filtre === "TOUTES"
-                  ? "bg-surface-container-lowest shadow-sm text-primary"
-                  : "text-secondary hover:bg-surface-container-high"
+                  ? "bg-white shadow-sm text-primary"
+                  : "text-secondary hover:text-primary"
               }`}
             >
-              Toutes les Tables ({tables.length})
+              Toutes les tables ({tables.length})
             </button>
             <button
               onClick={() => setFiltre("DISPONIBLES")}
-              className={`px-6 py-2 text-sm font-medium rounded-lg transition-all ${
+              className={`px-6 py-2.5 text-sm font-medium rounded-xl transition-all ${
                 filtre === "DISPONIBLES"
-                  ? "bg-surface-container-lowest shadow-sm text-primary"
-                  : "text-secondary hover:bg-surface-container-high"
+                  ? "bg-white shadow-sm text-primary"
+                  : "text-secondary hover:text-primary"
               }`}
             >
               Disponibles ({countByStatus("LIBRE")})
             </button>
             <button
               onClick={() => setFiltre("OCCUPEES")}
-              className={`px-6 py-2 text-sm font-medium rounded-lg transition-all ${
+              className={`px-6 py-2.5 text-sm font-medium rounded-xl transition-all ${
                 filtre === "OCCUPEES"
-                  ? "bg-surface-container-lowest shadow-sm text-primary"
-                  : "text-secondary hover:bg-surface-container-high"
+                  ? "bg-white shadow-sm text-primary"
+                  : "text-secondary hover:text-primary"
               }`}
             >
               Occupées ({countByStatus("OCCUPEES")})
             </button>
             <button
               onClick={() => setFiltre("A_NETTOYER")}
-              className={`px-6 py-2 text-sm font-medium rounded-lg transition-all ${
+              className={`px-6 py-2.5 text-sm font-medium rounded-xl transition-all ${
                 filtre === "A_NETTOYER"
-                  ? "bg-surface-container-lowest shadow-sm text-primary"
-                  : "text-secondary hover:bg-surface-container-high"
+                  ? "bg-white shadow-sm text-primary"
+                  : "text-secondary hover:text-primary"
               }`}
             >
               À nettoyer ({countByStatus("A_NETTOYER")})
             </button>
           </div>
 
-          <div className="relative w-full lg:w-96">
-            <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-outline text-xl">
+          <div className="relative w-full lg:w-80 group">
+            <span className="material-symbols-outlined absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-primary transition-colors">
               search
             </span>
             <input
               type="text"
               value={recherche}
               onChange={(e) => setRecherche(e.target.value)}
-              className="w-full pl-10 pr-4 py-2.5 bg-surface-container-low border border-outline-variant/30 rounded-lg focus:ring-2 focus:ring-primary/20 focus:bg-surface-container-lowest transition-all text-sm outline-none"
-              placeholder="Rechercher une table ou une capacité..."
+              className="w-full pl-12 pr-4 py-3 bg-slate-100/50 border-none rounded-2xl focus:ring-2 focus:ring-primary/10 focus:bg-white transition-all text-sm outline-none placeholder:text-slate-400"
+              placeholder="Rechercher une table..."
             />
           </div>
         </div>
@@ -410,76 +441,75 @@ export default function ServeurDashboard() {
         {/* Tables Grid */}
         {tablesFiltrees.length === 0 ? (
           <div className="text-center py-12">
-            <p className="text-secondary">Aucune table trouvée</p>
+            <p className="text-secondary font-poppins">Aucune table trouvée</p>
           </div>
         ) : (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-8">
             {tablesFiltrees.map((table) => {
               const tableStatus = getTableStatus(table);
               const statusInfo = getStatutClass(tableStatus);
               const hasCommande = tableStatus === "COMMANDE_EN_COURS";
-              const panierTable = getPanierForTable(table.id);
+              const isOccupied = tableStatus === "OCCUPEE";
+              const isAvailable = tableStatus === "LIBRE";
+              const isToClean = tableStatus === "A_NETTOYER";
 
               return (
                 <div
                   key={table.id}
-                  className="group bg-surface-container-lowest p-6 rounded-xl border border-outline-variant/15 hover:shadow-[0px_20px_40px_rgba(25,28,30,0.06)] transition-all duration-300"
+                  className={`bg-white p-8 rounded-[2rem] shadow-xl hover:shadow-2xl transition-all duration-300 border border-slate-100 group ${statusInfo.cardShadow}`}
                 >
-                  <div className="flex justify-between items-start mb-6">
+                  {/* Icône et badge avec border radius personnalisé */}
+                  <div className="flex justify-between items-start mb-8">
                     <div
-                      className={`w-12 h-12 rounded-lg ${statusInfo.iconBg} flex items-center justify-center ${statusInfo.iconColor}`}
+                      className={`w-14 h-14 rounded-2xl ${statusInfo.iconBg} flex items-center justify-center ${statusInfo.iconColor} shadow-md`}
                     >
-                      <span
-                        className="material-symbols-outlined"
-                        data-weight={!hasCommande ? "regular" : "fill"}
-                      >
-                        table_restaurant
+                      <span className="material-symbols-outlined text-3xl">
+                        {statusInfo.icon}
                       </span>
                     </div>
                     <span
-                      className={`px-3 py-1 rounded-full text-[10px] font-bold tracking-widest uppercase ${statusInfo.bg} ${statusInfo.text}`}
+                      className={`px-3 py-1.5 text-[10px] font-bold tracking-widest uppercase ${statusInfo.bg} ${statusInfo.text} shadow-sm ${statusInfo.badgeRadius}`}
                     >
                       {statusInfo.label}
                     </span>
                   </div>
 
-                  <h3 className="text-xl font-bold text-on-surface mb-1">
-                    {table.nom || `Table ${table.numero}`}
-                  </h3>
-                  <p className="text-sm text-secondary mb-6 flex items-center gap-1">
-                    <span className="material-symbols-outlined text-sm">
-                      groups
-                    </span>
-                    {table.capacite} {table.capacite === 1 ? "Siège" : "Sièges"}
-                  </p>
+                  {/* Informations table */}
+                  <div className="mb-8">
+                    <h3 className="text-2xl font-extrabold text-on-surface mb-2 font-poppins">
+                      {table.nom || `Table ${table.numero}`}
+                    </h3>
+                    <div className="flex items-center gap-2 text-secondary font-poppins">
+                      <span className="material-symbols-outlined text-lg">
+                        groups
+                      </span>
+                      <span className="text-sm font-medium">
+                        {table.capacite}{" "}
+                        {table.capacite === 1 ? "Siège" : "Sièges"}
+                      </span>
+                    </div>
+                  </div>
 
-                  {tableStatus === "LIBRE" ||
-                  tableStatus === "A_NETTOYER" ||
-                  hasCommande ? (
-                    <button
-                      onClick={() => handleTableClick(table)}
-                      className={`w-full py-3 px-4 ${statusInfo.btnBg} text-white rounded-md font-semibold text-sm flex items-center justify-center gap-2 hover:opacity-90 transition-all`}
+                  {/* Bouton avec border radius personnalisé */}
+                  <button
+                    onClick={() => handleTableClick(table)}
+                    className={`w-full py-4 ${statusInfo.btnBg} ${statusInfo.btnText} font-bold text-sm flex items-center justify-center gap-2 shadow-lg hover:shadow-xl transition-all active:scale-[0.98] ${statusInfo.btnRadius} ${statusInfo.btnShadow}`}
+                  >
+                    {isToClean
+                      ? "Nettoyer la table"
+                      : hasCommande
+                        ? "Reprendre la commande"
+                        : isAvailable
+                          ? "Prendre commande"
+                          : isOccupied
+                            ? "Gérer la commande"
+                            : "Voir"}
+                    <span
+                      className={`material-symbols-outlined text-sm ${statusInfo.arrowColor}`}
                     >
-                      {tableStatus === "A_NETTOYER"
-                        ? "Nettoyer la table"
-                        : hasCommande
-                          ? "Reprendre la commande"
-                          : "Prendre commande"}
-                      <span className="material-symbols-outlined text-sm">
-                        arrow_forward
-                      </span>
-                    </button>
-                  ) : (
-                    <button
-                      onClick={() => handleTableClick(table)}
-                      className="w-full py-3 px-4 bg-[#004A99] text-white rounded-md font-semibold text-sm flex items-center justify-center gap-2 hover:opacity-90 transition-all"
-                    >
-                      Gérer la Commande
-                      <span className="material-symbols-outlined text-sm">
-                        arrow_forward
-                      </span>
-                    </button>
-                  )}
+                      arrow_forward
+                    </span>
+                  </button>
                 </div>
               );
             })}
@@ -487,28 +517,28 @@ export default function ServeurDashboard() {
         )}
 
         {/* Footer */}
-        <footer className="w-full flex flex-col md:flex-row justify-between items-center mt-16 pt-10 border-t border-outline-variant/20">
-          <div className="text-slate-400 font-inter text-xs tracking-tight mb-4 md:mb-0">
+        <footer className="w-full flex flex-col md:flex-row justify-between items-center mt-16 pt-10 border-t border-slate-100">
+          <div className="text-slate-400 font-medium text-xs tracking-wide mb-6 md:mb-0">
             © 2024 Petite Bouffe. Tous droits réservés.
           </div>
-          <div className="flex items-center gap-8">
+          <div className="flex items-center gap-10">
             <a
               href="#"
-              className="text-slate-400 hover:text-blue-600 font-inter text-xs tracking-tight"
+              className="text-slate-500 hover:text-primary font-medium text-xs tracking-wide transition-colors"
             >
               Support
             </a>
             <a
               href="#"
-              className="text-slate-400 hover:text-blue-600 font-inter text-xs tracking-tight"
+              className="text-slate-500 hover:text-primary font-medium text-xs tracking-wide transition-colors"
             >
-              Politique de Confidentialité
+              Confidentialité
             </a>
             <a
               href="#"
-              className="text-slate-400 hover:text-blue-600 font-inter text-xs tracking-tight"
+              className="text-slate-500 hover:text-primary font-medium text-xs tracking-wide transition-colors"
             >
-              Conditions d'Utilisation
+              Conditions
             </a>
           </div>
         </footer>
