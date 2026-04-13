@@ -3,6 +3,10 @@ import { api } from "../../services/api";
 import webSocketService from "../../services/websocketService";
 import SkeletonMenu from "./skeletons/SkeletonMenu";
 
+// Configuration Cloudinary
+const CLOUD_NAME = "dpq3tuhn2";
+const UPLOAD_PRESET = "restaurant_menu";
+
 export default function GestionMenu() {
   const [plats, setPlats] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -30,17 +34,23 @@ export default function GestionMenu() {
 
   const [nbEpuises, setNbEpuises] = useState(0);
 
-  // Configuration des URLs
-  const API_URL =
-    import.meta.env.VITE_API_URL ||
-    "https://projetspringboot-production.up.railway.app/api";
-  const BASE_URL = API_URL.replace("/api", "");
+  // Fonction d'upload vers Cloudinary
+  const uploadImage = async (file) => {
+    const formData = new FormData();
+    formData.append("file", file);
+    formData.append("upload_preset", UPLOAD_PRESET);
 
-  // Fonction pour obtenir l'URL complète de l'image
-  const getImageUrl = (imagePath) => {
-    if (!imagePath) return null;
-    if (imagePath.startsWith("http")) return imagePath;
-    return `${BASE_URL}${imagePath}`;
+    try {
+      const response = await fetch(
+        `https://api.cloudinary.com/v1_1/${CLOUD_NAME}/image/upload`,
+        { method: "POST", body: formData },
+      );
+      const data = await response.json();
+      return data.secure_url;
+    } catch (error) {
+      console.error("Erreur upload:", error);
+      return null;
+    }
   };
 
   // Chargement initial + WebSocket
@@ -85,23 +95,6 @@ export default function GestionMenu() {
   const nbEpuisesDirect = plats.filter(
     (plat) => plat.quantite === 0 && plat.disponible === true,
   ).length;
-
-  const uploadImage = async (file) => {
-    const formData = new FormData();
-    formData.append("file", file);
-
-    try {
-      const response = await fetch(`${API_URL}/upload`, {
-        method: "POST",
-        body: formData,
-      });
-      const data = await response.json();
-      return data.url;
-    } catch (error) {
-      console.error("Erreur upload:", error);
-      return null;
-    }
-  };
 
   const handleFileSelect = (file) => {
     if (
@@ -258,7 +251,7 @@ export default function GestionMenu() {
       disponible: plat.disponible,
       imageUrl: plat.imageUrl || "",
     });
-    setImagePreview(plat.imageUrl ? getImageUrl(plat.imageUrl) : "");
+    setImagePreview(plat.imageUrl || "");
     setImageFile(null);
     setShowModal(true);
     setShowActionMenu(null);
@@ -298,7 +291,7 @@ export default function GestionMenu() {
     return `${prix.toLocaleString("fr-FR")} Ar`;
   };
 
-  // ✅ Afficher le skeleton pendant le chargement
+  // Afficher le skeleton pendant le chargement
   if (loading) {
     return <SkeletonMenu />;
   }
@@ -436,7 +429,7 @@ export default function GestionMenu() {
                     <img
                       alt={plat.nom}
                       className="w-full h-full object-cover"
-                      src={getImageUrl(plat.imageUrl)}
+                      src={plat.imageUrl}
                       onError={(e) => {
                         e.target.onerror = null;
                         e.target.src =
