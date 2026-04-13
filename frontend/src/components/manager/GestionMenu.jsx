@@ -30,6 +30,19 @@ export default function GestionMenu() {
 
   const [nbEpuises, setNbEpuises] = useState(0);
 
+  // Configuration des URLs
+  const API_URL =
+    import.meta.env.VITE_API_URL ||
+    "https://projetspringboot-production.up.railway.app/api";
+  const BASE_URL = API_URL.replace("/api", "");
+
+  // Fonction pour obtenir l'URL complète de l'image
+  const getImageUrl = (imagePath) => {
+    if (!imagePath) return null;
+    if (imagePath.startsWith("http")) return imagePath;
+    return `${BASE_URL}${imagePath}`;
+  };
+
   // Chargement initial + WebSocket
   useEffect(() => {
     chargerDonnees();
@@ -78,13 +91,10 @@ export default function GestionMenu() {
     formData.append("file", file);
 
     try {
-      const response = await fetch(
-        "https://projetspringboot-production.up.railway.app/api/upload",
-        {
-          method: "POST",
-          body: formData,
-        },
-      );
+      const response = await fetch(`${API_URL}/upload`, {
+        method: "POST",
+        body: formData,
+      });
       const data = await response.json();
       return data.url;
     } catch (error) {
@@ -248,11 +258,7 @@ export default function GestionMenu() {
       disponible: plat.disponible,
       imageUrl: plat.imageUrl || "",
     });
-    setImagePreview(
-      plat.imageUrl
-        ? `https://projetspringboot-production.up.railway.app${plat.imageUrl}`
-        : "",
-    );
+    setImagePreview(plat.imageUrl ? getImageUrl(plat.imageUrl) : "");
     setImageFile(null);
     setShowModal(true);
     setShowActionMenu(null);
@@ -430,7 +436,10 @@ export default function GestionMenu() {
                     <img
                       alt={plat.nom}
                       className="w-full h-full object-cover"
-                      src={`https://projetspringboot-production.up.railway.app/uploads/${plat.imageUrl?.split("/").pop() || ""}`}
+                      src={
+                        getImageUrl(plat.imageUrl) ||
+                        "https://placehold.co/400x300/e2e8f0/64748b?text=Image+non+disponible"
+                      }
                       onError={(e) => {
                         e.target.onerror = null;
                         e.target.src =
