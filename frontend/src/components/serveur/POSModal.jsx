@@ -2,6 +2,15 @@
 import React, { useState, useEffect, useRef, useCallback } from "react";
 import { api } from "../../services/api";
 
+// Configuration Cloudinary
+const CLOUD_NAME = "dpq3tuhn2";
+
+const getImageUrl = (imagePath) => {
+  if (!imagePath) return null;
+  if (imagePath.startsWith("http")) return imagePath;
+  return imagePath; // Cloudinary donne déjà l'URL complète
+};
+
 export default function POSModal({
   table,
   initialPanier = [],
@@ -20,18 +29,14 @@ export default function POSModal({
   const [confirmationOpen, setConfirmationOpen] = useState(false);
   const [ticketId, setTicketId] = useState(Math.floor(Math.random() * 1000));
 
-  // Utiliser useRef pour éviter les appels infinis
   const isFirstRender = useRef(true);
   const prevPanierRef = useRef(initialPanier);
-
   const searchInputRef = useRef(null);
 
-  // Charger le menu
   useEffect(() => {
     chargerMenu();
   }, []);
 
-  // Mettre à jour le parent UNIQUEMENT quand le panier change réellement
   useEffect(() => {
     if (isFirstRender.current) {
       isFirstRender.current = false;
@@ -202,7 +207,6 @@ export default function POSModal({
     return plat.disponible;
   });
 
-  // Grouper les plats par catégorie
   const platsParCategorie = {};
   platsFiltres.forEach((plat) => {
     const cat = plat.categorie || "AUTRE";
@@ -225,15 +229,30 @@ export default function POSModal({
 
   return (
     <>
-      {/* Main Fullscreen Container */}
       <div className="fixed inset-0 z-50 bg-white flex flex-col h-screen w-screen overflow-hidden">
-        {/* Header avec titre et bouton X */}
+        {/* Header */}
+        <div className="bg-white border-b border-slate-200 px-6 py-4 flex justify-between items-center shadow-sm">
+          <div>
+            <h1 className="text-xl font-bold text-slate-800">
+              Prise de commande
+            </h1>
+            <p className="text-sm text-slate-500">
+              Table {table.nom || table.numero} • Ticket #{ticketId}
+            </p>
+          </div>
+          <button
+            onClick={onClose}
+            className="p-2 hover:bg-slate-100 rounded-full transition-colors"
+          >
+            <span className="material-symbols-outlined">close</span>
+          </button>
+        </div>
 
         {/* Content Layout - 2 colonnes */}
         <div className="flex flex-1 overflow-hidden">
           {/* Left Column: Menu Items */}
           <div className="flex-1 flex flex-col h-full overflow-hidden bg-slate-50">
-            {/* Barre de recherche à gauche + catégories en chips */}
+            {/* Barre de recherche et catégories */}
             <div className="p-4 border-b border-slate-200 bg-white">
               <div className="flex flex-col md:flex-row gap-4 items-start md:items-center">
                 <div className="relative w-full md:w-80">
@@ -340,12 +359,6 @@ export default function POSModal({
                 </h2>
                 <p className="text-xs text-slate-400">Ticket #{ticketId}</p>
               </div>
-              <button
-                onClick={onClose}
-                className="p-2 hover:bg-slate-100 rounded-full transition-colors"
-              >
-                <span className="material-symbols-outlined text-xl">close</span>
-              </button>
             </div>
 
             <div className="px-5 py-3 bg-slate-50 border-b border-slate-100">
@@ -474,8 +487,7 @@ export default function POSModal({
   );
 }
 
-// Composant PlatCard avec affichage du stock
-// Composant PlatCard avec affichage du stock - bouton aligné
+// Composant PlatCard avec Cloudinary
 const PlatCard = ({
   plat,
   quantite,
@@ -500,7 +512,7 @@ const PlatCard = ({
       <div className="h-44 overflow-hidden bg-slate-100">
         {plat.imageUrl ? (
           <img
-            src={`http://localhost:8080${plat.imageUrl}`}
+            src={plat.imageUrl}
             alt={plat.nom}
             className="w-full h-full object-cover hover:scale-105 transition-transform duration-300"
             onError={(e) => {
