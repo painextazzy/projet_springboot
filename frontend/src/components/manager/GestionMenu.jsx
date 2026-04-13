@@ -21,6 +21,11 @@ export default function GestionMenu() {
   const [isDragging, setIsDragging] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [showActionMenu, setShowActionMenu] = useState(null);
+  const [notification, setNotification] = useState({
+    show: false,
+    message: "",
+    type: "",
+  });
   const fileInputRef = React.useRef(null);
   const [formData, setFormData] = useState({
     nom: "",
@@ -32,9 +37,16 @@ export default function GestionMenu() {
     imageUrl: "",
   });
 
-  const [nbEpuises, setNbEpuises] = useState(0);
+  // Notification toast
+  const showNotification = (message, type = "success") => {
+    setNotification({ show: true, message, type });
+    setTimeout(
+      () => setNotification({ show: false, message: "", type: "" }),
+      3000,
+    );
+  };
 
-  // Fonction d'upload vers Cloudinary
+  // Upload image vers Cloudinary
   const uploadImage = async (file) => {
     const formData = new FormData();
     formData.append("file", file);
@@ -69,19 +81,10 @@ export default function GestionMenu() {
     };
   }, []);
 
-  // Mettre à jour le compteur de plats épuisés
-  useEffect(() => {
-    const count = plats.filter(
-      (plat) => plat.quantite === 0 && plat.disponible === true,
-    ).length;
-    setNbEpuises(count);
-  }, [plats]);
-
   const chargerDonnees = async () => {
     setLoading(true);
     try {
       const data = await api.getMenu();
-      console.log("Données reçues:", data);
       setPlats(data);
     } catch (err) {
       console.error("Erreur:", err);
@@ -91,7 +94,7 @@ export default function GestionMenu() {
     }
   };
 
-  // Calcul direct du nombre de plats épuisés
+  // Nombre de plats épuisés (calcul direct)
   const nbEpuisesDirect = plats.filter(
     (plat) => plat.quantite === 0 && plat.disponible === true,
   ).length;
@@ -110,7 +113,10 @@ export default function GestionMenu() {
       };
       reader.readAsDataURL(file);
     } else {
-      alert("Format non supporté. Utilisez JPG, PNG ou WEBP");
+      showNotification(
+        "Format non supporté. Utilisez JPG, PNG ou WEBP",
+        "error",
+      );
     }
   };
 
@@ -157,9 +163,13 @@ export default function GestionMenu() {
     return true;
   });
 
+  // Ajouter un plat
   const handleAjouter = async () => {
     if (!formData.nom || !formData.prix || !formData.categorie) {
-      alert("Veuillez remplir tous les champs obligatoires");
+      showNotification(
+        "Veuillez remplir tous les champs obligatoires",
+        "error",
+      );
       return;
     }
 
@@ -181,20 +191,28 @@ export default function GestionMenu() {
         disponible: true,
         categorie: formData.categorie,
       };
-      await api.createPlat(nouveauPlat);
+      const response = await api.createPlat(nouveauPlat);
+
+      // ✅ Mise à jour immédiate du state
+      setPlats((prev) => [...prev, response]);
+
       setShowModal(false);
       resetForm();
-      alert("Plat ajouté avec succès");
+      showNotification("Plat ajouté avec succès", "success");
     } catch (error) {
-      alert("Erreur lors de l'ajout");
+      showNotification("Erreur lors de l'ajout", "error");
     } finally {
       setUploading(false);
     }
   };
 
+  // Modifier un plat
   const handleModifier = async () => {
     if (!formData.nom || !formData.prix || !formData.categorie) {
-      alert("Veuillez remplir tous les champs obligatoires");
+      showNotification(
+        "Veuillez remplir tous les champs obligatoires",
+        "error",
+      );
       return;
     }
 
@@ -216,26 +234,37 @@ export default function GestionMenu() {
         disponible: formData.disponible,
         categorie: formData.categorie,
       };
-      await api.updatePlat(platEdit.id, platModifie);
+      const response = await api.updatePlat(platEdit.id, platModifie);
+
+      // ✅ Mise à jour immédiate du state
+      setPlats((prev) =>
+        prev.map((p) => (p.id === platEdit.id ? response : p)),
+      );
+
       setShowModal(false);
       setPlatEdit(null);
       resetForm();
-      alert("Plat modifié avec succès");
+      showNotification("Plat modifié avec succès", "success");
     } catch (error) {
-      alert("Erreur lors de la modification");
+      showNotification("Erreur lors de la modification", "error");
     } finally {
       setUploading(false);
     }
   };
 
+  // Supprimer un plat
   const handleSupprimer = async (id, nom) => {
     if (confirm(`Supprimer le plat "${nom}" ?`)) {
       try {
         await api.deletePlat(id);
+
+        // ✅ Mise à jour immédiate du state
+        setPlats((prev) => prev.filter((p) => p.id !== id));
+
         setShowActionMenu(null);
-        alert("Plat supprimé avec succès");
+        showNotification("Plat supprimé avec succès", "success");
       } catch (error) {
-        alert("Erreur lors de la suppression");
+        showNotification("Erreur lors de la suppression", "error");
       }
     }
   };
@@ -291,7 +320,6 @@ export default function GestionMenu() {
     return `${prix.toLocaleString("fr-FR")} Ar`;
   };
 
-  // Afficher le skeleton pendant le chargement
   if (loading) {
     return <SkeletonMenu />;
   }
@@ -312,6 +340,24 @@ export default function GestionMenu() {
 
   return (
     <main className="min-h-screen">
+      {/* Toast Notification */}
+      {notification.show && (
+        <div
+          className={`fixed top-24 right-4 z-50 px-4 py-3 rounded-xl shadow-lg transition-all duration-300 ${
+            notification.type === "error"
+              ? "bg-red-500 text-white"
+              : "bg-green-500 text-white"
+          }`}
+        >
+          <div className="flex items-center gap-2">
+            <span className="material-symbols-outlined text-lg">
+              {notification.type === "error" ? "error" : "check_circle"}
+            </span>
+            <span className="text-sm font-medium">{notification.message}</span>
+          </div>
+        </div>
+      )}
+
       <div className="max-w-7xl mx-auto px-8 py-10">
         {/* Page Header */}
         <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 mb-8">
