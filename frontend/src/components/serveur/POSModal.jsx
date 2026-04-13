@@ -8,7 +8,7 @@ const CLOUD_NAME = "dpq3tuhn2";
 const getImageUrl = (imagePath) => {
   if (!imagePath) return null;
   if (imagePath.startsWith("http")) return imagePath;
-  return imagePath; // Cloudinary donne déjà l'URL complète
+  return imagePath;
 };
 
 export default function POSModal({
@@ -28,10 +28,37 @@ export default function POSModal({
   const [tableOccupee, setTableOccupee] = useState(false);
   const [confirmationOpen, setConfirmationOpen] = useState(false);
   const [ticketId, setTicketId] = useState(Math.floor(Math.random() * 1000));
+  const [notification, setNotification] = useState({
+    show: false,
+    message: "",
+    type: "",
+  });
 
   const isFirstRender = useRef(true);
   const prevPanierRef = useRef(initialPanier);
   const searchInputRef = useRef(null);
+
+  // Toast notification
+  const showNotification = (message, type = "success") => {
+    setNotification({ show: true, message, type });
+    setTimeout(
+      () => setNotification({ show: false, message: "", type: "" }),
+      3000,
+    );
+  };
+
+  // WebSocket pour mettre à jour le menu en temps réel
+  useEffect(() => {
+    const ws = new WebSocket(
+      "wss://projetspringboot-production.up.railway.app/ws",
+    );
+    ws.onmessage = (event) => {
+      if (event.data === "REFRESH") {
+        chargerMenu();
+      }
+    };
+    return () => ws.close();
+  }, []);
 
   useEffect(() => {
     chargerMenu();
@@ -60,6 +87,7 @@ export default function POSModal({
       setCategories(cats);
     } catch (error) {
       console.error("Erreur chargement menu:", error);
+      showNotification("Erreur de chargement du menu", "error");
     } finally {
       setLoading(false);
     }
@@ -77,8 +105,13 @@ export default function POSModal({
       try {
         await api.updateTableStatus(table.id, "OCCUPEE");
         setTableOccupee(true);
+        showNotification(
+          `Table ${table.nom || table.numero} occupée`,
+          "success",
+        );
       } catch (error) {
         console.error("Erreur prise de table:", error);
+        showNotification("Erreur lors de la prise de table", "error");
       }
     }
   };
@@ -88,7 +121,10 @@ export default function POSModal({
     if (quantite <= 0) return;
 
     if (plat.quantite < quantite) {
-      alert(`Stock insuffisant pour ${plat.nom}`);
+      showNotification(
+        `Stock insuffisant pour ${plat.nom}. Stock: ${plat.quantite}`,
+        "error",
+      );
       return;
     }
 
@@ -109,7 +145,15 @@ export default function POSModal({
       }
     });
 
+    // Mettre à jour le stock localement
+    setMenu((prevMenu) =>
+      prevMenu.map((p) =>
+        p.id === plat.id ? { ...p, quantite: p.quantite - quantite } : p,
+      ),
+    );
+
     setQuantites((prev) => ({ ...prev, [plat.id]: 1 }));
+    showNotification(`${quantite} x ${plat.nom} ajouté au panier`, "success");
   };
 
   const modifierQuantitePanier = (id, delta) => {
@@ -131,11 +175,13 @@ export default function POSModal({
 
   const supprimerDuPanier = (id) => {
     setPanier((prevPanier) => prevPanier.filter((p) => p.id !== id));
+    showNotification("Article retiré du panier", "info");
   };
 
   const viderPanier = () => {
     if (confirm("Vider tout le panier ?")) {
       setPanier([]);
+      showNotification("Panier vidé", "info");
     }
   };
 
@@ -145,7 +191,7 @@ export default function POSModal({
 
   const validerCommande = async () => {
     if (panier.length === 0) {
-      alert("Veuillez ajouter des plats");
+      showNotification("Veuillez ajouter des plats", "error");
       return;
     }
     setConfirmationOpen(true);
@@ -173,10 +219,13 @@ export default function POSModal({
         onCommandeValidee(response, table.id);
       }
 
-      alert("Commande enregistrée, table libérée !");
+      showNotification("Commande enregistrée, table libérée !", "success");
     } catch (error) {
       console.error("Erreur:", error);
-      alert(error.message || "Erreur lors de l'enregistrement");
+      showNotification(
+        error.message || "Erreur lors de l'enregistrement",
+        "error",
+      );
     }
   };
 
@@ -229,6 +278,30 @@ export default function POSModal({
 
   return (
     <>
+      {/* Toast Notification */}
+      {notification.show && (
+        <div
+          className={`fixed top-24 right-4 z-[70] px-4 py-3 rounded-xl shadow-lg transition-all duration-300 ${
+            notification.type === "error"
+              ? "bg-red-500 text-white"
+              : notification.type === "info"
+                ? "bg-blue-500 text-white"
+                : "bg-green-500 text-white"
+          }`}
+        >
+          <div className="flex items-center gap-2">
+            <span className="material-symbols-outlined text-lg">
+              {notification.type === "error"
+                ? "error"
+                : notification.type === "info"
+                  ? "info"
+                  : "check_circle"}
+            </span>
+            <span className="text-sm font-medium">{notification.message}</span>
+          </div>
+        </div>
+      )}
+
       <div className="fixed inset-0 z-50 bg-white flex flex-col h-screen w-screen overflow-hidden">
         {/* Header */}
         <div className="bg-white border-b border-slate-200 px-6 py-4 flex justify-between items-center shadow-sm">
@@ -359,6 +432,17 @@ export default function POSModal({
                 </h2>
                 <p className="text-xs text-slate-400">Ticket #{ticketId}</p>
               </div>
+              {panier.length > 0 && (
+                <button
+                  onClick={viderPanier}
+                  className="text-xs text-red-500 hover:text-red-700 flex items-center gap-1"
+                >
+                  <span className="material-symbols-outlined text-base">
+                    delete_sweep
+                  </span>
+                  Vider
+                </button>
+              )}
             </div>
 
             <div className="px-5 py-3 bg-slate-50 border-b border-slate-100">
@@ -487,7 +571,7 @@ export default function POSModal({
   );
 }
 
-// Composant PlatCard avec Cloudinary
+// Composant PlatCard
 const PlatCard = ({
   plat,
   quantite,
