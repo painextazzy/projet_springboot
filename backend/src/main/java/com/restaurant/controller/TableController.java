@@ -9,7 +9,7 @@ import java.util.List;
 
 @RestController
 @RequestMapping("/api/tables")
-@CrossOrigin(origins = "http://localhost:5173")
+@CrossOrigin(origins = "https://projet-springboot.vercel.app/")
 public class TableController {
     
     @Autowired

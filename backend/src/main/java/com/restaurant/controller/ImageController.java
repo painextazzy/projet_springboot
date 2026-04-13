@@ -12,7 +12,7 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 
 @RestController
-@CrossOrigin(origins = "http://localhost:5173")
+@CrossOrigin(origins = "https://projet-springboot.vercel.app/")
 public class ImageController {
 
     @Value("${upload.path:./uploads}")

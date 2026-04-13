@@ -10,7 +10,7 @@ import java.util.List;
 
 @RestController
 @RequestMapping("/api/commandes")
-@CrossOrigin(origins = "http://localhost:5173")
+@CrossOrigin(origins = "https://projet-springboot.vercel.app/")
 public class CommandeController {
     
     @Autowired

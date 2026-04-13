@@ -14,7 +14,7 @@ import java.util.UUID;
 
 @RestController
 @RequestMapping("/api/upload")
-@CrossOrigin(origins = "http://localhost:5173")
+@CrossOrigin(origins = "https://projet-springboot.vercel.app/")
 public class UploadController {
     
     @Value("${upload.path}")

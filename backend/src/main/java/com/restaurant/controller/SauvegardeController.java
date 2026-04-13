@@ -12,7 +12,7 @@ import java.util.Map;
 
 @RestController
 @RequestMapping("/api/sauvegarde")
-@CrossOrigin(origins = "http://localhost:3000")
+@CrossOrigin(origins = "https://projet-springboot.vercel.app/")
 public class SauvegardeController {
 
     @Autowired
