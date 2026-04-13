@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { api } from "../../services/api";
 import webSocketService from "../../services/websocketService";
+import SkeletonMenu from "./skeletons/SkeletonMenu";
 
 export default function GestionMenu() {
   const [plats, setPlats] = useState([]);
@@ -27,7 +28,9 @@ export default function GestionMenu() {
     imageUrl: "",
   });
 
-  // ✅ Chargement initial + WebSocket
+  const [nbEpuises, setNbEpuises] = useState(0);
+
+  // Chargement initial + WebSocket
   useEffect(() => {
     chargerDonnees();
     webSocketService.connect();
@@ -43,9 +46,17 @@ export default function GestionMenu() {
     };
   }, []);
 
+  // Mettre à jour le compteur de plats épuisés
+  useEffect(() => {
+    const count = plats.filter(
+      (plat) => plat.quantite === 0 && plat.disponible === true,
+    ).length;
+    setNbEpuises(count);
+  }, [plats]);
+
   const chargerDonnees = async () => {
+    setLoading(true);
     try {
-      setLoading(true);
       const data = await api.getMenu();
       console.log("Données reçues:", data);
       setPlats(data);
@@ -57,8 +68,7 @@ export default function GestionMenu() {
     }
   };
 
-  // ✅ Calcul DIRECT du nombre de plats épuisés (temps réel, sans état)
-  // Cette valeur est recalculée à chaque render, donc toujours à jour !
+  // Calcul direct du nombre de plats épuisés
   const nbEpuisesDirect = plats.filter(
     (plat) => plat.quantite === 0 && plat.disponible === true,
   ).length;
@@ -125,7 +135,6 @@ export default function GestionMenu() {
     }
   };
 
-  // ✅ Filtrage en temps réel (sans actualisation)
   const platsFiltres = plats.filter((plat) => {
     if (filtreCategorie !== "TOUS" && plat.categorie !== filtreCategorie) {
       return false;
@@ -166,11 +175,7 @@ export default function GestionMenu() {
         disponible: true,
         categorie: formData.categorie,
       };
-      const response = await api.createPlat(nouveauPlat);
-
-      // ✅ Mise à jour immédiate du state
-      setPlats((prevPlats) => [...prevPlats, response]);
-
+      await api.createPlat(nouveauPlat);
       setShowModal(false);
       resetForm();
       alert("Plat ajouté avec succès");
@@ -205,13 +210,7 @@ export default function GestionMenu() {
         disponible: formData.disponible,
         categorie: formData.categorie,
       };
-      const response = await api.updatePlat(platEdit.id, platModifie);
-
-      // ✅ Mise à jour immédiate du state
-      setPlats((prevPlats) =>
-        prevPlats.map((p) => (p.id === platEdit.id ? response : p)),
-      );
-
+      await api.updatePlat(platEdit.id, platModifie);
       setShowModal(false);
       setPlatEdit(null);
       resetForm();
@@ -227,10 +226,6 @@ export default function GestionMenu() {
     if (confirm(`Supprimer le plat "${nom}" ?`)) {
       try {
         await api.deletePlat(id);
-
-        // ✅ Mise à jour immédiate du state
-        setPlats((prevPlats) => prevPlats.filter((p) => p.id !== id));
-
         setShowActionMenu(null);
         alert("Plat supprimé avec succès");
       } catch (error) {
@@ -292,12 +287,9 @@ export default function GestionMenu() {
     return `${prix.toLocaleString("fr-FR")} Ar`;
   };
 
+  // ✅ Afficher le skeleton pendant le chargement
   if (loading) {
-    return (
-      <div className="flex justify-center items-center h-64">
-        <div className="text-secondary">Chargement du menu...</div>
-      </div>
-    );
+    return <SkeletonMenu />;
   }
 
   if (error) {
@@ -367,7 +359,7 @@ export default function GestionMenu() {
                       : "Boissons"}
               </button>
             ))}
-            {/* ✅ Bouton Épuisé avec BULLE EN TEMPS RÉEL (calcul direct) */}
+            {/* Bouton Épuisé avec BULLE */}
             <button
               onClick={() => {
                 setFiltreEpuise(!filtreEpuise);
@@ -380,7 +372,6 @@ export default function GestionMenu() {
               }`}
             >
               Épuisé
-              {/* ✅ BULLE : nombre de plats épuisés calculé DIRECTEMENT */}
               {nbEpuisesDirect > 0 && !filtreEpuise && (
                 <span className="absolute -top-2 -right-2 bg-red-500 text-white text-[10px] font-bold rounded-full min-w-[18px] h-[18px] flex items-center justify-center px-1 shadow-sm">
                   {nbEpuisesDirect > 99 ? "99+" : nbEpuisesDirect}

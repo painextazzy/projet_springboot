@@ -3,6 +3,7 @@ import React, { useState, useEffect, useCallback, useRef } from "react";
 import { api } from "../../services/api";
 import webSocketService from "../../services/websocketService";
 import Facture from "./Facture";
+import SkeletonCommandes from "./skeletons/SkeletonCommandes";
 
 export default function GestionCommandes() {
   const [commandes, setCommandes] = useState([]);
@@ -36,6 +37,7 @@ export default function GestionCommandes() {
   }, []);
 
   const chargerCommandes = async () => {
+    setLoading(true);
     try {
       const data = await api.getCommandes();
       setCommandes(data);
@@ -146,13 +148,7 @@ export default function GestionCommandes() {
   };
 
   if (loading) {
-    return (
-      <div className="flex justify-center items-center h-64">
-        <div className="animate-pulse text-gray-400 font-light">
-          Chargement des commandes...
-        </div>
-      </div>
-    );
+    return <SkeletonCommandes />;
   }
 
   return (

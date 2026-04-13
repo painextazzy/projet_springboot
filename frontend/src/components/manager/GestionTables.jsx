@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { api } from "../../services/api";
+import SkeletonTables from "./skeletons/SkeletonTables"; // ✅ Import corrigé
 
 export default function GestionTables() {
   const [tables, setTables] = useState([]);
@@ -34,11 +35,11 @@ export default function GestionTables() {
   };
 
   const chargerTables = async () => {
+    setLoading(true);
     try {
-      setLoading(true);
       setError("");
       const data = await api.getTables();
-      console.log("Tables chargées:", data); // Pour debug
+      console.log("Tables chargées:", data);
       setTables(data);
     } catch (err) {
       console.error("Erreur chargement:", err);
@@ -51,7 +52,6 @@ export default function GestionTables() {
 
   // Gestion des statuts (majuscules/minuscules)
   const getStatusInfo = (status) => {
-    // Convertir en minuscules pour la comparaison
     const statusLower = (status || "").toLowerCase();
 
     const statusMap = {
@@ -89,10 +89,9 @@ export default function GestionTables() {
     );
   };
 
-  // Filtrer les tables avec gestion des statuts
+  // Filtrer les tables
   const tablesFiltrees = tables.filter((table) => {
     if (filtreActif !== "TOUTES") {
-      // Convertir le statut de la table en minuscules pour comparaison
       const statusLower = (table.status || "").toLowerCase();
       const statusFilter = {
         LIBRES: "libre",
@@ -169,7 +168,6 @@ export default function GestionTables() {
 
   const handleChangerStatus = async (id, nouveauStatus) => {
     try {
-      // Envoyer en minuscules pour la base
       const statusToSend = nouveauStatus.toLowerCase();
       const response = await api.updateTableStatus(id, statusToSend);
       setTables(tables.map((t) => (t.id === id ? response : t)));
@@ -205,12 +203,9 @@ export default function GestionTables() {
     });
   };
 
+  // ✅ Afficher le skeleton pendant le chargement
   if (loading) {
-    return (
-      <div className="flex justify-center items-center h-64">
-        <div className="text-secondary">Chargement des tables...</div>
-      </div>
-    );
+    return <SkeletonTables />;
   }
 
   if (error) {
@@ -364,7 +359,7 @@ export default function GestionTables() {
 
                   {/* Menu déroulant */}
                   {showActionMenu === table.id && (
-                    <div className="absolute bottom-12 right-0 bg-white rounded-xl shadow-lg border border-outline-variant/10 overflow-hidden z-10">
+                    <div className="absolute bottom-12 right-0 bg-white rounded-xl shadow-lg border border-outline-variant/10 overflow-hidden z-10 min-w-[140px]">
                       <button
                         onClick={() => openEditModal(table)}
                         className="w-full px-4 py-2 text-left text-sm text-secondary hover:bg-surface-container-low flex items-center gap-2 transition"
@@ -375,8 +370,37 @@ export default function GestionTables() {
                         Modifier
                       </button>
                       <button
+                        onClick={() => handleChangerStatus(table.id, "libre")}
+                        className="w-full px-4 py-2 text-left text-sm text-secondary hover:bg-surface-container-low flex items-center gap-2 transition"
+                      >
+                        <span className="material-symbols-outlined text-lg">
+                          check_circle
+                        </span>
+                        Marquer libre
+                      </button>
+                      <button
+                        onClick={() => handleChangerStatus(table.id, "occupee")}
+                        className="w-full px-4 py-2 text-left text-sm text-secondary hover:bg-surface-container-low flex items-center gap-2 transition"
+                      >
+                        <span className="material-symbols-outlined text-lg">
+                          person
+                        </span>
+                        Marquer occupée
+                      </button>
+                      <button
+                        onClick={() =>
+                          handleChangerStatus(table.id, "a_nettoyer")
+                        }
+                        className="w-full px-4 py-2 text-left text-sm text-secondary hover:bg-surface-container-low flex items-center gap-2 transition"
+                      >
+                        <span className="material-symbols-outlined text-lg">
+                          cleaning
+                        </span>
+                        À nettoyer
+                      </button>
+                      <button
                         onClick={() => handleSupprimer(table.id, table.nom)}
-                        className="w-full px-4 py-2 text-left text-sm text-error hover:bg-error/5 flex items-center gap-2 transition"
+                        className="w-full px-4 py-2 text-left text-sm text-error hover:bg-error/5 flex items-center gap-2 transition border-t border-outline-variant/10"
                       >
                         <span className="material-symbols-outlined text-lg">
                           delete
@@ -475,7 +499,7 @@ export default function GestionTables() {
             <div className="flex gap-3 mt-6">
               <button
                 onClick={tableEdit ? handleModifier : handleAjouter}
-                className="flex-1 bg-primary text-on-primary py-2 rounded-xl font-semibold hover:bg-primary-container transition"
+                className="flex-1 bg-primary text-white py-2 rounded-xl font-semibold hover:bg-primary/90 transition"
               >
                 {tableEdit ? "Modifier" : "Ajouter"}
               </button>
@@ -490,7 +514,7 @@ export default function GestionTables() {
         </div>
       )}
 
-      {/* Visual Anchor - Floating decorative element */}
+      {/* Visual Anchor */}
       <div className="fixed bottom-8 right-8 pointer-events-none opacity-20">
         <div className="w-48 h-48 bg-primary rounded-full blur-[100px]"></div>
       </div>

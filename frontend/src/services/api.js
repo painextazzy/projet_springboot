@@ -87,6 +87,11 @@ export const api = {
     );
     return response.json();
   },
+  // src/services/api.js
+  getOccupiedTablesCount: async () => {
+    const response = await fetch(`${API_URL}/tables/occupied/count`);
+    return response.json();
+  },
 
   getPlatById: async (id) => {
     const response = await fetch(`${API_URL}/menu/${id}`);
