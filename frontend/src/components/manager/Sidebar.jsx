@@ -2,13 +2,12 @@ import React, { useState, useEffect } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { api } from "../../services/api";
 
-export default function Sidebar({ onLinkClick, isMobile }) {
+export default function Sidebar({ onLinkClick }) {
   const navigate = useNavigate();
   const location = useLocation();
   const [nbEpuises, setNbEpuises] = useState(0);
   const [nbCommandesEnCours, setNbCommandesEnCours] = useState(0);
 
-  // Vérifier les plats épuisés et les commandes en cours régulièrement
   useEffect(() => {
     const verifierPlats = async () => {
       try {
@@ -40,7 +39,7 @@ export default function Sidebar({ onLinkClick, isMobile }) {
     const interval = setInterval(() => {
       verifierPlats();
       verifierCommandesEnCours();
-    }, 10000); // toutes les 10 secondes
+    }, 10000);
 
     return () => clearInterval(interval);
   }, []);
@@ -64,12 +63,7 @@ export default function Sidebar({ onLinkClick, isMobile }) {
       icon: "receipt_long",
       path: "/manager/commandes",
     },
-    {
-      id: "menu",
-      label: "Menu",
-      icon: "menu_book",
-      path: "/manager/menu",
-    },
+    { id: "menu", label: "Menu", icon: "menu_book", path: "/manager/menu" },
     {
       id: "utilisateurs",
       label: "Utilisateurs",
@@ -98,9 +92,9 @@ export default function Sidebar({ onLinkClick, isMobile }) {
   };
 
   return (
-    <aside className="h-full w-64 bg-surface-container-low border-r border-outline-variant/15 flex flex-col py-6 px-4">
+    <aside className="h-full w-64 bg-surface-container-low border-r border-outline-variant/15 flex flex-col overflow-y-auto">
       {/* Logo */}
-      <div className="mb-10 px-2">
+      <div className="mb-10 px-2 pt-6">
         <h1 className="font-headline text-lg font-extrabold text-on-surface">
           Petite Bouffe
         </h1>
@@ -110,7 +104,7 @@ export default function Sidebar({ onLinkClick, isMobile }) {
       </div>
 
       {/* Navigation */}
-      <nav className="flex-1 space-y-1">
+      <nav className="flex-1 space-y-1 px-2">
         {menuItems.map((item) => (
           <button
             key={item.id}
@@ -133,14 +127,12 @@ export default function Sidebar({ onLinkClick, isMobile }) {
               {item.label}
             </span>
 
-            {/* Bulle de notification rouge sur le menu Menu (plats épuisés) */}
             {item.id === "menu" && nbEpuises > 0 && (
               <span className="absolute -top-1 -right-1 bg-red-500 text-white text-[10px] font-bold rounded-full min-w-[18px] h-[18px] flex items-center justify-center px-1 shadow-sm">
                 {nbEpuises > 99 ? "99+" : nbEpuises}
               </span>
             )}
 
-            {/* Bulle de notification orange sur le menu Commandes (commandes en cours) */}
             {item.id === "commandes" && nbCommandesEnCours > 0 && (
               <span className="absolute -top-1 -right-1 bg-orange-500 text-white text-[10px] font-bold rounded-full min-w-[18px] h-[18px] flex items-center justify-center px-1 shadow-sm">
                 {nbCommandesEnCours > 99 ? "99+" : nbCommandesEnCours}
@@ -151,8 +143,8 @@ export default function Sidebar({ onLinkClick, isMobile }) {
       </nav>
 
       {/* Version */}
-      <div className="mt-auto pt-4 border-t border-outline-variant/30">
-        <div className="px-4 py-2">
+      <div className="mt-auto pt-4 pb-6 px-2">
+        <div className="px-4 py-2 border-t border-outline-variant/30">
           <p className="text-xs text-secondary">v1.0.0</p>
         </div>
       </div>

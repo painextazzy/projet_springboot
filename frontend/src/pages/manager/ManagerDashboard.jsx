@@ -73,9 +73,9 @@ export default function ManagerDashboard() {
 
   return (
     <div className="min-h-screen bg-surface flex">
-      {/* ========== SIDEBAR (responsive) ========== */}
-      {/* Version desktop : toujours visible */}
-      <div className="hidden md:block">
+      {/* ========== SIDEBAR (fixe sans scroll) ========== */}
+      {/* Version desktop : toujours visible, fixe */}
+      <div className="hidden md:block h-screen sticky top-0">
         <Sidebar />
       </div>
 
@@ -99,10 +99,10 @@ export default function ManagerDashboard() {
       )}
 
       {/* ========== CONTENU PRINCIPAL ========== */}
-      <div className="flex-1 min-w-0">
+      <div className="flex-1 min-w-0 flex flex-col">
         {/* ========== NAVBAR ========== */}
-        <nav className="sticky top-0 h-20 bg-surface-container-low backdrop-blur-md z-30 border-b border-outline-variant/10">
-          <div className="flex justify-between items-center px-4 md:px-8 w-full h-full">
+        <nav className="sticky top-0 z-30 bg-surface-container-low backdrop-blur-md border-b border-outline-variant/10">
+          <div className="flex justify-between items-center px-4 md:px-8 py-4 w-full">
             {/* Bouton Hamburger (visible seulement sur mobile) */}
             <button
               onClick={() => setIsSidebarOpen(true)}
@@ -117,11 +117,11 @@ export default function ManagerDashboard() {
               <h1 className="text-lg font-bold text-primary">Petite Bouffe</h1>
             </div>
 
-            {/* Espace pour équilibrer sur mobile (car le bouton hamburger est à gauche) */}
+            {/* Espace vide pour équilibrer sur mobile */}
             <div className="md:hidden w-10"></div>
 
-            {/* Dropdown utilisateur */}
-            <div className="relative" ref={dropdownRef}>
+            {/* Dropdown utilisateur à droite */}
+            <div className="relative ml-auto" ref={dropdownRef}>
               <button
                 onClick={() => setIsDropdownOpen(!isDropdownOpen)}
                 className="flex items-center gap-2 text-secondary hover:text-on-surface transition-colors"
@@ -178,7 +178,7 @@ export default function ManagerDashboard() {
         </nav>
 
         {/* ========== CONTENU ========== */}
-        <main className="p-4 md:p-6">
+        <main className="flex-1 p-4 md:p-6">
           <Routes>
             <Route path="/" element={<DashboardHome />} />
             <Route path="/menu" element={<GestionMenu />} />
