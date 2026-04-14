@@ -23,6 +23,7 @@ const DashboardHome = () => {
   const [lowStockProducts, setLowStockProducts] = useState([]);
   const [serviceMetrics, setServiceMetrics] = useState({
     currentServiceTime: 0,
+    averageServiceTime: 0,
     activeOrders: 0,
   });
 
@@ -30,6 +31,7 @@ const DashboardHome = () => {
   const [hourlyData, setHourlyData] = useState([]);
   const [dailyData, setDailyData] = useState([]);
   const [monthlyData, setMonthlyData] = useState([]);
+  const [orderDurationData, setOrderDurationData] = useState([0, 0, 0, 0, 0]);
 
   const isFirstLoad = useRef(true);
 
@@ -54,10 +56,15 @@ const DashboardHome = () => {
   }, [timeFilter]);
 
   const formatDuration = useCallback((minutes) => {
-    if (minutes < 60) return `${minutes} min`;
+    // minutes est déjà un entier
+    if (minutes < 60) {
+      return `${minutes} min`;
+    }
     const heures = Math.floor(minutes / 60);
     const mins = minutes % 60;
-    if (mins === 0) return `${heures} h`;
+    if (mins === 0) {
+      return `${heures} h`;
+    }
     return `${heures} h ${mins} min`;
   }, []);
 
@@ -78,7 +85,6 @@ const DashboardHome = () => {
   const calculateOccupancyRate = useCallback((tablesData) => {
     if (!tablesData || tablesData.length === 0) return 0;
 
-    // Liste des statuts indiquant une table occupée
     const occupiedStatuses = [
       "occupe",
       "occupée",
@@ -101,17 +107,88 @@ const DashboardHome = () => {
 
     const rate = Math.round((occupiedCount / tablesData.length) * 100);
 
-    // Debug
     console.log(
       `📊 Tables: ${occupiedCount}/${tablesData.length} occupées (${rate}%)`,
     );
-    tablesData.forEach((table) => {
-      console.log(
-        `  - Table ${table.id}: ${table.nom || table.tableNom || "Sans nom"} → Statut: "${table.status}"`,
-      );
-    });
 
     return rate;
+  }, []);
+
+  // ✅ Calcul des métriques de service (temps entier)
+  const calculateServiceMetrics = useCallback((commandesData) => {
+    // 1. Filtrer les commandes PAYEES avec date de clôture
+    const closedOrders = commandesData.filter(
+      (cmd) => cmd.statut === "PAYEE" && cmd.dateCloture,
+    );
+
+    // 2. Dernière commande globale (toutes tables confondues)
+    const lastPaidOrder =
+      closedOrders.length > 0
+        ? closedOrders.sort(
+            (a, b) => new Date(b.dateCloture) - new Date(a.dateCloture),
+          )[0]
+        : null;
+
+    // 3. Calcul du temps en minutes (entier, sans virgule)
+    const lastServiceTime = lastPaidOrder
+      ? Math.floor(
+          (new Date(lastPaidOrder.dateCloture) -
+            new Date(lastPaidOrder.dateOuverture)) /
+            (1000 * 60),
+        )
+      : 0;
+
+    // 4. Calcul du temps moyen par table (entier)
+    // Grouper par tableId pour avoir la dernière commande de chaque table
+    const lastOrderByTable = {};
+    closedOrders.forEach((cmd) => {
+      const tableId = cmd.tableId;
+      const cmdDate = new Date(cmd.dateCloture);
+      if (
+        !lastOrderByTable[tableId] ||
+        cmdDate > new Date(lastOrderByTable[tableId].dateCloture)
+      ) {
+        lastOrderByTable[tableId] = cmd;
+      }
+    });
+
+    // Calculer le temps de service pour chaque dernière commande
+    const serviceTimes = Object.values(lastOrderByTable).map((cmd) => {
+      const ouverture = new Date(cmd.dateOuverture);
+      const cloture = new Date(cmd.dateCloture);
+      const diffMinutes = Math.floor((cloture - ouverture) / (1000 * 60));
+      return diffMinutes;
+    });
+
+    // Temps moyen (arrondi à l'entier)
+    const averageServiceTime =
+      serviceTimes.length > 0
+        ? Math.floor(
+            serviceTimes.reduce((a, b) => a + b, 0) / serviceTimes.length,
+          )
+        : 0;
+
+    // 5. Commandes en cours
+    const activeOrders = commandesData.filter(
+      (cmd) => cmd.statut === "EN_COURS",
+    ).length;
+
+    setServiceMetrics({
+      currentServiceTime: lastServiceTime,
+      averageServiceTime: averageServiceTime,
+      activeOrders,
+    });
+
+    // 6. Distribution des temps de service pour le graphique
+    const durationDistribution = [0, 0, 0, 0, 0]; // 0-15, 15-30, 30-45, 45-60, 60+ min
+    serviceTimes.forEach((duration) => {
+      if (duration <= 15) durationDistribution[0]++;
+      else if (duration <= 30) durationDistribution[1]++;
+      else if (duration <= 45) durationDistribution[2]++;
+      else if (duration <= 60) durationDistribution[3]++;
+      else durationDistribution[4]++;
+    });
+    setOrderDurationData(durationDistribution);
   }, []);
 
   // Calcul des données horaires
@@ -361,7 +438,7 @@ const DashboardHome = () => {
             100
           : 0;
 
-      // ✅ Calcul du taux d'occupation des tables
+      // Calcul du taux d'occupation des tables
       const occupancyRate = calculateOccupancyRate(tablesData);
 
       setStats({
@@ -402,24 +479,8 @@ const DashboardHome = () => {
         menuData.filter((item) => item.quantite > 0 && item.quantite < 5),
       );
 
-      const closedOrders = commandesData.filter(
-        (cmd) => cmd.statut === "PAYEE" && cmd.dateCloture,
-      );
-      const lastPaidOrder =
-        closedOrders.length > 0
-          ? closedOrders.sort(
-              (a, b) => new Date(b.dateCloture) - new Date(a.dateCloture),
-            )[0]
-          : null;
-      const lastServiceTime = lastPaidOrder
-        ? (new Date(lastPaidOrder.dateCloture) -
-            new Date(lastPaidOrder.dateOuverture)) /
-          (1000 * 60)
-        : 0;
-      const activeOrders = commandesData.filter(
-        (cmd) => cmd.statut === "EN_COURS",
-      ).length;
-      setServiceMetrics({ currentServiceTime: lastServiceTime, activeOrders });
+      // ✅ Calcul des métriques de service
+      calculateServiceMetrics(commandesData);
 
       calculateHourlyData(commandesData);
       calculateDailyData(commandesData);
@@ -433,6 +494,7 @@ const DashboardHome = () => {
     calculateDailyData,
     calculateMonthlyData,
     calculateOccupancyRate,
+    calculateServiceMetrics,
   ]);
 
   // Chargement initial
@@ -445,7 +507,7 @@ const DashboardHome = () => {
     fetchDashboardData();
   }, [updateDashboardData]);
 
-  // ✅ WebSocket pour mises à jour en temps réel (commandes et tables)
+  // WebSocket pour mises à jour en temps réel
   useEffect(() => {
     webSocketService.connect();
 
@@ -579,7 +641,6 @@ const DashboardHome = () => {
               </div>
             </div>
 
-            {/* ✅ Carte Tables Occupées en temps réel */}
             <div className="p-6 rounded-2xl bg-gradient-to-br from-amber-600 to-amber-700 text-white">
               <div className="flex justify-between items-start">
                 <div>
@@ -590,8 +651,7 @@ const DashboardHome = () => {
                     {stats.occupancyRate}%
                   </p>
                   <p className="text-xs text-white/50 mt-2">
-                    {Math.round((stats.occupancyRate * tables.length) / 100)} /{" "}
-                    {tables.length} tables
+                    capacité actuelle
                   </p>
                 </div>
                 <div className="w-10 h-10 rounded-xl bg-white/20 flex items-center justify-center">
@@ -600,36 +660,36 @@ const DashboardHome = () => {
                   </span>
                 </div>
               </div>
-              {/* Barre de progression */}
-              <div className="mt-4 h-2 bg-white/20 rounded-full overflow-hidden">
-                <div
-                  className="h-full bg-white rounded-full transition-all duration-500"
-                  style={{ width: `${stats.occupancyRate}%` }}
-                ></div>
-              </div>
             </div>
           </div>
 
-          {/* Service Metrics */}
+          {/* Service Metrics - Temps de service en entier */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
             <div className="p-6 rounded-2xl bg-gradient-to-br from-indigo-500 to-indigo-600 text-white">
-              <div className="flex items-center gap-3">
+              <div className="flex items-center gap-3 mb-4">
                 <div className="w-10 h-10 rounded-xl bg-white/20 flex items-center justify-center">
                   <span className="material-symbols-outlined">timer</span>
                 </div>
                 <div>
                   <p className="text-white/70 text-xs uppercase">
-                    Temps de service moyen
+                    Temps de service (dernière commande)
                   </p>
-                  <p className="text-2xl font-bold">
+                  <p className="text-3xl font-bold">
                     {formatDuration(serviceMetrics.currentServiceTime)}
                   </p>
+                  <p className="text-white/60 text-xs mt-1">
+                    Moyenne par table:{" "}
+                    {formatDuration(serviceMetrics.averageServiceTime)}
+                  </p>
                 </div>
+              </div>
+              <div className="text-white/70 text-sm">
+                Dernière commande (ouverture → clôture)
               </div>
             </div>
 
             <div className="p-6 rounded-2xl bg-gradient-to-br from-rose-500 to-rose-600 text-white">
-              <div className="flex items-center gap-3">
+              <div className="flex items-center gap-3 mb-4">
                 <div className="w-10 h-10 rounded-xl bg-white/20 flex items-center justify-center">
                   <span className="material-symbols-outlined">
                     pending_actions
@@ -639,13 +699,60 @@ const DashboardHome = () => {
                   <p className="text-white/70 text-xs uppercase">
                     Commandes en attente
                   </p>
-                  <p className="text-2xl font-bold">
+                  <p className="text-3xl font-bold">
                     {serviceMetrics.activeOrders}
                   </p>
                 </div>
               </div>
+              <div className="text-white/70 text-sm">
+                En attente de paiement
+              </div>
             </div>
           </div>
+
+          {/* Distribution des temps de service */}
+          {orderDurationData.some((val) => val > 0) && (
+            <div className="mb-8 p-6 rounded-2xl bg-surface-container-lowest border border-outline-variant/10">
+              <h4 className="text-lg font-bold font-headline text-on-surface mb-4">
+                Distribution des temps de service (minutes)
+              </h4>
+              <div className="grid grid-cols-5 gap-3">
+                {[
+                  "0-15 min",
+                  "15-30 min",
+                  "30-45 min",
+                  "45-60 min",
+                  "60+ min",
+                ].map((label, index) => {
+                  const maxValue = Math.max(...orderDurationData, 1);
+                  const height = Math.max(
+                    20,
+                    (orderDurationData[index] / maxValue) * 100,
+                  );
+                  return (
+                    <div key={index} className="text-center">
+                      <div className="h-28 flex items-end justify-center mb-2">
+                        <div
+                          className="w-full bg-primary rounded-t-lg transition-all"
+                          style={{ height: `${height}%`, minHeight: "8px" }}
+                        >
+                          {orderDurationData[index] > 0 && (
+                            <div className="text-center text-xs font-bold text-primary mt-1">
+                              {orderDurationData[index]}
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                      <p className="text-[10px] text-secondary">{label}</p>
+                    </div>
+                  );
+                })}
+              </div>
+              <div className="text-center text-[10px] text-secondary/70 mt-3">
+                Nombre de commandes par tranche de temps de service
+              </div>
+            </div>
+          )}
 
           {/* Graphique Courbe */}
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
@@ -666,10 +773,10 @@ const DashboardHome = () => {
               </div>
 
               {/* Courbe SVG */}
-              <div className="relative h-80">
+              <div className="relative h-64">
                 <svg
                   className="w-full h-full"
-                  viewBox={`0 0 ${Math.max(currentData.length * 70, 600)} 300`}
+                  viewBox={`0 0 ${Math.max(currentData.length * 70, 600)} 250`}
                   preserveAspectRatio="xMidYMid meet"
                 >
                   {/* Grille horizontale */}
@@ -677,9 +784,9 @@ const DashboardHome = () => {
                     <line
                       key={idx}
                       x1="40"
-                      y1={280 - (percent / 100) * 240}
+                      y1={230 - (percent / 100) * 200}
                       x2={Math.max(currentData.length * 70, 600) - 20}
-                      y2={280 - (percent / 100) * 240}
+                      y2={230 - (percent / 100) * 200}
                       stroke="#e5e7eb"
                       strokeWidth="1"
                       strokeDasharray="4"
@@ -691,7 +798,7 @@ const DashboardHome = () => {
                     points={currentData
                       .map(
                         (item, idx) =>
-                          `${idx * 70 + 60},${280 - (item.revenue / maxRevenue) * 240}`,
+                          `${idx * 70 + 60},${230 - (item.revenue / maxRevenue) * 200}`,
                       )
                       .join(" ")}
                     fill="none"
@@ -704,33 +811,33 @@ const DashboardHome = () => {
                   {/* Points avec valeurs au survol */}
                   {currentData.map((item, idx) => {
                     const cx = idx * 70 + 60;
-                    const cy = 280 - (item.revenue / maxRevenue) * 240;
+                    const cy = 230 - (item.revenue / maxRevenue) * 200;
                     return (
                       <g key={idx} className="group">
                         <circle
                           cx={cx}
                           cy={cy}
-                          r="6"
+                          r="5"
                           fill="#00307d"
                           stroke="white"
                           strokeWidth="2"
-                          className="cursor-pointer transition-all hover:r-8"
+                          className="cursor-pointer transition-all hover:r-7"
                         />
                         <rect
                           x={cx - 35}
-                          y={cy - 30}
+                          y={cy - 28}
                           width="70"
-                          height="24"
+                          height="22"
                           rx="4"
                           fill="#1f2937"
                           className="opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none"
                         />
                         <text
                           x={cx}
-                          y={cy - 16}
+                          y={cy - 15}
                           textAnchor="middle"
                           fill="white"
-                          fontSize="10"
+                          fontSize="9"
                           fontWeight="bold"
                           className="opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none"
                         >
@@ -743,7 +850,7 @@ const DashboardHome = () => {
                   {/* Axe Y */}
                   <text
                     x="30"
-                    y="45"
+                    y="35"
                     textAnchor="end"
                     fontSize="9"
                     fill="#9ca3af"
@@ -752,7 +859,7 @@ const DashboardHome = () => {
                   </text>
                   <text
                     x="30"
-                    y="115"
+                    y="85"
                     textAnchor="end"
                     fontSize="9"
                     fill="#9ca3af"
@@ -761,7 +868,7 @@ const DashboardHome = () => {
                   </text>
                   <text
                     x="30"
-                    y="185"
+                    y="135"
                     textAnchor="end"
                     fontSize="9"
                     fill="#9ca3af"
@@ -770,7 +877,7 @@ const DashboardHome = () => {
                   </text>
                   <text
                     x="30"
-                    y="255"
+                    y="185"
                     textAnchor="end"
                     fontSize="9"
                     fill="#9ca3af"
@@ -779,7 +886,7 @@ const DashboardHome = () => {
                   </text>
                   <text
                     x="30"
-                    y="285"
+                    y="235"
                     textAnchor="end"
                     fontSize="9"
                     fill="#9ca3af"
@@ -789,7 +896,7 @@ const DashboardHome = () => {
                 </svg>
 
                 {/* Axe X */}
-                <div className="flex justify-between mt-2 text-[10px] text-secondary px-4">
+                <div className="flex justify-between mt-2 text-[9px] text-secondary px-4">
                   {currentData.map((item, idx) => (
                     <div key={idx} className="text-center flex-1">
                       {item.label}
@@ -799,7 +906,7 @@ const DashboardHome = () => {
               </div>
 
               {/* Dernières valeurs */}
-              <div className="grid grid-cols-5 gap-2 mt-6 pt-4 border-t">
+              <div className="grid grid-cols-5 gap-2 mt-4 pt-3 border-t">
                 {currentData.slice(-5).map((item, idx) => (
                   <div
                     key={idx}
