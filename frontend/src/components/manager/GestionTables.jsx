@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { api } from "../../services/api";
-import SkeletonTables from "./skeletons/SkeletonTables"; // ✅ Import corrigé
+import SkeletonTables from "./skeletons/SkeletonTables";
 
 export default function GestionTables() {
   const [tables, setTables] = useState([]);
@@ -203,7 +203,6 @@ export default function GestionTables() {
     });
   };
 
-  // ✅ Afficher le skeleton pendant le chargement
   if (loading) {
     return <SkeletonTables />;
   }
@@ -224,36 +223,52 @@ export default function GestionTables() {
 
   return (
     <div className="flex-1 flex flex-col">
-      {/* Notification */}
+      {/* Notification Toast */}
       {notification.show && (
         <div
-          className={`fixed top-24 right-4 z-50 px-4 py-2 rounded-lg shadow-lg ${
+          className={`fixed top-20 right-4 z-50 px-4 py-3 rounded-xl shadow-lg transition-all duration-300 ${
             notification.type === "error"
               ? "bg-red-500 text-white"
               : "bg-green-500 text-white"
           }`}
         >
-          {notification.message}
+          <div className="flex items-center gap-2">
+            <span className="material-symbols-outlined text-lg">
+              {notification.type === "error" ? "error" : "check_circle"}
+            </span>
+            <span className="text-sm font-medium">{notification.message}</span>
+          </div>
         </div>
       )}
 
       {/* Content Canvas */}
-      <div className="p-8 max-w-[1600px] mx-auto w-full">
+      <div className="p-4 sm:p-6 md:p-8 max-w-[1600px] mx-auto w-full">
         {/* Page Header */}
-        <div className="flex justify-between items-end mb-8">
+        <div className="flex flex-col sm:flex-row sm:justify-between sm:items-end gap-4 mb-6 sm:mb-8">
           <div>
-            <h2 className="font-headline text-3xl font-extrabold text-on-surface tracking-tight">
+            <h2 className="font-headline text-2xl sm:text-3xl font-extrabold text-on-surface tracking-tight">
               Gestion des Tables
             </h2>
-            <p className="text-secondary mt-1">
+            <p className="text-secondary text-sm sm:text-base mt-1">
               Configurez et supervisez la disposition de votre restaurant.
             </p>
           </div>
+          <button
+            onClick={openAddModal}
+            className="flex items-center justify-center gap-2 bg-primary text-white px-4 py-2 rounded-xl hover:bg-primary/90 transition text-sm sm:text-base"
+          >
+            <span className="material-symbols-outlined text-base sm:text-lg">
+              add
+            </span>
+            <span className="hidden sm:inline">Ajouter une table</span>
+            <span className="sm:hidden">Ajouter</span>
+          </button>
         </div>
 
-        {/* Filters and Search bar */}
-        <div className="flex items-center justify-between gap-4 mb-6 flex-wrap">
-          <div className="flex gap-2 bg-surface-container-low p-1.5 rounded-2xl">
+        {/* Filters and Search bar - Responsive */}
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
+          {/* Filtres - scroll horizontal sur mobile */}
+          <div className="flex items-center gap-2 bg-surface-container-low p-1.5 rounded-2xl overflow-x-auto whitespace-nowrap">
             {[
               { id: "TOUTES", label: "Toutes" },
               { id: "LIBRES", label: "Libres" },
@@ -263,7 +278,7 @@ export default function GestionTables() {
               <button
                 key={filtre.id}
                 onClick={() => setFiltreActif(filtre.id)}
-                className={`px-5 py-2 rounded-xl transition-all text-sm ${
+                className={`px-3 sm:px-5 py-1.5 sm:py-2 rounded-xl transition-all text-xs sm:text-sm ${
                   filtreActif === filtre.id
                     ? "bg-surface-container-lowest shadow-sm text-primary font-semibold"
                     : "text-secondary hover:bg-surface-container-high font-medium"
@@ -274,8 +289,8 @@ export default function GestionTables() {
             ))}
           </div>
 
-          <div className="relative w-full max-w-sm">
-            <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-secondary text-xl">
+          <div className="relative w-full sm:max-w-sm">
+            <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-secondary text-lg sm:text-xl">
               search
             </span>
             <input
@@ -288,18 +303,18 @@ export default function GestionTables() {
           </div>
         </div>
 
-        {/* Grid Layout */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-6">
+        {/* Grid Layout - Responsive */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-4 sm:gap-6">
           {/* Carte "Ajouter une table" */}
           <button
             onClick={openAddModal}
-            className="bg-surface-container-lowest p-6 rounded-3xl border-2 border-dashed border-outline-variant/30 shadow-sm hover:border-primary/50 hover:bg-surface-container-low transition-all group flex flex-col items-center justify-center min-h-[280px] text-secondary hover:text-primary"
+            className="bg-surface-container-lowest p-4 sm:p-6 rounded-2xl sm:rounded-3xl border-2 border-dashed border-outline-variant/30 shadow-sm hover:border-primary/50 hover:bg-surface-container-low transition-all group flex flex-col items-center justify-center min-h-[240px] sm:min-h-[280px] text-secondary hover:text-primary"
           >
-            <div className="flex flex-col items-center gap-4">
-              <span className="material-symbols-outlined text-5xl">
+            <div className="flex flex-col items-center gap-3 sm:gap-4">
+              <span className="material-symbols-outlined text-4xl sm:text-5xl">
                 add_circle
               </span>
-              <span className="font-headline font-bold text-sm">
+              <span className="font-headline font-bold text-xs sm:text-sm">
                 Ajouter une table
               </span>
             </div>
@@ -311,78 +326,80 @@ export default function GestionTables() {
             return (
               <div
                 key={table.id}
-                className="bg-surface-container-lowest p-6 rounded-3xl border border-outline-variant/10 shadow-sm hover:shadow-xl transition-all group flex flex-col min-h-[280px] relative"
+                className="bg-surface-container-lowest p-4 sm:p-6 rounded-2xl sm:rounded-3xl border border-outline-variant/10 shadow-sm hover:shadow-xl transition-all group flex flex-col min-h-[240px] sm:min-h-[280px] relative"
               >
                 {/* En-tête */}
-                <div className="flex justify-between items-start mb-2">
-                  <h3 className="font-headline text-lg font-bold text-on-surface">
+                <div className="flex justify-between items-start gap-2 mb-2">
+                  <h3 className="font-headline text-base sm:text-lg font-bold text-on-surface truncate">
                     {table.nom}
                   </h3>
                   <span
-                    className={`px-3 py-1 ${statusInfo.bg} ${statusInfo.text} text-[10px] font-bold rounded-full uppercase tracking-wider`}
+                    className={`px-2 sm:px-3 py-0.5 sm:py-1 ${statusInfo.bg} ${statusInfo.text} text-[8px] sm:text-[10px] font-bold rounded-full uppercase tracking-wider whitespace-nowrap`}
                   >
                     {statusInfo.label}
                   </span>
                 </div>
 
                 {/* Capacité */}
-                <div className="flex items-center gap-2 text-secondary mb-4">
+                <div className="flex items-center gap-2 text-secondary mb-3 sm:mb-4">
                   <span className="material-symbols-outlined text-sm">
                     groups
                   </span>
-                  <span className="text-xs font-medium">
+                  <span className="text-[11px] sm:text-xs font-medium">
                     {table.capacite} personnes
                   </span>
                 </div>
 
                 {/* Icône centrale */}
-                <div className="flex-1 flex flex-col items-center justify-center py-4">
+                <div className="flex-1 flex flex-col items-center justify-center py-3 sm:py-4">
                   <span
-                    className={`material-symbols-outlined text-7xl ${statusInfo.iconColor}`}
+                    className={`material-symbols-outlined text-5xl sm:text-7xl ${statusInfo.iconColor}`}
                   >
                     {statusInfo.icon}
                   </span>
                 </div>
 
                 {/* Bouton settings avec menu */}
-                <div className="flex justify-end pt-4 relative">
+                <div className="flex justify-end pt-2 sm:pt-4 relative">
                   <button
                     onClick={() =>
                       setShowActionMenu(
                         showActionMenu === table.id ? null : table.id,
                       )
                     }
-                    className="w-10 h-10 flex items-center justify-center rounded-xl text-secondary hover:bg-surface-container-high transition-all"
+                    className="w-8 h-8 sm:w-10 sm:h-10 flex items-center justify-center rounded-xl text-secondary hover:bg-surface-container-high transition-all"
                   >
-                    <span className="material-symbols-outlined">settings</span>
+                    <span className="material-symbols-outlined text-base sm:text-lg">
+                      settings
+                    </span>
                   </button>
 
                   {/* Menu déroulant */}
                   {showActionMenu === table.id && (
-                    <div className="absolute bottom-12 right-0 bg-white rounded-xl shadow-lg border border-outline-variant/10 overflow-hidden z-10 min-w-[140px]">
+                    <div className="absolute bottom-10 sm:bottom-12 right-0 bg-white rounded-xl shadow-lg border border-outline-variant/10 overflow-hidden z-10 min-w-[130px] sm:min-w-[140px]">
                       <button
                         onClick={() => openEditModal(table)}
-                        className="w-full px-4 py-2 text-left text-sm text-secondary hover:bg-surface-container-low flex items-center gap-2 transition"
+                        className="w-full px-3 sm:px-4 py-2 text-left text-xs sm:text-sm text-secondary hover:bg-surface-container-low flex items-center gap-2 transition"
                       >
-                        <span className="material-symbols-outlined text-lg">
+                        <span className="material-symbols-outlined text-base sm:text-lg">
                           edit
                         </span>
                         Modifier
                       </button>
                       <button
                         onClick={() => handleChangerStatus(table.id, "libre")}
-                        className="w-full px-4 py-2 text-left text-sm text-secondary hover:bg-surface-container-low flex items-center gap-2 transition"
+                        className="w-full px-3 sm:px-4 py-2 text-left text-xs sm:text-sm text-secondary hover:bg-surface-container-low flex items-center gap-2 transition"
                       >
-                        <span className="material-symbols-outlined text-lg">
+                        <span className="material-symbols-outlined text-base sm:text-lg">
                           check_circle
                         </span>
                         Marquer libre
                       </button>
                       <button
                         onClick={() => handleChangerStatus(table.id, "occupee")}
-                        className="w-full px-4 py-2 text-left text-sm text-secondary hover:bg-surface-container-low flex items-center gap-2 transition"
+                        className="w-full px-3 sm:px-4 py-2 text-left text-xs sm:text-sm text-secondary hover:bg-surface-container-low flex items-center gap-2 transition"
                       >
-                        <span className="material-symbols-outlined text-lg">
+                        <span className="material-symbols-outlined text-base sm:text-lg">
                           person
                         </span>
                         Marquer occupée
@@ -391,27 +408,27 @@ export default function GestionTables() {
                         onClick={() =>
                           handleChangerStatus(table.id, "a_nettoyer")
                         }
-                        className="w-full px-4 py-2 text-left text-sm text-secondary hover:bg-surface-container-low flex items-center gap-2 transition"
+                        className="w-full px-3 sm:px-4 py-2 text-left text-xs sm:text-sm text-secondary hover:bg-surface-container-low flex items-center gap-2 transition"
                       >
-                        <span className="material-symbols-outlined text-lg">
+                        <span className="material-symbols-outlined text-base sm:text-lg">
                           cleaning
                         </span>
                         À nettoyer
                       </button>
                       <button
                         onClick={() => handleSupprimer(table.id, table.nom)}
-                        className="w-full px-4 py-2 text-left text-sm text-error hover:bg-error/5 flex items-center gap-2 transition border-t border-outline-variant/10"
+                        className="w-full px-3 sm:px-4 py-2 text-left text-xs sm:text-sm text-error hover:bg-error/5 flex items-center gap-2 transition border-t border-outline-variant/10"
                       >
-                        <span className="material-symbols-outlined text-lg">
+                        <span className="material-symbols-outlined text-base sm:text-lg">
                           delete
                         </span>
                         Supprimer
                       </button>
                       <button
                         onClick={() => setShowActionMenu(null)}
-                        className="w-full px-4 py-2 text-left text-sm text-secondary hover:bg-surface-container-low flex items-center gap-2 transition border-t border-outline-variant/10"
+                        className="w-full px-3 sm:px-4 py-2 text-left text-xs sm:text-sm text-secondary hover:bg-surface-container-low flex items-center gap-2 transition border-t border-outline-variant/10"
                       >
-                        <span className="material-symbols-outlined text-lg">
+                        <span className="material-symbols-outlined text-base sm:text-lg">
                           close
                         </span>
                         Annuler
@@ -431,12 +448,12 @@ export default function GestionTables() {
         )}
       </div>
 
-      {/* Modal Ajouter/Modifier */}
+      {/* Modal Ajouter/Modifier - Responsive */}
       {showModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
-          <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full mx-4 p-6">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+          <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full mx-4 p-5 sm:p-6">
             <div className="flex justify-between items-center mb-4">
-              <h3 className="text-xl font-bold text-on-surface">
+              <h3 className="text-lg sm:text-xl font-bold text-on-surface">
                 {tableEdit ? "Modifier la table" : "Ajouter une table"}
               </h3>
               <button
@@ -499,13 +516,13 @@ export default function GestionTables() {
             <div className="flex gap-3 mt-6">
               <button
                 onClick={tableEdit ? handleModifier : handleAjouter}
-                className="flex-1 bg-primary text-white py-2 rounded-xl font-semibold hover:bg-primary/90 transition"
+                className="flex-1 bg-primary text-white py-2 rounded-xl font-semibold hover:bg-primary/90 transition text-sm sm:text-base"
               >
                 {tableEdit ? "Modifier" : "Ajouter"}
               </button>
               <button
                 onClick={() => setShowModal(false)}
-                className="flex-1 bg-gray-200 text-gray-700 py-2 rounded-xl font-semibold hover:bg-gray-300 transition"
+                className="flex-1 bg-gray-200 text-gray-700 py-2 rounded-xl font-semibold hover:bg-gray-300 transition text-sm sm:text-base"
               >
                 Annuler
               </button>
@@ -516,7 +533,7 @@ export default function GestionTables() {
 
       {/* Visual Anchor */}
       <div className="fixed bottom-8 right-8 pointer-events-none opacity-20">
-        <div className="w-48 h-48 bg-primary rounded-full blur-[100px]"></div>
+        <div className="w-32 h-32 sm:w-48 sm:h-48 bg-primary rounded-full blur-[100px]"></div>
       </div>
     </div>
   );
