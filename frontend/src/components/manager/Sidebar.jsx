@@ -2,7 +2,7 @@ import React, { useState, useEffect } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { api } from "../../services/api";
 
-export default function Sidebar() {
+export default function Sidebar({ onLinkClick, isMobile }) {
   const navigate = useNavigate();
   const location = useLocation();
   const [nbEpuises, setNbEpuises] = useState(0);
@@ -86,11 +86,19 @@ export default function Sidebar() {
 
   const isActive = (path) => {
     if (path === "/manager" && location.pathname === "/manager") return true;
+    if (path === "/manager" && location.pathname === "/manager/") return true;
     return location.pathname === path;
   };
 
+  const handleNavigation = (path) => {
+    navigate(path);
+    if (onLinkClick) {
+      onLinkClick();
+    }
+  };
+
   return (
-    <aside className="fixed left-0 top-0 bottom-0 h-full w-64 z-40 bg-surface-container-low border-r border-outline-variant/15 flex flex-col py-6 px-4">
+    <aside className="h-full w-64 bg-surface-container-low border-r border-outline-variant/15 flex flex-col py-6 px-4">
       {/* Logo */}
       <div className="mb-10 px-2">
         <h1 className="font-headline text-lg font-extrabold text-on-surface">
@@ -106,7 +114,7 @@ export default function Sidebar() {
         {menuItems.map((item) => (
           <button
             key={item.id}
-            onClick={() => navigate(item.path)}
+            onClick={() => handleNavigation(item.path)}
             className={`
               w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-all group relative
               ${
@@ -116,7 +124,9 @@ export default function Sidebar() {
               }
             `}
           >
-            <span className="material-symbols-outlined">{item.icon}</span>
+            <span className="material-symbols-outlined text-xl">
+              {item.icon}
+            </span>
             <span
               className={`font-body text-sm tracking-wide ${isActive(item.path) ? "font-medium" : ""}`}
             >

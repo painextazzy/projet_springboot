@@ -13,9 +13,10 @@ export default function ManagerDashboard() {
   const navigate = useNavigate();
   const location = useLocation();
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const dropdownRef = useRef(null);
+  const sidebarRef = useRef(null);
 
-  // Récupérer les infos utilisateur depuis localStorage
   const user = JSON.parse(localStorage.getItem("user") || "{}");
 
   // Fermer le dropdown quand on clique en dehors
@@ -24,9 +25,29 @@ export default function ManagerDashboard() {
       if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
         setIsDropdownOpen(false);
       }
+      // Fermer le sidebar sur mobile quand on clique en dehors
+      if (
+        window.innerWidth < 768 &&
+        sidebarRef.current &&
+        !sidebarRef.current.contains(event.target) &&
+        isSidebarOpen
+      ) {
+        setIsSidebarOpen(false);
+      }
     };
     document.addEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, [isSidebarOpen]);
+
+  // Fermer le sidebar quand la fenêtre est redimensionnée
+  useEffect(() => {
+    const handleResize = () => {
+      if (window.innerWidth >= 768) {
+        setIsSidebarOpen(false);
+      }
+    };
+    window.addEventListener("resize", handleResize);
+    return () => window.removeEventListener("resize", handleResize);
   }, []);
 
   const handleLogout = () => {
@@ -35,7 +56,6 @@ export default function ManagerDashboard() {
     window.location.href = "/";
   };
 
-  // ✅ Liste des routes valides
   const validRoutes = [
     "/manager",
     "/manager/menu",
@@ -47,21 +67,51 @@ export default function ManagerDashboard() {
   const isNotFound =
     !validRoutes.includes(location.pathname) && location.pathname !== "";
 
-  // ✅ Si page 404, afficher en plein écran sans sidebar ni navbar
   if (isNotFound) {
     return <NotFound />;
   }
 
   return (
     <div className="min-h-screen bg-surface">
-      {/* ========== SIDEBAR ========== */}
-      <Sidebar />
+      {/* ========== SIDEBAR (responsive) ========== */}
+      <div
+        ref={sidebarRef}
+        className={`
+          fixed top-0 left-0 h-full z-40 transition-transform duration-300 ease-in-out
+          md:translate-x-0 md:relative md:z-0
+          ${isSidebarOpen ? "translate-x-0" : "-translate-x-full"}
+        `}
+      >
+        <Sidebar onLinkClick={() => setIsSidebarOpen(false)} />
+      </div>
+
+      {/* Overlay pour mobile quand sidebar est ouvert */}
+      {isSidebarOpen && (
+        <div
+          className="fixed inset-0 bg-black/50 z-35 md:hidden"
+          onClick={() => setIsSidebarOpen(false)}
+        />
+      )}
 
       {/* ========== NAVBAR ========== */}
-      <nav className="fixed top-0 right-0 left-64 h-20 bg-surface-container-low backdrop-blur-md z-30">
-        <div className="flex justify-end items-center px-8 w-full h-full">
-          {/* Dropdown avec icône, nom et flèche */}
-          <div className="relative" ref={dropdownRef}>
+      <nav className="fixed top-0 right-0 left-0 md:left-64 h-20 bg-surface-container-low backdrop-blur-md z-30">
+        <div className="flex justify-between items-center px-4 md:px-8 w-full h-full">
+          {/* Bouton Hamburger (visible seulement sur mobile) */}
+          <button
+            onClick={() => setIsSidebarOpen(true)}
+            className="md:hidden p-2 rounded-lg text-secondary hover:bg-surface-container-high transition-colors"
+            aria-label="Menu"
+          >
+            <span className="material-symbols-outlined text-2xl">menu</span>
+          </button>
+
+          {/* Logo / Titre mobile */}
+          <div className="md:hidden">
+            <h1 className="text-lg font-bold text-primary">Petite Bouffe</h1>
+          </div>
+
+          {/* Dropdown utilisateur */}
+          <div className="relative ml-auto" ref={dropdownRef}>
             <button
               onClick={() => setIsDropdownOpen(!isDropdownOpen)}
               className="flex items-center gap-2 text-secondary hover:text-on-surface transition-colors"
@@ -69,7 +119,7 @@ export default function ManagerDashboard() {
               <span className="material-symbols-outlined text-2xl">
                 account_circle
               </span>
-              <span className="text-sm font-medium text-on-surface">
+              <span className="text-sm font-medium text-on-surface hidden sm:inline-block">
                 {user.nom || "Manager"}
               </span>
               <span className="material-symbols-outlined text-base">
@@ -80,7 +130,6 @@ export default function ManagerDashboard() {
             {/* Dropdown Menu */}
             {isDropdownOpen && (
               <div className="absolute right-0 top-12 w-56 bg-white rounded-xl shadow-lg border border-gray-100 overflow-hidden z-50">
-                {/* En-tête avec infos utilisateur */}
                 <div className="px-4 py-3 border-b border-gray-100 bg-gray-50/50">
                   <div className="flex items-center gap-3">
                     <div className="w-10 h-10 rounded-full bg-gradient-to-br from-primary to-primary-container flex items-center justify-center text-white">
@@ -101,8 +150,6 @@ export default function ManagerDashboard() {
                     </div>
                   </div>
                 </div>
-
-                {/* Option Déconnexion */}
                 <div className="py-1">
                   <button
                     onClick={handleLogout}
@@ -121,8 +168,8 @@ export default function ManagerDashboard() {
       </nav>
 
       {/* ========== CONTENU PRINCIPAL ========== */}
-      <div className="ml-64 pt-20">
-        <main className="p-6">
+      <div className="md:ml-64 pt-20">
+        <main className="p-4 md:p-6">
           <Routes>
             <Route path="/" element={<DashboardHome />} />
             <Route path="/menu" element={<GestionMenu />} />
