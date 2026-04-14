@@ -1,30 +1,139 @@
-import React, { useState, useEffect } from "react";
+// src/components/serveur/ServeurDashboard.jsx
+import React, { useState, useEffect, useRef } from "react";
+import { useNavigate } from "react-router-dom";
 import { api } from "../../services/api";
-import SkeletonTables from "./skeletons/SkeletonTables";
+import POSModal from "../../components/serveur/POSModal";
+import SkeletonServeurDashboard from "./skeletons/SkeletonServeurDashboard";
 
-export default function GestionTables() {
+export default function ServeurDashboard() {
+  const navigate = useNavigate();
+  const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+  const dropdownRef = useRef(null);
   const [tables, setTables] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
-  const [filtreActif, setFiltreActif] = useState("TOUTES");
+  const [selectedTable, setSelectedTable] = useState(null);
+  const [showPOS, setShowPOS] = useState(false);
+  const [filtre, setFiltre] = useState("TOUTES");
   const [recherche, setRecherche] = useState("");
-  const [showModal, setShowModal] = useState(false);
-  const [tableEdit, setTableEdit] = useState(null);
-  const [showActionMenu, setShowActionMenu] = useState(null);
-  const [formData, setFormData] = useState({
-    nom: "",
-    capacite: "",
-    status: "libre",
-  });
   const [notification, setNotification] = useState({
     show: false,
     message: "",
     type: "",
   });
+  const [wsConnected, setWsConnected] = useState(false);
 
+  // Stocker les commandes en cours par table ID
+  const [commandesEnCours, setCommandesEnCours] = useState(() => {
+    const saved = localStorage.getItem("commandesEnCours");
+    if (saved) {
+      try {
+        return JSON.parse(saved);
+      } catch (e) {
+        console.error("Erreur parsing localStorage:", e);
+        return {};
+      }
+    }
+    return {};
+  });
+
+  const user = JSON.parse(localStorage.getItem("user") || "{}");
+
+  // Fermer le dropdown quand on clique en dehors
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
+        setIsDropdownOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
+
+  // Sauvegarder dans localStorage à chaque modification des commandes
+  useEffect(() => {
+    localStorage.setItem("commandesEnCours", JSON.stringify(commandesEnCours));
+  }, [commandesEnCours]);
+
+  // ✅ WebSocket pour les mises à jour en temps réel des tables
+  useEffect(() => {
+    let ws = null;
+    let reconnectTimer = null;
+
+    const connectWebSocket = () => {
+      const WS_URL =
+        import.meta.env.VITE_WS_URL ||
+        "wss://projetspringboot-production.up.railway.app/ws";
+
+      ws = new WebSocket(WS_URL);
+
+      ws.onopen = () => {
+        console.log("✅ WebSocket connecté pour les tables");
+        setWsConnected(true);
+      };
+
+      ws.onmessage = (event) => {
+        console.log("📡 Message WebSocket reçu:", event.data);
+        // Recharger les tables quand une modification est détectée
+        if (event.data === "REFRESH" || event.data === "TABLE_UPDATED") {
+          chargerTables();
+        }
+      };
+
+      ws.onerror = (error) => {
+        console.error("❌ WebSocket error:", error);
+        setWsConnected(false);
+      };
+
+      ws.onclose = () => {
+        console.log("WebSocket déconnecté, tentative de reconnexion...");
+        setWsConnected(false);
+        // Reconnexion après 5 secondes
+        reconnectTimer = setTimeout(connectWebSocket, 5000);
+      };
+    };
+
+    connectWebSocket();
+
+    return () => {
+      if (ws) {
+        ws.close();
+      }
+      if (reconnectTimer) {
+        clearTimeout(reconnectTimer);
+      }
+    };
+  }, []);
+
+  // Sauvegarder avant que la page ne se ferme
+  useEffect(() => {
+    const handleBeforeUnload = () => {
+      localStorage.setItem(
+        "commandesEnCours",
+        JSON.stringify(commandesEnCours),
+      );
+    };
+    window.addEventListener("beforeunload", handleBeforeUnload);
+    return () => {
+      window.removeEventListener("beforeunload", handleBeforeUnload);
+    };
+  }, [commandesEnCours]);
+
+  // Charger les tables au démarrage
   useEffect(() => {
     chargerTables();
+    // Rafraîchir toutes les 30 secondes (fallback si WebSocket échoue)
+    const interval = setInterval(() => {
+      chargerTables();
+    }, 30000);
+    return () => clearInterval(interval);
   }, []);
+
+  const handleLogout = () => {
+    localStorage.removeItem("user");
+    localStorage.removeItem("role");
+    window.location.href = "/";
+  };
 
   const showNotification = (message, type = "success") => {
     setNotification({ show: true, message, type });
@@ -35,14 +144,18 @@ export default function GestionTables() {
   };
 
   const chargerTables = async () => {
-    setLoading(true);
     try {
+      setLoading(true);
       setError("");
       const data = await api.getTables();
-      console.log("Tables chargées:", data);
-      setTables(data);
-    } catch (err) {
-      console.error("Erreur chargement:", err);
+      if (Array.isArray(data)) {
+        setTables(data);
+      } else {
+        setTables([]);
+        setError("Format de données invalide");
+      }
+    } catch (error) {
+      console.error("Erreur chargement tables:", error);
       setError("Impossible de charger les tables");
       showNotification("Erreur de chargement des tables", "error");
     } finally {
@@ -50,481 +163,436 @@ export default function GestionTables() {
     }
   };
 
-  // Gestion des statuts (majuscules/minuscules)
-  const getStatusInfo = (status) => {
-    const statusLower = (status || "").toLowerCase();
+  const handleTableClick = (table) => {
+    const hasCommande = commandesEnCours[table.id]?.length > 0;
+    const statutUpper = (table.status || "").toUpperCase();
 
-    const statusMap = {
-      libre: {
-        label: "Libre",
-        bg: "bg-green-100",
-        text: "text-green-700",
-        icon: "flatware",
-        iconColor: "text-green-500/40",
-      },
-      occupee: {
-        label: "Occupée",
-        bg: "bg-blue-100",
-        text: "text-blue-700",
-        icon: "person",
-        iconColor: "text-blue-500/40",
-      },
-      a_nettoyer: {
-        label: "À nettoyer",
-        bg: "bg-amber-100",
-        text: "text-amber-700",
-        icon: "auto_fix_high",
-        iconColor: "text-amber-500/40",
-      },
-    };
+    if (
+      !hasCommande &&
+      statutUpper !== "LIBRE" &&
+      statutUpper !== "A_NETTOYER"
+    ) {
+      showNotification(
+        `Table ${table.nom || table.numero} n'est pas disponible`,
+        "error",
+      );
+      return;
+    }
+    setSelectedTable(table);
+    setShowPOS(true);
+  };
 
-    return (
-      statusMap[statusLower] || {
-        label: status || "Inconnu",
-        bg: "bg-gray-100",
-        text: "text-gray-700",
-        icon: "table_restaurant",
-        iconColor: "text-gray-500/40",
-      }
+  const handleCommandeValidee = (commande, tableId) => {
+    console.log("📝 handleCommandeValidee reçu - tableId:", tableId);
+
+    // Mettre à jour le statut de la table en LIBRE
+    setTables((prevTables) =>
+      prevTables.map((t) => (t.id === tableId ? { ...t, status: "LIBRE" } : t)),
+    );
+
+    // Supprimer la commande en cours de la mémoire
+    setCommandesEnCours((prev) => {
+      const newCommandes = { ...prev };
+      delete newCommandes[tableId];
+      return newCommandes;
+    });
+
+    showNotification(
+      `Commande #${commande.id} enregistrée, table libérée`,
+      "success",
     );
   };
 
-  // Filtrer les tables
-  const tablesFiltrees = tables.filter((table) => {
-    if (filtreActif !== "TOUTES") {
-      const statusLower = (table.status || "").toLowerCase();
-      const statusFilter = {
-        LIBRES: "libre",
-        OCCUPEES: "occupee",
-        A_NETTOYER: "a_nettoyer",
-      }[filtreActif];
-      if (statusFilter && statusLower !== statusFilter) return false;
+  const handleUpdatePanier = (tableId, panier) => {
+    setCommandesEnCours((prev) => ({
+      ...prev,
+      [tableId]: panier,
+    }));
+  };
+
+  const handleClosePOS = () => {
+    setShowPOS(false);
+    setSelectedTable(null);
+  };
+
+  const getPanierForTable = (tableId) => {
+    return commandesEnCours[tableId] || [];
+  };
+
+  const getTableStatus = (table) => {
+    const hasCommande = commandesEnCours[table.id]?.length > 0;
+    if (hasCommande) return "COMMANDE_EN_COURS";
+    return (table.status || "").toUpperCase();
+  };
+
+  const getStatutClass = (status) => {
+    switch (status) {
+      case "LIBRE":
+        return {
+          bg: "bg-emerald-50",
+          text: "text-emerald-600",
+          label: "Disponible",
+          btnBg: "bg-emerald-500 hover:bg-emerald-600",
+          btnText: "text-white",
+          iconBg: "bg-slate-50",
+          iconColor: "text-slate-400",
+          icon: "table_bar",
+          arrowColor: "text-white",
+        };
+      case "OCCUPEE":
+        return {
+          bg: "bg-blue-50",
+          text: "text-blue-600",
+          label: "Occupée",
+          btnBg: "bg-blue-600 hover:bg-blue-700",
+          btnText: "text-white",
+          iconBg: "bg-blue-50",
+          iconColor: "text-blue-500",
+          icon: "table_restaurant",
+          arrowColor: "text-white",
+        };
+      case "A_NETTOYER":
+        return {
+          bg: "bg-amber-50",
+          text: "text-amber-600",
+          label: "À nettoyer",
+          btnBg: "bg-emerald-500 hover:bg-emerald-600",
+          btnText: "text-white",
+          iconBg: "bg-slate-50",
+          iconColor: "text-slate-400",
+          icon: "cleaning",
+          arrowColor: "text-white",
+        };
+      case "COMMANDE_EN_COURS":
+        return {
+          bg: "bg-orange-50",
+          text: "text-orange-600",
+          label: "Commande en cours",
+          btnBg: "bg-orange-500 hover:bg-orange-600",
+          btnText: "text-white",
+          iconBg: "bg-orange-50",
+          iconColor: "text-orange-500",
+          icon: "receipt",
+          arrowColor: "text-white",
+        };
+      default:
+        return {
+          bg: "bg-gray-100",
+          text: "text-gray-600",
+          label: status || "Inconnu",
+          btnBg: "bg-gray-500 hover:bg-gray-600",
+          btnText: "text-white",
+          iconBg: "bg-gray-100",
+          iconColor: "text-gray-400",
+          icon: "table_restaurant",
+          arrowColor: "text-white",
+        };
     }
-    if (recherche && !table.nom.toLowerCase().includes(recherche.toLowerCase()))
+  };
+
+  const tablesFiltrees = tables.filter((table) => {
+    if (!table) return false;
+    const statutUpper = getTableStatus(table);
+    if (filtre === "DISPONIBLES" && statutUpper !== "LIBRE") return false;
+    if (
+      filtre === "OCCUPEES" &&
+      statutUpper !== "OCCUPEE" &&
+      statutUpper !== "COMMANDE_EN_COURS"
+    )
       return false;
+    if (filtre === "A_NETTOYER" && statutUpper !== "A_NETTOYER") return false;
+    if (recherche) {
+      const searchLower = recherche.toLowerCase();
+      const nomMatch = (table.nom || "").toLowerCase().includes(searchLower);
+      const capaciteMatch = table.capacite?.toString().includes(searchLower);
+      if (!nomMatch && !capaciteMatch) return false;
+    }
     return true;
   });
 
-  const handleAjouter = async () => {
-    if (!formData.nom || !formData.capacite) {
-      showNotification("Veuillez remplir tous les champs", "error");
-      return;
-    }
-
-    try {
-      const nouvelleTable = {
-        nom: formData.nom,
-        capacite: parseInt(formData.capacite),
-        status: formData.status,
-      };
-      const response = await api.createTable(nouvelleTable);
-      setTables([...tables, response]);
-      setShowModal(false);
-      resetForm();
-      showNotification("Table ajoutée avec succès", "success");
-    } catch (error) {
-      console.error("Erreur ajout:", error);
-      showNotification("Erreur lors de l'ajout", "error");
-    }
-  };
-
-  const handleModifier = async () => {
-    if (!formData.nom || !formData.capacite) {
-      showNotification("Veuillez remplir tous les champs", "error");
-      return;
-    }
-
-    try {
-      const tableModifiee = {
-        nom: formData.nom,
-        capacite: parseInt(formData.capacite),
-        status: formData.status,
-      };
-      const response = await api.updateTable(tableEdit.id, tableModifiee);
-      setTables(tables.map((t) => (t.id === tableEdit.id ? response : t)));
-      setShowModal(false);
-      setTableEdit(null);
-      resetForm();
-      showNotification("Table modifiée avec succès", "success");
-    } catch (error) {
-      console.error("Erreur modification:", error);
-      showNotification("Erreur lors de la modification", "error");
-    }
-  };
-
-  const handleSupprimer = async (id, nom) => {
-    if (confirm(`Supprimer la table "${nom}" ?`)) {
-      try {
-        await api.deleteTable(id);
-        setTables(tables.filter((t) => t.id !== id));
-        setShowActionMenu(null);
-        showNotification("Table supprimée avec succès", "success");
-      } catch (error) {
-        console.error("Erreur suppression:", error);
-        showNotification("Erreur lors de la suppression", "error");
+  const countByStatus = (status) => {
+    return tables.filter((t) => {
+      const tableStatus = getTableStatus(t);
+      if (status === "OCCUPEES") {
+        return tableStatus === "OCCUPEE" || tableStatus === "COMMANDE_EN_COURS";
       }
-    }
-  };
-
-  const handleChangerStatus = async (id, nouveauStatus) => {
-    try {
-      const statusToSend = nouveauStatus.toLowerCase();
-      const response = await api.updateTableStatus(id, statusToSend);
-      setTables(tables.map((t) => (t.id === id ? response : t)));
-      showNotification("Statut modifié avec succès", "success");
-    } catch (error) {
-      console.error("Erreur changement status:", error);
-      showNotification("Erreur lors du changement de statut", "error");
-    }
-  };
-
-  const openEditModal = (table) => {
-    setTableEdit(table);
-    setFormData({
-      nom: table.nom,
-      capacite: table.capacite,
-      status: table.status,
-    });
-    setShowModal(true);
-    setShowActionMenu(null);
-  };
-
-  const openAddModal = () => {
-    setTableEdit(null);
-    resetForm();
-    setShowModal(true);
-  };
-
-  const resetForm = () => {
-    setFormData({
-      nom: "",
-      capacite: "",
-      status: "libre",
-    });
+      return tableStatus === status;
+    }).length;
   };
 
   if (loading) {
-    return <SkeletonTables />;
-  }
-
-  if (error) {
-    return (
-      <div className="text-center py-12">
-        <p className="text-red-500">{error}</p>
-        <button
-          onClick={chargerTables}
-          className="mt-4 bg-primary text-white px-4 py-2 rounded-lg"
-        >
-          Réessayer
-        </button>
-      </div>
-    );
+    return <SkeletonServeurDashboard />;
   }
 
   return (
-    <div className="flex-1 flex flex-col">
-      {/* Notification Toast */}
-      {notification.show && (
+    <div className="min-h-screen bg-surface">
+      {/* Indicateur WebSocket */}
+      <div className="fixed bottom-4 right-4 z-50 flex items-center gap-2">
         <div
-          className={`fixed top-20 right-4 z-50 px-4 py-3 rounded-xl shadow-lg transition-all duration-300 ${
-            notification.type === "error"
-              ? "bg-red-500 text-white"
-              : "bg-green-500 text-white"
-          }`}
-        >
-          <div className="flex items-center gap-2">
-            <span className="material-symbols-outlined text-lg">
-              {notification.type === "error" ? "error" : "check_circle"}
-            </span>
-            <span className="text-sm font-medium">{notification.message}</span>
+          className={`w-2 h-2 rounded-full ${wsConnected ? "bg-green-500 animate-pulse" : "bg-red-500"}`}
+        ></div>
+        <span className="text-xs text-gray-400">
+          {wsConnected ? "Temps réel actif" : "Reconnexion..."}
+        </span>
+      </div>
+
+      {/* ========== NAVBAR ========== */}
+      <nav className="fixed top-0 right-0 left-0 h-20 bg-surface-container-low backdrop-blur-md z-30 border-b border-outline-variant/10">
+        <div className="flex justify-end items-center px-8 w-full h-full">
+          <div className="relative" ref={dropdownRef}>
+            <button
+              onClick={() => setIsDropdownOpen(!isDropdownOpen)}
+              className="flex items-center gap-2 text-secondary hover:text-on-surface transition-colors"
+            >
+              <span className="material-symbols-outlined text-2xl">
+                account_circle
+              </span>
+              <span className="text-sm font-medium text-on-surface">
+                {user.nom || "Serveur"}
+              </span>
+              <span className="material-symbols-outlined text-base">
+                {isDropdownOpen ? "expand_less" : "expand_more"}
+              </span>
+            </button>
+
+            {isDropdownOpen && (
+              <div className="absolute right-0 top-12 w-56 bg-white rounded-xl shadow-lg border border-gray-100 overflow-hidden z-50">
+                <div className="px-4 py-3 border-b border-gray-100 bg-gray-50/50">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-full bg-gradient-to-br from-primary to-primary-dark flex items-center justify-center text-white">
+                      <span className="material-symbols-outlined text-lg">
+                        person
+                      </span>
+                    </div>
+                    <div>
+                      <p className="text-sm font-semibold text-on-surface">
+                        {user.nom || "Serveur"}
+                      </p>
+                      <p className="text-xs text-secondary">
+                        {user.email || "serveur@petitebouffe.com"}
+                      </p>
+                      <p className="text-xs text-primary capitalize mt-0.5">
+                        {user.role || "serveur"}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+                <div className="py-1">
+                  <button
+                    onClick={handleLogout}
+                    className="w-full px-4 py-2.5 text-left text-sm text-error hover:bg-error-container/20 transition-colors flex items-center gap-3"
+                  >
+                    <span className="material-symbols-outlined text-error text-lg">
+                      logout
+                    </span>
+                    Déconnexion
+                  </button>
+                </div>
+              </div>
+            )}
           </div>
         </div>
-      )}
+      </nav>
 
-      {/* Content Canvas */}
-      <div className="p-4 sm:p-6 md:p-8 max-w-[1600px] mx-auto w-full">
-        {/* Page Header */}
-        <div className="flex flex-col sm:flex-row sm:justify-between sm:items-end gap-4 mb-6 sm:mb-8">
-          <div>
-            <h2 className="font-headline text-2xl sm:text-3xl font-extrabold text-on-surface tracking-tight">
-              Gestion des Tables
-            </h2>
-            <p className="text-secondary text-sm sm:text-base mt-1">
-              Configurez et supervisez la disposition de votre restaurant.
-            </p>
-          </div>
+      {/* ========== MAIN CONTENT ========== */}
+      <main className="pt-24 pb-20 px-8 max-w-7xl mx-auto">
+        {/* Title Section */}
+        <div className="mb-12">
+          <h1 className="text-4xl font-extrabold text-primary mb-2 tracking-tight">
+            Aperçu des Tables
+          </h1>
+          <p className="text-secondary font-medium">
+            Gérez le plan de salle et la disponibilité en temps réel.
+          </p>
         </div>
 
-        {/* Filters and Search bar - Responsive */}
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
-          {/* Filtres - scroll horizontal sur mobile */}
-          <div className="flex items-center gap-2 bg-surface-container-low p-1.5 rounded-2xl overflow-x-auto whitespace-nowrap">
-            {[
-              { id: "TOUTES", label: "Toutes" },
-              { id: "LIBRES", label: "Libres" },
-              { id: "OCCUPEES", label: "Occupées" },
-              { id: "A_NETTOYER", label: "À nettoyer" },
-            ].map((filtre) => (
-              <button
-                key={filtre.id}
-                onClick={() => setFiltreActif(filtre.id)}
-                className={`px-3 sm:px-5 py-1.5 sm:py-2 rounded-xl transition-all text-xs sm:text-sm ${
-                  filtreActif === filtre.id
-                    ? "bg-surface-container-lowest shadow-sm text-primary font-semibold"
-                    : "text-secondary hover:bg-surface-container-high font-medium"
-                }`}
-              >
-                {filtre.label}
-              </button>
-            ))}
+        {/* Notification */}
+        {notification.show && (
+          <div
+            className={`fixed top-24 right-4 z-50 px-4 py-3 rounded-xl shadow-lg transition-all duration-300 ${
+              notification.type === "error"
+                ? "bg-red-500 text-white"
+                : "bg-emerald-500 text-white"
+            }`}
+          >
+            {notification.message}
+          </div>
+        )}
+
+        {/* Filter & Search Bar */}
+        <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6 mb-12">
+          <div className="flex items-center p-1 bg-slate-100/50 rounded-2xl w-fit">
+            <button
+              onClick={() => setFiltre("TOUTES")}
+              className={`px-6 py-2.5 text-sm font-semibold rounded-xl transition-all ${
+                filtre === "TOUTES"
+                  ? "bg-white shadow-sm text-primary"
+                  : "text-secondary hover:text-primary"
+              }`}
+            >
+              Toutes les tables ({tables.length})
+            </button>
+            <button
+              onClick={() => setFiltre("DISPONIBLES")}
+              className={`px-6 py-2.5 text-sm font-medium rounded-xl transition-all ${
+                filtre === "DISPONIBLES"
+                  ? "bg-white shadow-sm text-primary"
+                  : "text-secondary hover:text-primary"
+              }`}
+            >
+              Disponibles ({countByStatus("LIBRE")})
+            </button>
+            <button
+              onClick={() => setFiltre("OCCUPEES")}
+              className={`px-6 py-2.5 text-sm font-medium rounded-xl transition-all ${
+                filtre === "OCCUPEES"
+                  ? "bg-white shadow-sm text-primary"
+                  : "text-secondary hover:text-primary"
+              }`}
+            >
+              Occupées ({countByStatus("OCCUPEES")})
+            </button>
+            <button
+              onClick={() => setFiltre("A_NETTOYER")}
+              className={`px-6 py-2.5 text-sm font-medium rounded-xl transition-all ${
+                filtre === "A_NETTOYER"
+                  ? "bg-white shadow-sm text-primary"
+                  : "text-secondary hover:text-primary"
+              }`}
+            >
+              À nettoyer ({countByStatus("A_NETTOYER")})
+            </button>
           </div>
 
-          <div className="relative w-full sm:max-w-sm">
-            <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-secondary text-lg sm:text-xl">
+          <div className="relative w-full lg:w-80 group">
+            <span className="material-symbols-outlined absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-primary transition-colors">
               search
             </span>
             <input
               type="text"
               value={recherche}
               onChange={(e) => setRecherche(e.target.value)}
-              className="w-full bg-surface-container-lowest border border-outline-variant/30 rounded-xl py-2 pl-10 pr-4 text-sm focus:ring-2 focus:ring-primary/20 transition-all outline-none"
+              className="w-full pl-12 pr-4 py-3 bg-slate-100/50 border-none rounded-2xl focus:ring-2 focus:ring-primary/10 focus:bg-white transition-all text-sm outline-none placeholder:text-slate-400"
               placeholder="Rechercher une table..."
             />
           </div>
         </div>
 
-        {/* Grid Layout - Responsive */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-4 sm:gap-6">
-          {/* Carte "Ajouter une table" */}
-          <button
-            onClick={openAddModal}
-            className="bg-surface-container-lowest p-4 sm:p-6 rounded-2xl sm:rounded-3xl border-2 border-dashed border-outline-variant/30 shadow-sm hover:border-primary/50 hover:bg-surface-container-low transition-all group flex flex-col items-center justify-center min-h-[240px] sm:min-h-[280px] text-secondary hover:text-primary"
-          >
-            <div className="flex flex-col items-center gap-3 sm:gap-4">
-              <span className="material-symbols-outlined text-4xl sm:text-5xl">
-                add_circle
-              </span>
-              <span className="font-headline font-bold text-xs sm:text-sm">
-                Ajouter une table
-              </span>
-            </div>
-          </button>
-
-          {/* Cartes des tables existantes */}
-          {tablesFiltrees.map((table) => {
-            const statusInfo = getStatusInfo(table.status);
-            return (
-              <div
-                key={table.id}
-                className="bg-surface-container-lowest p-4 sm:p-6 rounded-2xl sm:rounded-3xl border border-outline-variant/10 shadow-sm hover:shadow-xl transition-all group flex flex-col min-h-[240px] sm:min-h-[280px] relative"
-              >
-                {/* En-tête */}
-                <div className="flex justify-between items-start gap-2 mb-2">
-                  <h3 className="font-headline text-base sm:text-lg font-bold text-on-surface truncate">
-                    {table.nom}
-                  </h3>
-                  <span
-                    className={`px-2 sm:px-3 py-0.5 sm:py-1 ${statusInfo.bg} ${statusInfo.text} text-[8px] sm:text-[10px] font-bold rounded-full uppercase tracking-wider whitespace-nowrap`}
-                  >
-                    {statusInfo.label}
-                  </span>
-                </div>
-
-                {/* Capacité */}
-                <div className="flex items-center gap-2 text-secondary mb-3 sm:mb-4">
-                  <span className="material-symbols-outlined text-sm">
-                    groups
-                  </span>
-                  <span className="text-[11px] sm:text-xs font-medium">
-                    {table.capacite} personnes
-                  </span>
-                </div>
-
-                {/* Icône centrale */}
-                <div className="flex-1 flex flex-col items-center justify-center py-3 sm:py-4">
-                  <span
-                    className={`material-symbols-outlined text-5xl sm:text-7xl ${statusInfo.iconColor}`}
-                  >
-                    {statusInfo.icon}
-                  </span>
-                </div>
-
-                {/* Bouton settings avec menu */}
-                <div className="flex justify-end pt-2 sm:pt-4 relative">
-                  <button
-                    onClick={() =>
-                      setShowActionMenu(
-                        showActionMenu === table.id ? null : table.id,
-                      )
-                    }
-                    className="w-8 h-8 sm:w-10 sm:h-10 flex items-center justify-center rounded-xl text-secondary hover:bg-surface-container-high transition-all"
-                  >
-                    <span className="material-symbols-outlined text-base sm:text-lg">
-                      settings
-                    </span>
-                  </button>
-
-                  {/* Menu déroulant */}
-                  {showActionMenu === table.id && (
-                    <div className="absolute bottom-10 sm:bottom-12 right-0 bg-white rounded-xl shadow-lg border border-outline-variant/10 overflow-hidden z-10 min-w-[130px] sm:min-w-[140px]">
-                      <button
-                        onClick={() => openEditModal(table)}
-                        className="w-full px-3 sm:px-4 py-2 text-left text-xs sm:text-sm text-secondary hover:bg-surface-container-low flex items-center gap-2 transition"
-                      >
-                        <span className="material-symbols-outlined text-base sm:text-lg">
-                          edit
-                        </span>
-                        Modifier
-                      </button>
-                      <button
-                        onClick={() => handleChangerStatus(table.id, "libre")}
-                        className="w-full px-3 sm:px-4 py-2 text-left text-xs sm:text-sm text-secondary hover:bg-surface-container-low flex items-center gap-2 transition"
-                      >
-                        <span className="material-symbols-outlined text-base sm:text-lg">
-                          check_circle
-                        </span>
-                        Marquer libre
-                      </button>
-                      <button
-                        onClick={() => handleChangerStatus(table.id, "occupee")}
-                        className="w-full px-3 sm:px-4 py-2 text-left text-xs sm:text-sm text-secondary hover:bg-surface-container-low flex items-center gap-2 transition"
-                      >
-                        <span className="material-symbols-outlined text-base sm:text-lg">
-                          person
-                        </span>
-                        Marquer occupée
-                      </button>
-                      <button
-                        onClick={() =>
-                          handleChangerStatus(table.id, "a_nettoyer")
-                        }
-                        className="w-full px-3 sm:px-4 py-2 text-left text-xs sm:text-sm text-secondary hover:bg-surface-container-low flex items-center gap-2 transition"
-                      >
-                        <span className="material-symbols-outlined text-base sm:text-lg">
-                          cleaning
-                        </span>
-                        À nettoyer
-                      </button>
-                      <button
-                        onClick={() => handleSupprimer(table.id, table.nom)}
-                        className="w-full px-3 sm:px-4 py-2 text-left text-xs sm:text-sm text-error hover:bg-error/5 flex items-center gap-2 transition border-t border-outline-variant/10"
-                      >
-                        <span className="material-symbols-outlined text-base sm:text-lg">
-                          delete
-                        </span>
-                        Supprimer
-                      </button>
-                      <button
-                        onClick={() => setShowActionMenu(null)}
-                        className="w-full px-3 sm:px-4 py-2 text-left text-xs sm:text-sm text-secondary hover:bg-surface-container-low flex items-center gap-2 transition border-t border-outline-variant/10"
-                      >
-                        <span className="material-symbols-outlined text-base sm:text-lg">
-                          close
-                        </span>
-                        Annuler
-                      </button>
-                    </div>
-                  )}
-                </div>
-              </div>
-            );
-          })}
-        </div>
-
-        {tablesFiltrees.length === 0 && (
+        {/* Tables Grid */}
+        {tablesFiltrees.length === 0 ? (
           <div className="text-center py-12">
             <p className="text-secondary">Aucune table trouvée</p>
           </div>
-        )}
-      </div>
+        ) : (
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-8">
+            {tablesFiltrees.map((table) => {
+              const tableStatus = getTableStatus(table);
+              const statusInfo = getStatutClass(tableStatus);
+              const hasCommande = tableStatus === "COMMANDE_EN_COURS";
+              const isOccupied = tableStatus === "OCCUPEE";
+              const isAvailable = tableStatus === "LIBRE";
+              const isToClean = tableStatus === "A_NETTOYER";
 
-      {/* Modal Ajouter/Modifier - Responsive */}
-      {showModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
-          <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full mx-4 p-5 sm:p-6">
-            <div className="flex justify-between items-center mb-4">
-              <h3 className="text-lg sm:text-xl font-bold text-on-surface">
-                {tableEdit ? "Modifier la table" : "Ajouter une table"}
-              </h3>
-              <button
-                onClick={() => setShowModal(false)}
-                className="text-gray-400 hover:text-gray-600"
-              >
-                ✕
-              </button>
-            </div>
-
-            <div className="space-y-4">
-              <div>
-                <label className="block text-sm font-medium text-secondary mb-1">
-                  Nom
-                </label>
-                <input
-                  type="text"
-                  value={formData.nom}
-                  onChange={(e) =>
-                    setFormData({ ...formData, nom: e.target.value })
-                  }
-                  className="w-full border border-outline-variant/30 rounded-xl px-4 py-2 focus:ring-2 focus:ring-primary/20 outline-none"
-                  placeholder="Ex: Table 21"
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-secondary mb-1">
-                  Capacité
-                </label>
-                <input
-                  type="number"
-                  value={formData.capacite}
-                  onChange={(e) =>
-                    setFormData({ ...formData, capacite: e.target.value })
-                  }
-                  className="w-full border border-outline-variant/30 rounded-xl px-4 py-2 focus:ring-2 focus:ring-primary/20 outline-none"
-                  placeholder="Nombre de personnes"
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-secondary mb-1">
-                  Statut
-                </label>
-                <select
-                  value={formData.status}
-                  onChange={(e) =>
-                    setFormData({ ...formData, status: e.target.value })
-                  }
-                  className="w-full border border-outline-variant/30 rounded-xl px-4 py-2 focus:ring-2 focus:ring-primary/20 outline-none"
+              return (
+                <div
+                  key={table.id}
+                  className="bg-white p-8 rounded-[2rem] shadow-premium hover:shadow-premium-hover transition-all duration-500 border border-slate-100 group"
                 >
-                  <option value="libre">Libre</option>
-                  <option value="occupee">Occupée</option>
-                  <option value="a_nettoyer">À nettoyer</option>
-                </select>
-              </div>
-            </div>
+                  <div className="flex justify-between items-start mb-8">
+                    <div
+                      className={`w-14 h-14 rounded-2xl ${statusInfo.iconBg} flex items-center justify-center ${statusInfo.iconColor}`}
+                    >
+                      <span className="material-symbols-outlined text-3xl">
+                        {statusInfo.icon}
+                      </span>
+                    </div>
+                    <span
+                      className={`px-3 py-1.5 rounded-lg text-[10px] font-bold tracking-widest uppercase ${statusInfo.bg} ${statusInfo.text}`}
+                    >
+                      {statusInfo.label}
+                    </span>
+                  </div>
 
-            <div className="flex gap-3 mt-6">
-              <button
-                onClick={tableEdit ? handleModifier : handleAjouter}
-                className="flex-1 bg-primary text-white py-2 rounded-xl font-semibold hover:bg-primary/90 transition text-sm sm:text-base"
-              >
-                {tableEdit ? "Modifier" : "Ajouter"}
-              </button>
-              <button
-                onClick={() => setShowModal(false)}
-                className="flex-1 bg-gray-200 text-gray-700 py-2 rounded-xl font-semibold hover:bg-gray-300 transition text-sm sm:text-base"
-              >
-                Annuler
-              </button>
-            </div>
+                  <div className="mb-8">
+                    <h3 className="text-2xl font-extrabold text-on-surface mb-2">
+                      {table.nom || `Table ${table.numero}`}
+                    </h3>
+                    <div className="flex items-center gap-2 text-secondary">
+                      <span className="material-symbols-outlined text-lg">
+                        groups
+                      </span>
+                      <span className="text-sm font-medium">
+                        {table.capacite}{" "}
+                        {table.capacite === 1 ? "Siège" : "Sièges"}
+                      </span>
+                    </div>
+                  </div>
+
+                  <button
+                    onClick={() => handleTableClick(table)}
+                    className={`w-full py-4 ${statusInfo.btnBg} ${statusInfo.btnText} rounded-xl font-bold text-sm flex items-center justify-center gap-2 shadow-lg transition-all active:scale-[0.98]`}
+                  >
+                    {isToClean
+                      ? "Nettoyer la table"
+                      : hasCommande
+                        ? "Reprendre la commande"
+                        : isAvailable
+                          ? "Prendre commande"
+                          : isOccupied
+                            ? "Gérer la commande"
+                            : "Voir"}
+                    <span
+                      className={`material-symbols-outlined text-sm ${statusInfo.arrowColor}`}
+                    >
+                      arrow_forward
+                    </span>
+                  </button>
+                </div>
+              );
+            })}
           </div>
-        </div>
-      )}
+        )}
 
-      {/* Visual Anchor */}
-      <div className="fixed bottom-8 right-8 pointer-events-none opacity-20">
-        <div className="w-32 h-32 sm:w-48 sm:h-48 bg-primary rounded-full blur-[100px]"></div>
-      </div>
+        {/* Footer */}
+        <footer className="w-full flex flex-col md:flex-row justify-between items-center mt-16 pt-10 border-t border-slate-100">
+          <div className="text-slate-400 font-medium text-xs tracking-wide mb-6 md:mb-0">
+            © 2024 Petite Bouffe. Tous droits réservés.
+          </div>
+          <div className="flex items-center gap-10">
+            <a
+              href="#"
+              className="text-slate-500 hover:text-primary font-medium text-xs tracking-wide transition-colors"
+            >
+              Support
+            </a>
+            <a
+              href="#"
+              className="text-slate-500 hover:text-primary font-medium text-xs tracking-wide transition-colors"
+            >
+              Confidentialité
+            </a>
+            <a
+              href="#"
+              className="text-slate-500 hover:text-primary font-medium text-xs tracking-wide transition-colors"
+            >
+              Conditions
+            </a>
+          </div>
+        </footer>
+      </main>
+
+      {/* Modal POS */}
+      {showPOS && selectedTable && (
+        <POSModal
+          table={selectedTable}
+          initialPanier={getPanierForTable(selectedTable.id)}
+          onUpdatePanier={(panier) =>
+            handleUpdatePanier(selectedTable.id, panier)
+          }
+          onClose={handleClosePOS}
+          onCommandeValidee={handleCommandeValidee}
+        />
+      )}
     </div>
   );
 }
