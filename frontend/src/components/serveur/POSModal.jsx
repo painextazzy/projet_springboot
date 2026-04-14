@@ -1,5 +1,5 @@
 // src/components/serveur/POSModal.jsx
-import React, { useState, useEffect, useRef, useCallback } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { api } from "../../services/api";
 
 // Configuration Cloudinary
@@ -21,6 +21,7 @@ export default function POSModal({
   const [quantites, setQuantites] = useState({});
   const [tableOccupee, setTableOccupee] = useState(false);
   const [confirmationOpen, setConfirmationOpen] = useState(false);
+  const [showCart, setShowCart] = useState(false);
   const [ticketId, setTicketId] = useState(Math.floor(Math.random() * 1000));
   const [notification, setNotification] = useState({
     show: false,
@@ -170,6 +171,7 @@ export default function POSModal({
 
   const confirmerCommande = async () => {
     setConfirmationOpen(false);
+    setShowCart(false);
     try {
       const commande = {
         tableId: table.id,
@@ -253,178 +255,289 @@ export default function POSModal({
         </div>
       )}
 
-      {/* App Container - Style iPhone */}
-      <div className="fixed inset-0 z-50 bg-surface-bright flex flex-col h-full max-w-md mx-auto shadow-2xl overflow-hidden">
-        {/* TopAppBar */}
-        <header className="pt-4 pb-2 px-6 flex justify-between items-center bg-surface-bright sticky top-0 z-50">
-          <div className="flex items-center gap-4">
-            <button
-              onClick={onClose}
-              className="material-symbols-outlined text-on-surface p-2 -ml-2 hover:bg-surface-container rounded-full transition-colors"
-            >
-              close
-            </button>
-            <h1 className="font-headline font-extrabold text-xl tracking-tight text-on-surface">
-              Executive POS
-            </h1>
-          </div>
-          <div className="relative">
-            <button
-              onClick={() => viderPanier()}
-              className="relative p-2 hover:bg-surface-container rounded-full transition-colors"
-            >
-              <span className="material-symbols-outlined text-on-surface">
-                shopping_basket
-              </span>
-              {panier.length > 0 && (
-                <span className="absolute -top-1 -right-1 w-5 h-5 bg-error text-white text-xs flex items-center justify-center rounded-full shadow-md font-bold">
-                  {panier.length}
-                </span>
-              )}
-            </button>
-          </div>
-        </header>
-
-        {/* Scrollable Content Area */}
-        <main className="flex-1 overflow-y-auto px-6 space-y-6 pb-32">
-          {/* Search Bar */}
-          <div className="relative mt-2">
-            <span className="material-symbols-outlined absolute left-4 top-1/2 -translate-y-1/2 text-on-surface-variant">
-              search
-            </span>
-            <input
-              ref={searchInputRef}
-              type="text"
-              value={recherche}
-              onChange={(e) => setRecherche(e.target.value)}
-              className="w-full h-14 pl-12 pr-4 rounded-2xl border-none bg-surface-container-high focus:bg-white focus:ring-2 focus:ring-primary/20 transition-all outline-none text-base placeholder:text-on-surface-variant/60"
-              placeholder="Rechercher un article..."
-            />
-          </div>
-
-          {/* Categories Horizontal Scroll */}
-          <section className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide -mx-6 px-6">
-            <button
-              onClick={() => setCategorieActive("TOUS")}
-              className={`whitespace-nowrap px-6 py-3 rounded-full text-sm font-bold transition-all ${
-                categorieActive === "TOUS"
-                  ? "bg-primary text-on-primary shadow-md shadow-primary/20"
-                  : "bg-surface-container-high text-on-surface-variant hover:bg-surface-container-highest"
-              }`}
-            >
-              Tous
-            </button>
-            {categories.map((cat) => (
+      {/* Main POS View */}
+      {!showCart ? (
+        <div className="fixed inset-0 z-50 bg-surface-bright flex flex-col h-full max-w-md mx-auto shadow-2xl overflow-hidden">
+          {/* TopAppBar */}
+          <header className="pt-4 pb-2 px-6 flex justify-between items-center bg-surface-bright sticky top-0 z-50">
+            <div className="flex items-center gap-4">
               <button
-                key={cat}
-                onClick={() => setCategorieActive(cat)}
+                onClick={onClose}
+                className="material-symbols-outlined text-on-surface p-2 -ml-2 hover:bg-surface-container rounded-full transition-colors"
+              >
+                close
+              </button>
+              <h1 className="font-headline font-extrabold text-xl tracking-tight text-on-surface">
+                Executive POS
+              </h1>
+            </div>
+          </header>
+
+          {/* Scrollable Content */}
+          <main className="flex-1 overflow-y-auto px-6 space-y-6 pb-32">
+            {/* Search Bar */}
+            <div className="relative mt-2">
+              <span className="material-symbols-outlined absolute left-4 top-1/2 -translate-y-1/2 text-on-surface-variant">
+                search
+              </span>
+              <input
+                ref={searchInputRef}
+                type="text"
+                value={recherche}
+                onChange={(e) => setRecherche(e.target.value)}
+                className="w-full h-14 pl-12 pr-4 rounded-2xl border-none bg-surface-container-high focus:bg-white focus:ring-2 focus:ring-primary/20 transition-all outline-none text-base placeholder:text-on-surface-variant/60"
+                placeholder="Rechercher un article..."
+              />
+            </div>
+
+            {/* Categories */}
+            <section className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide -mx-6 px-6">
+              <button
+                onClick={() => setCategorieActive("TOUS")}
                 className={`whitespace-nowrap px-6 py-3 rounded-full text-sm font-bold transition-all ${
-                  categorieActive === cat
+                  categorieActive === "TOUS"
                     ? "bg-primary text-on-primary shadow-md shadow-primary/20"
                     : "bg-surface-container-high text-on-surface-variant hover:bg-surface-container-highest"
                 }`}
               >
-                {getCategorieLabel(cat)}
+                Tous
               </button>
-            ))}
-          </section>
-
-          {/* Product Grid */}
-          <div className="grid grid-cols-2 gap-4 pb-4">
-            {platsFiltres.length === 0 ? (
-              <div className="col-span-2 text-center py-12 text-secondary">
-                Aucun plat trouvé
-              </div>
-            ) : (
-              platsFiltres.map((plat) => (
-                <div
-                  key={plat.id}
-                  className="bg-white rounded-3xl p-3 shadow-sm border border-surface-container-high flex flex-col gap-3 group"
+              {categories.map((cat) => (
+                <button
+                  key={cat}
+                  onClick={() => setCategorieActive(cat)}
+                  className={`whitespace-nowrap px-6 py-3 rounded-full text-sm font-bold transition-all ${
+                    categorieActive === cat
+                      ? "bg-primary text-on-primary shadow-md shadow-primary/20"
+                      : "bg-surface-container-high text-on-surface-variant hover:bg-surface-container-highest"
+                  }`}
                 >
-                  <div className="aspect-square rounded-2xl overflow-hidden bg-surface-container relative">
-                    {plat.imageUrl ? (
-                      <img
-                        src={plat.imageUrl}
-                        alt={plat.nom}
-                        className="w-full h-full object-cover"
-                        onError={(e) => {
-                          e.target.onerror = null;
-                          e.target.src =
-                            "https://placehold.co/400x300/e2e8f0/64748b?text=🍽️";
-                        }}
-                      />
-                    ) : (
-                      <div className="w-full h-full flex items-center justify-center text-4xl bg-surface-container">
-                        🍽️
+                  {getCategorieLabel(cat)}
+                </button>
+              ))}
+            </section>
+
+            {/* Product Grid */}
+            <div className="grid grid-cols-2 gap-4 pb-4">
+              {platsFiltres.length === 0 ? (
+                <div className="col-span-2 text-center py-12 text-secondary">
+                  Aucun plat trouvé
+                </div>
+              ) : (
+                platsFiltres.map((plat) => (
+                  <div
+                    key={plat.id}
+                    className="bg-white rounded-3xl p-3 shadow-sm border border-surface-container-high flex flex-col gap-3 group"
+                  >
+                    <div className="aspect-square rounded-2xl overflow-hidden bg-surface-container relative">
+                      {plat.imageUrl ? (
+                        <img
+                          src={plat.imageUrl}
+                          alt={plat.nom}
+                          className="w-full h-full object-cover"
+                          onError={(e) => {
+                            e.target.onerror = null;
+                            e.target.src =
+                              "https://placehold.co/400x300/e2e8f0/64748b?text=🍽️";
+                          }}
+                        />
+                      ) : (
+                        <div className="w-full h-full flex items-center justify-center text-4xl bg-surface-container">
+                          🍽️
+                        </div>
+                      )}
+                      <div className="absolute bottom-2 right-2 flex items-center bg-primary text-on-primary rounded-lg px-2 py-1 text-xs font-bold shadow-lg">
+                        {formatPrix(plat.prix)}
                       </div>
-                    )}
-                    <div className="absolute bottom-2 right-2 flex items-center bg-primary text-on-primary rounded-lg px-2 py-1 text-xs font-bold shadow-lg">
-                      {formatPrix(plat.prix)}
+                    </div>
+                    <div className="flex flex-col px-1">
+                      <h3 className="text-sm font-bold text-on-surface leading-tight">
+                        {plat.nom}
+                      </h3>
+                      <p className="text-[11px] text-secondary font-medium">
+                        {getCategorieLabel(plat.categorie)}
+                      </p>
+                    </div>
+                    <div className="flex justify-end px-1 mb-0.5">
+                      <span
+                        className={`text-[10px] font-medium ${plat.quantite <= 0 ? "text-error" : plat.quantite <= 5 ? "text-amber-600" : "text-secondary/70"}`}
+                      >
+                        Stock: {plat.quantite}
+                      </span>
+                    </div>
+                    <div className="flex items-center justify-between bg-surface-container-low rounded-xl p-1 mt-1">
+                      <button
+                        onClick={() => modifierQuantitePlat(plat.id, -1)}
+                        className="material-symbols-outlined text-base p-1.5 hover:bg-surface-container-high rounded-lg transition-colors text-primary"
+                      >
+                        remove
+                      </button>
+                      <span className="text-sm font-bold px-2">
+                        {quantites[plat.id] || 1}
+                      </span>
+                      <button
+                        onClick={() => ajouterAuPanier(plat)}
+                        disabled={plat.quantite <= 0}
+                        className="material-symbols-outlined text-base p-1.5 bg-primary text-on-primary rounded-lg transition-colors shadow-sm disabled:opacity-50 disabled:cursor-not-allowed"
+                      >
+                        add
+                      </button>
                     </div>
                   </div>
-                  <div className="flex flex-col px-1">
-                    <h3 className="text-sm font-bold text-on-surface leading-tight">
-                      {plat.nom}
-                    </h3>
-                    <p className="text-[11px] text-secondary font-medium">
-                      {getCategorieLabel(plat.categorie)}
-                    </p>
-                  </div>
-                  <div className="flex justify-end px-1 mb-0.5">
-                    <span
-                      className={`text-[10px] font-medium ${plat.quantite <= 0 ? "text-error" : plat.quantite <= 5 ? "text-amber-600" : "text-secondary/70"}`}
-                    >
-                      Stock: {plat.quantite}
-                    </span>
-                  </div>
-                  <div className="flex items-center justify-between bg-surface-container-low rounded-xl p-1 mt-1">
-                    <button
-                      onClick={() => modifierQuantitePlat(plat.id, -1)}
-                      className="material-symbols-outlined text-base p-1.5 hover:bg-surface-container-high rounded-lg transition-colors text-primary"
-                    >
-                      remove
-                    </button>
-                    <span className="text-sm font-bold px-2">
-                      {quantites[plat.id] || 1}
-                    </span>
-                    <button
-                      onClick={() => ajouterAuPanier(plat)}
-                      disabled={plat.quantite <= 0}
-                      className="material-symbols-outlined text-base p-1.5 bg-primary text-on-primary rounded-lg transition-colors shadow-sm disabled:opacity-50 disabled:cursor-not-allowed"
-                    >
-                      add
-                    </button>
-                  </div>
-                </div>
-              ))
-            )}
-          </div>
-        </main>
+                ))
+              )}
+            </div>
+          </main>
 
-        {/* Floating Order Summary Button */}
-        <div className="fixed bottom-0 left-1/2 -translate-x-1/2 w-full max-w-md z-[100] pointer-events-none px-6 pb-6">
-          <button
-            onClick={validerCommande}
-            disabled={panier.length === 0}
-            className="w-full pointer-events-auto bg-[#00307d] text-white py-4 rounded-2xl flex items-center justify-between px-6 shadow-2xl active:scale-95 transition-transform disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            <div className="flex items-center gap-3">
-              <span className="material-symbols-outlined text-2xl">
-                shopping_basket
-              </span>
-              <span className="font-bold">Voir le panier</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <span className="text-xl font-bold">
-                {formatPrix(calculerTotal())}
-              </span>
-              <span className="bg-white/20 rounded-full px-2 py-1 text-xs font-bold">
-                {panier.length}
-              </span>
-            </div>
-          </button>
+          {/* Floating Cart Button */}
+          <div className="fixed bottom-0 left-1/2 -translate-x-1/2 w-full max-w-md z-[100] pointer-events-none px-6 pb-6">
+            <button
+              onClick={() => setShowCart(true)}
+              disabled={panier.length === 0}
+              className="w-full pointer-events-auto bg-[#00307d] text-white py-4 rounded-2xl flex items-center justify-between px-6 shadow-2xl active:scale-95 transition-transform disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              <div className="flex items-center gap-3">
+                <span className="material-symbols-outlined text-2xl">
+                  shopping_basket
+                </span>
+                <span className="font-bold">Voir le panier</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <span className="text-xl font-bold">
+                  {formatPrix(calculerTotal())}
+                </span>
+                <span className="bg-white/20 rounded-full px-2 py-1 text-xs font-bold">
+                  {panier.length}
+                </span>
+              </div>
+            </button>
+          </div>
         </div>
-      </div>
+      ) : (
+        /* Cart View - Détail de la commande */
+        <div className="fixed inset-0 z-50 bg-background flex flex-col h-full max-w-md mx-auto shadow-2xl overflow-hidden">
+          {/* TopAppBar */}
+          <header className="bg-surface-container-low/80 backdrop-blur-md sticky top-0 z-50 h-20 w-full">
+            <div className="flex items-center justify-between px-6 w-full h-full">
+              <button
+                onClick={() => setShowCart(false)}
+                className="text-primary hover:bg-surface-container-high transition-colors p-2 rounded-full active:scale-95 duration-150"
+              >
+                <span className="material-symbols-outlined">arrow_back</span>
+              </button>
+              <h1 className="font-headline text-lg font-bold tracking-tight text-primary">
+                Votre Panier
+              </h1>
+              <div className="flex flex-col items-end">
+                <span className="font-headline text-xs uppercase tracking-widest text-secondary font-bold">
+                  Table
+                </span>
+                <span className="font-headline text-xl font-extrabold text-on-surface leading-none">
+                  {table.nom || table.numero}
+                </span>
+              </div>
+            </div>
+          </header>
+
+          <main className="flex-1 overflow-y-auto px-6 py-8 pb-32">
+            {/* Cart Items List */}
+            <div className="space-y-6">
+              {panier.length === 0 ? (
+                <div className="text-center py-12 text-secondary">
+                  <span className="material-symbols-outlined text-5xl mb-3">
+                    shopping_basket
+                  </span>
+                  <p>Votre panier est vide</p>
+                </div>
+              ) : (
+                panier.map((item) => (
+                  <div
+                    key={item.id}
+                    className="bg-surface-container-low rounded-xl p-5 flex flex-col gap-4 shadow-sm border border-outline-variant/15"
+                  >
+                    <div className="flex justify-between items-start">
+                      <div className="space-y-1">
+                        <h3 className="font-headline text-lg font-bold text-on-surface">
+                          {item.nom}
+                        </h3>
+                        <p className="text-primary font-semibold">
+                          {formatPrix(item.prix)}
+                        </p>
+                      </div>
+                      <button
+                        onClick={() => supprimerDuPanier(item.id)}
+                        className="text-error hover:bg-error/10 p-2 rounded-full transition-all active:scale-90"
+                      >
+                        <span className="material-symbols-outlined">
+                          delete
+                        </span>
+                      </button>
+                    </div>
+                    <div className="flex justify-between items-center bg-surface-container-lowest rounded-lg p-2 border border-outline-variant/10">
+                      <div className="flex items-center gap-4">
+                        <button
+                          onClick={() => modifierQuantitePanier(item.id, -1)}
+                          className="w-10 h-10 flex items-center justify-center rounded-full bg-surface-container-highest text-on-surface hover:bg-outline-variant transition-colors active:scale-95"
+                        >
+                          <span className="material-symbols-outlined">
+                            remove
+                          </span>
+                        </button>
+                        <span className="font-headline font-bold text-lg min-w-[1.5rem] text-center">
+                          {item.quantite}
+                        </span>
+                        <button
+                          onClick={() => modifierQuantitePanier(item.id, 1)}
+                          className="w-10 h-10 flex items-center justify-center rounded-full bg-primary-container text-on-primary-container hover:bg-primary transition-colors active:scale-95"
+                        >
+                          <span className="material-symbols-outlined">add</span>
+                        </button>
+                      </div>
+                      <p className="font-headline font-extrabold text-on-surface">
+                        {formatPrix(item.prix * item.quantite)}
+                      </p>
+                    </div>
+                  </div>
+                ))
+              )}
+            </div>
+
+            {/* Summary Section */}
+            {panier.length > 0 && (
+              <div className="mt-12 p-6 bg-surface-container-highest rounded-2xl border border-primary/5">
+                <div className="flex justify-between items-center mb-4">
+                  <span className="text-secondary font-medium">Sous-total</span>
+                  <span className="text-on-surface font-semibold">
+                    {formatPrix(calculerTotal())}
+                  </span>
+                </div>
+                <div className="flex justify-between items-center pt-4 border-t border-outline-variant/30">
+                  <span className="font-headline text-xl font-bold text-on-surface">
+                    Total à régler
+                  </span>
+                  <span className="font-headline text-2xl font-extrabold text-primary">
+                    {formatPrix(calculerTotal())}
+                  </span>
+                </div>
+              </div>
+            )}
+
+            {/* Checkout Action */}
+            <div className="fixed left-0 w-full px-6 flex justify-center pointer-events-none bottom-8">
+              <button
+                onClick={validerCommande}
+                disabled={panier.length === 0}
+                className="pointer-events-auto w-full max-w-md h-16 bg-gradient-to-br from-[#00307d] to-[#0045ab] text-white rounded-xl shadow-xl shadow-primary/20 flex items-center justify-center gap-3 transition-transform active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                <span className="material-symbols-outlined">receipt_long</span>
+                <span className="font-headline font-bold text-lg uppercase tracking-wider">
+                  Demander l'Addition
+                </span>
+              </button>
+            </div>
+          </main>
+        </div>
+      )}
 
       {/* Modal de confirmation */}
       {confirmationOpen && (
