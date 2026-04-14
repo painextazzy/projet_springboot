@@ -13,4 +13,7 @@ public class WebSocketService {
     public void notifyCommandeChanged() {
         messagingTemplate.convertAndSend("/topic/commandes", "REFRESH");
     }
+        public void notifyTableChanged() {
+        messagingTemplate.convertAndSend("/topic/tables", "TABLE_UPDATED");
+    }
 }

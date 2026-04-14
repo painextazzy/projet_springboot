@@ -4,6 +4,7 @@ import com.restaurant.entity.RestaurantTable;
 import com.restaurant.dto.TableDTO;
 import com.restaurant.repository.TableRepository;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.stereotype.Service;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -13,6 +14,8 @@ public class TableService {
     
     @Autowired
     private TableRepository tableRepository;
+      @Autowired
+    private WebSocketService webSocketService; 
     
     // Convertir Entity vers DTO
     private TableDTO convertToDTO(RestaurantTable table) {
@@ -56,6 +59,7 @@ public class TableService {
             table.setStatus("libre");
         }
         RestaurantTable saved = tableRepository.save(table);
+         webSocketService.notifyTableChanged();
         return convertToDTO(saved);
     }
     
@@ -67,6 +71,7 @@ public class TableService {
             existing.setCapacite(dto.getCapacite());
             existing.setStatus(dto.getStatus());
             RestaurantTable updated = tableRepository.save(existing);
+             webSocketService.notifyTableChanged();
             return convertToDTO(updated);
         }
         return null;
@@ -78,6 +83,7 @@ public class TableService {
         if (table != null) {
             table.setStatus(status);
             RestaurantTable updated = tableRepository.save(table);
+             webSocketService.notifyTableChanged();
             return convertToDTO(updated);
         }
         return null;
@@ -87,6 +93,7 @@ public class TableService {
     public boolean deleteTable(Long id) {
         if (tableRepository.existsById(id)) {
             tableRepository.deleteById(id);
+             webSocketService.notifyTableChanged();
             return true;
         }
         return false;
