@@ -2,6 +2,7 @@
 import React, { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { api } from "../../services/api";
+import webSocketService from "../../services/websocketService";
 import POSModal from "../../components/serveur/POSModal";
 import SkeletonServeurDashboard from "./skeletons/SkeletonServeurDashboard";
 
@@ -21,6 +22,7 @@ export default function ServeurDashboard() {
     message: "",
     type: "",
   });
+  const [wsConnected, setWsConnected] = useState(false);
 
   // Stocker les commandes en cours par table ID
   const [commandesEnCours, setCommandesEnCours] = useState(() => {
@@ -49,24 +51,25 @@ export default function ServeurDashboard() {
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
-  // Sauvegarder dans localStorage à chaque modification des commandes
+  // Sauvegarder dans localStorage
   useEffect(() => {
     localStorage.setItem("commandesEnCours", JSON.stringify(commandesEnCours));
   }, [commandesEnCours]);
 
-  // Sauvegarder avant que la page ne se ferme
+  // ✅ WebSocket pour les mises à jour en temps réel (tables ET commandes)
   useEffect(() => {
-    const handleBeforeUnload = () => {
-      localStorage.setItem(
-        "commandesEnCours",
-        JSON.stringify(commandesEnCours),
-      );
-    };
-    window.addEventListener("beforeunload", handleBeforeUnload);
+    webSocketService.connect();
+
+    const unsubscribe = webSocketService.subscribe(() => {
+      console.log("🔄 WebSocket: mise à jour des données");
+      chargerTables();
+    });
+
     return () => {
-      window.removeEventListener("beforeunload", handleBeforeUnload);
+      unsubscribe();
+      webSocketService.disconnect();
     };
-  }, [commandesEnCours]);
+  }, []);
 
   // Charger les tables au démarrage
   useEffect(() => {
@@ -129,12 +132,10 @@ export default function ServeurDashboard() {
   const handleCommandeValidee = (commande, tableId) => {
     console.log("📝 handleCommandeValidee reçu - tableId:", tableId);
 
-    // Mettre à jour le statut de la table en LIBRE
     setTables((prevTables) =>
       prevTables.map((t) => (t.id === tableId ? { ...t, status: "LIBRE" } : t)),
     );
 
-    // Supprimer la commande en cours de la mémoire
     setCommandesEnCours((prev) => {
       const newCommandes = { ...prev };
       delete newCommandes[tableId];
@@ -182,10 +183,6 @@ export default function ServeurDashboard() {
           iconColor: "text-slate-400",
           icon: "table_bar",
           arrowColor: "text-white",
-          cardShadow: "shadow-emerald-100/50",
-          btnShadow: "shadow-emerald-500/30",
-          badgeRadius: "rounded-full",
-          btnRadius: "rounded-2xl",
         };
       case "OCCUPEE":
         return {
@@ -198,10 +195,6 @@ export default function ServeurDashboard() {
           iconColor: "text-blue-500",
           icon: "table_restaurant",
           arrowColor: "text-white",
-          cardShadow: "shadow-blue-100/50",
-          btnShadow: "shadow-blue-600/30",
-          badgeRadius: "rounded-xl",
-          btnRadius: "rounded-xl",
         };
       case "A_NETTOYER":
         return {
@@ -214,10 +207,6 @@ export default function ServeurDashboard() {
           iconColor: "text-slate-400",
           icon: "cleaning",
           arrowColor: "text-white",
-          cardShadow: "shadow-amber-100/50",
-          btnShadow: "shadow-emerald-500/30",
-          badgeRadius: "rounded-lg",
-          btnRadius: "rounded-xl",
         };
       case "COMMANDE_EN_COURS":
         return {
@@ -230,10 +219,6 @@ export default function ServeurDashboard() {
           iconColor: "text-orange-500",
           icon: "receipt",
           arrowColor: "text-white",
-          cardShadow: "shadow-orange-100/50",
-          btnShadow: "shadow-orange-500/30",
-          badgeRadius: "rounded-2xl",
-          btnRadius: "rounded-xl",
         };
       default:
         return {
@@ -246,10 +231,6 @@ export default function ServeurDashboard() {
           iconColor: "text-gray-400",
           icon: "table_restaurant",
           arrowColor: "text-white",
-          cardShadow: "shadow-gray-100/50",
-          btnShadow: "shadow-gray-500/30",
-          badgeRadius: "rounded-md",
-          btnRadius: "rounded-lg",
         };
     }
   };
@@ -284,17 +265,27 @@ export default function ServeurDashboard() {
     }).length;
   };
 
-  // Afficher le skeleton pendant le chargement
   if (loading) {
     return <SkeletonServeurDashboard />;
   }
 
   return (
     <div className="min-h-screen bg-surface">
-      {/* ========== NAVBAR AVEC DROPDOWN ========== */}
+      {/* Indicateur WebSocket */}
+      <div className="fixed bottom-4 right-4 z-50 flex items-center gap-2">
+        <div
+          className={`w-2 h-2 rounded-full ${webSocketService.client?.connected ? "bg-green-500 animate-pulse" : "bg-red-500"}`}
+        ></div>
+        <span className="text-xs text-gray-400">
+          {webSocketService.client?.connected
+            ? "Temps réel actif"
+            : "Reconnexion..."}
+        </span>
+      </div>
+
+      {/* ========== NAVBAR ========== */}
       <nav className="fixed top-0 right-0 left-0 h-20 bg-surface-container-low backdrop-blur-md z-30 border-b border-outline-variant/10">
         <div className="flex justify-end items-center px-8 w-full h-full">
-          {/* Dropdown avec icône, nom et flèche */}
           <div className="relative" ref={dropdownRef}>
             <button
               onClick={() => setIsDropdownOpen(!isDropdownOpen)}
@@ -311,10 +302,8 @@ export default function ServeurDashboard() {
               </span>
             </button>
 
-            {/* Dropdown Menu */}
             {isDropdownOpen && (
               <div className="absolute right-0 top-12 w-56 bg-white rounded-xl shadow-lg border border-gray-100 overflow-hidden z-50">
-                {/* En-tête avec infos utilisateur */}
                 <div className="px-4 py-3 border-b border-gray-100 bg-gray-50/50">
                   <div className="flex items-center gap-3">
                     <div className="w-10 h-10 rounded-full bg-gradient-to-br from-primary to-primary-dark flex items-center justify-center text-white">
@@ -335,8 +324,6 @@ export default function ServeurDashboard() {
                     </div>
                   </div>
                 </div>
-
-                {/* Option Déconnexion */}
                 <div className="py-1">
                   <button
                     onClick={handleLogout}
@@ -441,7 +428,7 @@ export default function ServeurDashboard() {
         {/* Tables Grid */}
         {tablesFiltrees.length === 0 ? (
           <div className="text-center py-12">
-            <p className="text-secondary font-poppins">Aucune table trouvée</p>
+            <p className="text-secondary">Aucune table trouvée</p>
           </div>
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-8">
@@ -456,30 +443,28 @@ export default function ServeurDashboard() {
               return (
                 <div
                   key={table.id}
-                  className={`bg-white p-8 rounded-[2rem] shadow-xl hover:shadow-2xl transition-all duration-300 border border-slate-100 group ${statusInfo.cardShadow}`}
+                  className="bg-white p-8 rounded-[2rem] shadow-premium hover:shadow-premium-hover transition-all duration-500 border border-slate-100 group"
                 >
-                  {/* Icône et badge avec border radius personnalisé */}
                   <div className="flex justify-between items-start mb-8">
                     <div
-                      className={`w-14 h-14 rounded-2xl ${statusInfo.iconBg} flex items-center justify-center ${statusInfo.iconColor} shadow-md`}
+                      className={`w-14 h-14 rounded-2xl ${statusInfo.iconBg} flex items-center justify-center ${statusInfo.iconColor}`}
                     >
                       <span className="material-symbols-outlined text-3xl">
                         {statusInfo.icon}
                       </span>
                     </div>
                     <span
-                      className={`px-3 py-1.5 text-[10px] font-bold tracking-widest uppercase ${statusInfo.bg} ${statusInfo.text} shadow-sm ${statusInfo.badgeRadius}`}
+                      className={`px-3 py-1.5 rounded-lg text-[10px] font-bold tracking-widest uppercase ${statusInfo.bg} ${statusInfo.text}`}
                     >
                       {statusInfo.label}
                     </span>
                   </div>
 
-                  {/* Informations table */}
                   <div className="mb-8">
-                    <h3 className="text-2xl font-extrabold text-on-surface mb-2 font-poppins">
+                    <h3 className="text-2xl font-extrabold text-on-surface mb-2">
                       {table.nom || `Table ${table.numero}`}
                     </h3>
-                    <div className="flex items-center gap-2 text-secondary font-poppins">
+                    <div className="flex items-center gap-2 text-secondary">
                       <span className="material-symbols-outlined text-lg">
                         groups
                       </span>
@@ -490,10 +475,9 @@ export default function ServeurDashboard() {
                     </div>
                   </div>
 
-                  {/* Bouton avec border radius personnalisé */}
                   <button
                     onClick={() => handleTableClick(table)}
-                    className={`w-full py-4 ${statusInfo.btnBg} ${statusInfo.btnText} font-bold text-sm flex items-center justify-center gap-2 shadow-lg hover:shadow-xl transition-all active:scale-[0.98] ${statusInfo.btnRadius} ${statusInfo.btnShadow}`}
+                    className={`w-full py-4 ${statusInfo.btnBg} ${statusInfo.btnText} rounded-xl font-bold text-sm flex items-center justify-center gap-2 shadow-lg transition-all active:scale-[0.98]`}
                   >
                     {isToClean
                       ? "Nettoyer la table"
