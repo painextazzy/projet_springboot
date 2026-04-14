@@ -25,7 +25,7 @@ export default function ManagerDashboard() {
       if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
         setIsDropdownOpen(false);
       }
-      // Fermer le sidebar sur mobile quand on clique en dehors
+      // Fermer le sidebar sur mobile uniquement
       if (
         window.innerWidth < 768 &&
         sidebarRef.current &&
@@ -39,7 +39,7 @@ export default function ManagerDashboard() {
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, [isSidebarOpen]);
 
-  // Fermer le sidebar quand la fenêtre est redimensionnée
+  // Fermer le sidebar quand la fenêtre passe en mode desktop
   useEffect(() => {
     const handleResize = () => {
       if (window.innerWidth >= 768) {
@@ -72,13 +72,18 @@ export default function ManagerDashboard() {
   }
 
   return (
-    <div className="min-h-screen bg-surface">
+    <div className="min-h-screen bg-surface flex">
       {/* ========== SIDEBAR (responsive) ========== */}
+      {/* Version desktop : toujours visible */}
+      <div className="hidden md:block">
+        <Sidebar />
+      </div>
+
+      {/* Version mobile : sidebar coulissant */}
       <div
         ref={sidebarRef}
         className={`
-          fixed top-0 left-0 h-full z-40 transition-transform duration-300 ease-in-out
-          md:translate-x-0 md:relative md:z-0
+          fixed top-0 left-0 h-full z-40 transition-transform duration-300 ease-in-out md:hidden
           ${isSidebarOpen ? "translate-x-0" : "-translate-x-full"}
         `}
       >
@@ -93,82 +98,86 @@ export default function ManagerDashboard() {
         />
       )}
 
-      {/* ========== NAVBAR ========== */}
-      <nav className="fixed top-0 right-0 left-0 md:left-64 h-20 bg-surface-container-low backdrop-blur-md z-30">
-        <div className="flex justify-between items-center px-4 md:px-8 w-full h-full">
-          {/* Bouton Hamburger (visible seulement sur mobile) */}
-          <button
-            onClick={() => setIsSidebarOpen(true)}
-            className="md:hidden p-2 rounded-lg text-secondary hover:bg-surface-container-high transition-colors"
-            aria-label="Menu"
-          >
-            <span className="material-symbols-outlined text-2xl">menu</span>
-          </button>
-
-          {/* Logo / Titre mobile */}
-          <div className="md:hidden">
-            <h1 className="text-lg font-bold text-primary">Petite Bouffe</h1>
-          </div>
-
-          {/* Dropdown utilisateur */}
-          <div className="relative ml-auto" ref={dropdownRef}>
+      {/* ========== CONTENU PRINCIPAL ========== */}
+      <div className="flex-1 min-w-0">
+        {/* ========== NAVBAR ========== */}
+        <nav className="sticky top-0 h-20 bg-surface-container-low backdrop-blur-md z-30 border-b border-outline-variant/10">
+          <div className="flex justify-between items-center px-4 md:px-8 w-full h-full">
+            {/* Bouton Hamburger (visible seulement sur mobile) */}
             <button
-              onClick={() => setIsDropdownOpen(!isDropdownOpen)}
-              className="flex items-center gap-2 text-secondary hover:text-on-surface transition-colors"
+              onClick={() => setIsSidebarOpen(true)}
+              className="md:hidden p-2 rounded-lg text-secondary hover:bg-surface-container-high transition-colors"
+              aria-label="Menu"
             >
-              <span className="material-symbols-outlined text-2xl">
-                account_circle
-              </span>
-              <span className="text-sm font-medium text-on-surface hidden sm:inline-block">
-                {user.nom || "Manager"}
-              </span>
-              <span className="material-symbols-outlined text-base">
-                {isDropdownOpen ? "expand_less" : "expand_more"}
-              </span>
+              <span className="material-symbols-outlined text-2xl">menu</span>
             </button>
 
-            {/* Dropdown Menu */}
-            {isDropdownOpen && (
-              <div className="absolute right-0 top-12 w-56 bg-white rounded-xl shadow-lg border border-gray-100 overflow-hidden z-50">
-                <div className="px-4 py-3 border-b border-gray-100 bg-gray-50/50">
-                  <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-full bg-gradient-to-br from-primary to-primary-container flex items-center justify-center text-white">
-                      <span className="material-symbols-outlined text-lg">
-                        person
-                      </span>
-                    </div>
-                    <div>
-                      <p className="text-sm font-semibold text-on-surface">
-                        {user.nom || "Manager"}
-                      </p>
-                      <p className="text-xs text-secondary">
-                        {user.email || "manager@petitebouffe.com"}
-                      </p>
-                      <p className="text-xs text-primary capitalize mt-0.5">
-                        {user.role || "manager"}
-                      </p>
+            {/* Logo / Titre mobile */}
+            <div className="md:hidden">
+              <h1 className="text-lg font-bold text-primary">Petite Bouffe</h1>
+            </div>
+
+            {/* Espace pour équilibrer sur mobile (car le bouton hamburger est à gauche) */}
+            <div className="md:hidden w-10"></div>
+
+            {/* Dropdown utilisateur */}
+            <div className="relative" ref={dropdownRef}>
+              <button
+                onClick={() => setIsDropdownOpen(!isDropdownOpen)}
+                className="flex items-center gap-2 text-secondary hover:text-on-surface transition-colors"
+              >
+                <span className="material-symbols-outlined text-2xl">
+                  account_circle
+                </span>
+                <span className="text-sm font-medium text-on-surface hidden sm:inline-block">
+                  {user.nom || "Manager"}
+                </span>
+                <span className="material-symbols-outlined text-base">
+                  {isDropdownOpen ? "expand_less" : "expand_more"}
+                </span>
+              </button>
+
+              {/* Dropdown Menu */}
+              {isDropdownOpen && (
+                <div className="absolute right-0 top-12 w-56 bg-white rounded-xl shadow-lg border border-gray-100 overflow-hidden z-50">
+                  <div className="px-4 py-3 border-b border-gray-100 bg-gray-50/50">
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 rounded-full bg-gradient-to-br from-primary to-primary-container flex items-center justify-center text-white">
+                        <span className="material-symbols-outlined text-lg">
+                          person
+                        </span>
+                      </div>
+                      <div>
+                        <p className="text-sm font-semibold text-on-surface">
+                          {user.nom || "Manager"}
+                        </p>
+                        <p className="text-xs text-secondary">
+                          {user.email || "manager@petitebouffe.com"}
+                        </p>
+                        <p className="text-xs text-primary capitalize mt-0.5">
+                          {user.role || "manager"}
+                        </p>
+                      </div>
                     </div>
                   </div>
+                  <div className="py-1">
+                    <button
+                      onClick={handleLogout}
+                      className="w-full px-4 py-2.5 text-left text-sm text-error hover:bg-error-container/20 transition-colors flex items-center gap-3"
+                    >
+                      <span className="material-symbols-outlined text-error text-lg">
+                        logout
+                      </span>
+                      Déconnexion
+                    </button>
+                  </div>
                 </div>
-                <div className="py-1">
-                  <button
-                    onClick={handleLogout}
-                    className="w-full px-4 py-2.5 text-left text-sm text-error hover:bg-error-container/20 transition-colors flex items-center gap-3"
-                  >
-                    <span className="material-symbols-outlined text-error text-lg">
-                      logout
-                    </span>
-                    Déconnexion
-                  </button>
-                </div>
-              </div>
-            )}
+              )}
+            </div>
           </div>
-        </div>
-      </nav>
+        </nav>
 
-      {/* ========== CONTENU PRINCIPAL ========== */}
-      <div className="md:ml-64 pt-20">
+        {/* ========== CONTENU ========== */}
         <main className="p-4 md:p-6">
           <Routes>
             <Route path="/" element={<DashboardHome />} />
