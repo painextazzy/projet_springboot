@@ -193,6 +193,9 @@ export default function POSModal({
       }
 
       showNotification("Commande enregistrée, table libérée !", "success");
+      setTimeout(() => {
+        onClose();
+      }, 1500);
     } catch (error) {
       console.error("Erreur:", error);
       showNotification(
