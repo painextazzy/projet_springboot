@@ -24,6 +24,9 @@ const GestionUtilisateurs = () => {
     confirmPassword: "",
   });
 
+  // Récupérer l'utilisateur connecté (manager)
+  const currentUser = JSON.parse(localStorage.getItem("user") || "{}");
+
   useEffect(() => {
     const handleClickOutside = (event) => {
       if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
@@ -87,7 +90,13 @@ const GestionUtilisateurs = () => {
     }
   };
 
-  const handleDelete = async (id) => {
+  // ✅ Supprimer UNIQUEMENT les serveurs (pas les managers)
+  const handleDelete = async (id, role) => {
+    if (role === "MANAGER") {
+      alert("Impossible de supprimer un compte manager");
+      return;
+    }
+
     if (window.confirm("Supprimer cet utilisateur ?")) {
       try {
         await api.deleteUtilisateur(id);
@@ -101,6 +110,12 @@ const GestionUtilisateurs = () => {
   };
 
   const handleEdit = (user) => {
+    // Vérifier si l'utilisateur est manager et si ce n'est pas l'utilisateur connecté
+    if (user.role === "MANAGER" && user.id !== currentUser.id) {
+      alert("Vous ne pouvez pas modifier un autre manager");
+      return;
+    }
+
     setEditingUser(user);
     setFormData({
       nom: user.nom || "",
@@ -180,7 +195,7 @@ const GestionUtilisateurs = () => {
   return (
     <div className="bg-surface font-body text-on-surface min-h-screen">
       <main className="flex-grow max-w-7xl mx-auto px-6 pt-12 pb-24 w-full">
-        {/* Header - Aligné à gauche */}
+        {/* Header */}
         <header className="mb-10">
           <h1 className="font-headline text-3xl font-extrabold tracking-tight text-on-surface mb-2">
             Gestion des utilisateurs
@@ -264,7 +279,6 @@ const GestionUtilisateurs = () => {
               key={user.id}
               className="group bg-surface-container-lowest rounded-2xl shadow-[0px_20px_40px_rgba(25,28,30,0.03)] border border-outline-variant/10 hover:shadow-[0px_20px_40px_rgba(25,28,30,0.06)] transition-all duration-300 overflow-hidden relative"
             >
-              {/* Contenu centré */}
               <div className="p-6 flex flex-col items-center text-center">
                 {/* Avatar */}
                 <div className="w-20 h-20 rounded-full bg-gradient-to-br from-primary/20 to-primary/10 flex items-center justify-center mb-4">
@@ -287,46 +301,50 @@ const GestionUtilisateurs = () => {
                 <div className="mb-2">{getRoleBadge(user.role)}</div>
               </div>
 
-              {/* Actions - Icône paramètres en bas à droite */}
-              <div className="absolute bottom-3 right-3">
-                <div className="relative" ref={dropdownRef}>
-                  <button
-                    onClick={() =>
-                      setOpenDropdown(openDropdown === user.id ? null : user.id)
-                    }
-                    className="p-1.5 text-secondary hover:text-primary hover:bg-primary/10 rounded-lg transition-all"
-                    title="Actions"
-                  >
-                    <span className="material-symbols-outlined text-lg">
-                      settings
-                    </span>
-                  </button>
+              {/* Actions - Icône paramètres UNIQUEMENT pour les serveurs */}
+              {user.role !== "MANAGER" && (
+                <div className="absolute bottom-3 right-3">
+                  <div className="relative" ref={dropdownRef}>
+                    <button
+                      onClick={() =>
+                        setOpenDropdown(
+                          openDropdown === user.id ? null : user.id,
+                        )
+                      }
+                      className="p-1.5 text-secondary hover:text-primary hover:bg-primary/10 rounded-lg transition-all"
+                      title="Actions"
+                    >
+                      <span className="material-symbols-outlined text-lg">
+                        settings
+                      </span>
+                    </button>
 
-                  {/* Dropdown Menu */}
-                  {openDropdown === user.id && (
-                    <div className="absolute bottom-full right-0 mb-2 bg-surface-container-lowest rounded-lg shadow-lg border border-outline-variant/10 overflow-hidden min-w-[140px] z-10">
-                      <button
-                        onClick={() => handleEdit(user)}
-                        className="w-full px-4 py-2.5 text-left text-sm text-on-surface hover:bg-surface-container transition-colors flex items-center gap-2"
-                      >
-                        <span className="material-symbols-outlined text-lg text-primary">
-                          edit
-                        </span>
-                        Modifier
-                      </button>
-                      <button
-                        onClick={() => handleDelete(user.id)}
-                        className="w-full px-4 py-2.5 text-left text-sm text-error hover:bg-error-container/20 transition-colors flex items-center gap-2"
-                      >
-                        <span className="material-symbols-outlined text-lg text-error">
-                          delete
-                        </span>
-                        Supprimer
-                      </button>
-                    </div>
-                  )}
+                    {/* Dropdown Menu */}
+                    {openDropdown === user.id && (
+                      <div className="absolute bottom-full right-0 mb-2 bg-surface-container-lowest rounded-lg shadow-lg border border-outline-variant/10 overflow-hidden min-w-[140px] z-10">
+                        <button
+                          onClick={() => handleEdit(user)}
+                          className="w-full px-4 py-2.5 text-left text-sm text-on-surface hover:bg-surface-container transition-colors flex items-center gap-2"
+                        >
+                          <span className="material-symbols-outlined text-lg text-primary">
+                            edit
+                          </span>
+                          Modifier
+                        </button>
+                        <button
+                          onClick={() => handleDelete(user.id, user.role)}
+                          className="w-full px-4 py-2.5 text-left text-sm text-error hover:bg-error-container/20 transition-colors flex items-center gap-2"
+                        >
+                          <span className="material-symbols-outlined text-lg text-error">
+                            delete
+                          </span>
+                          Supprimer
+                        </button>
+                      </div>
+                    )}
+                  </div>
                 </div>
-              </div>
+              )}
             </div>
           ))}
         </div>
