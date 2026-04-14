@@ -13,10 +13,14 @@ class WebSocketService {
     this.client = new Client({
       webSocketFactory: () => new SockJS(WS_URL),
       onConnect: () => {
-        console.log("✅ WebSocket connecté");
+        console.log("WebSocket connecté");
         this.client.subscribe("/topic/commandes", (message) => {
-          console.log("📡 WebSocket message reçu:", message.body);
+          console.log("WebSocket message reçu:", message.body);
           this.listeners.forEach((listener) => listener());
+        });
+        this.client.subscribe("/topic/tables", (message) => {
+          console.log("📡 Message tables reçu:", message.body);
+          this.tablesListeners.forEach((listener) => listener(message.body));
         });
       },
       onDisconnect: () => {

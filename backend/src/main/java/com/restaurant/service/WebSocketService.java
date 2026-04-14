@@ -16,4 +16,8 @@ public class WebSocketService {
         public void notifyTableChanged() {
         messagingTemplate.convertAndSend("/topic/tables", "TABLE_UPDATED");
     }
+      public void notifyDataChanged() {
+        messagingTemplate.convertAndSend("/topic/commandes", "REFRESH");
+        messagingTemplate.convertAndSend("/topic/tables", "TABLE_UPDATED");
+    }
 }
