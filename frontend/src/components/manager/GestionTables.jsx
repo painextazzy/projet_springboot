@@ -253,16 +253,6 @@ export default function GestionTables() {
               Configurez et supervisez la disposition de votre restaurant.
             </p>
           </div>
-          <button
-            onClick={openAddModal}
-            className="flex items-center justify-center gap-2 bg-primary text-white px-4 py-2 rounded-xl hover:bg-primary/90 transition text-sm sm:text-base"
-          >
-            <span className="material-symbols-outlined text-base sm:text-lg">
-              add
-            </span>
-            <span className="hidden sm:inline">Ajouter une table</span>
-            <span className="sm:hidden">Ajouter</span>
-          </button>
         </div>
 
         {/* Filters and Search bar - Responsive */}
