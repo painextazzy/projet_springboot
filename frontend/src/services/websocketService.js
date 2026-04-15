@@ -9,8 +9,7 @@ const WS_URL =
 class WebSocketService {
   constructor() {
     this.client = null;
-    this.tableListeners = [];
-    this.commandesListeners = [];
+    this.listeners = [];
     this.isConnected = false;
   }
 
@@ -30,8 +29,8 @@ class WebSocketService {
 
         // Écouter les commandes
         this.client.subscribe("/topic/commandes", (message) => {
-          console.log("📡 Message commandes reçu:", message.body);
-          this.commandesListeners.forEach((listener) => listener(message.body));
+          console.log("📡 Message reçu:", message.body);
+          this.listeners.forEach((listener) => listener(message.body));
         });
 
         // Écouter les tables
@@ -39,10 +38,9 @@ class WebSocketService {
           console.log("📡 Message tables reçu:", message.body);
           try {
             const data = JSON.parse(message.body);
-            this.tableListeners.forEach((listener) => listener(data));
+            this.listeners.forEach((listener) => data);
           } catch (e) {
-            // Si c'est une simple string (pas de JSON)
-            this.tableListeners.forEach((listener) => listener(message.body));
+            this.listeners.forEach((listener) => message.body);
           }
         });
       },
@@ -66,31 +64,10 @@ class WebSocketService {
     }
   }
 
-  subscribeToTables(callback) {
-    this.tableListeners.push(callback);
-    return () => {
-      this.tableListeners = this.tableListeners.filter((cb) => cb !== callback);
-    };
-  }
-
-  subscribeToCommandes(callback) {
-    this.commandesListeners.push(callback);
-    return () => {
-      this.commandesListeners = this.commandesListeners.filter(
-        (cb) => cb !== callback,
-      );
-    };
-  }
-
-  // Compatibilité
   subscribe(callback) {
-    this.tableListeners.push(callback);
-    this.commandesListeners.push(callback);
+    this.listeners.push(callback);
     return () => {
-      this.tableListeners = this.tableListeners.filter((cb) => cb !== callback);
-      this.commandesListeners = this.commandesListeners.filter(
-        (cb) => cb !== callback,
-      );
+      this.listeners = this.listeners.filter((cb) => cb !== callback);
     };
   }
 }
