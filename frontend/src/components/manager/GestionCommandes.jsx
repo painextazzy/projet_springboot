@@ -15,12 +15,12 @@ export default function GestionCommandes() {
   const [factureData, setFactureData] = useState(null);
   const notificationTimeout = useRef(null);
 
-  const nbCommandesEnCours = useCallback(
-    () => commandes.filter((cmd) => cmd.statut === "EN_COURS").length,
-    [commandes],
-  );
+  // ✅ Calcul des commandes en cours (pour la bulle)
+  const nbCommandesEnCours = useCallback(() => {
+    return commandes.filter((cmd) => cmd.statut === "EN_COURS").length;
+  }, [commandes]);
 
-  // ✅ WebSocket : mise à jour ciblée pour les commandes
+  // ✅ WebSocket : mise à jour ciblée
   useEffect(() => {
     chargerCommandes();
     webSocketService.connect();
@@ -42,12 +42,12 @@ export default function GestionCommandes() {
   }, []);
 
   const chargerCommandes = async () => {
-    setLoading(true);
     try {
       const data = await api.getCommandes();
       setCommandes(data);
     } catch (error) {
       console.error("Erreur chargement commandes:", error);
+      showNotification("Erreur lors du chargement des commandes", "error");
     } finally {
       setLoading(false);
     }
@@ -59,74 +59,111 @@ export default function GestionCommandes() {
     notificationTimeout.current = setTimeout(() => setNotification(null), 3000);
   };
 
+  // ✅ Encaissement sans rechargement visible
   const encaisserCommande = async (commandeId, tableId) => {
     if (isProcessing) return;
     if (!confirm("Valider le paiement de cette commande ?")) return;
+
     setIsProcessing(true);
+    showNotification("Traitement en cours...", "info");
+
     try {
+      // 1. Payer la commande
       const commandePayee = await api.payerCommande(commandeId);
-      if (tableId)
-        await api
-          .updateTableStatus(tableId, "LIBRE")
-          .catch((e) => console.warn(e));
 
+      // 2. Libérer la table
+      if (tableId) {
+        try {
+          await api.updateTableStatus(tableId, "LIBRE");
+        } catch (tableError) {
+          console.warn("Erreur libération table:", tableError);
+        }
+      }
+
+      // 3. Mettre à jour localement (pas de rechargement)
+      setCommandes((prev) =>
+        prev.map((cmd) =>
+          cmd.id === commandeId
+            ? { ...cmd, statut: "PAYEE", dateCloture: new Date().toISOString() }
+            : cmd,
+        ),
+      );
+
+      // 4. Récupérer la commande complète pour la facture
       let commandePourFacture = commandePayee;
-      if (!commandePayee.lignes?.length)
+      if (!commandePayee.lignes || commandePayee.lignes.length === 0) {
         commandePourFacture = await api.getCommandeById(commandeId);
+      }
 
-      await chargerCommandes();
-      if (commandePourFacture?.id) {
-        showNotification(
-          `Commande #${commandeId} payée avec succès`,
-          "success",
-        );
+      showNotification(`Commande #${commandeId} payée avec succès`, "success");
+
+      // 5. Afficher la facture
+      if (commandePourFacture && commandePourFacture.id) {
         setFactureData(commandePourFacture);
       }
     } catch (error) {
+      console.error("Erreur:", error);
       showNotification("Erreur lors de l'encaissement", "error");
     } finally {
       setIsProcessing(false);
     }
   };
 
-  const commandesFiltrees = commandes.filter((c) => {
-    if (filtre === "EN_COURS" && c.statut !== "EN_COURS") return false;
-    if (filtre === "PAYEE" && c.statut !== "PAYEE") return false;
+  const commandesFiltrees = commandes.filter((commande) => {
+    if (filtre === "EN_COURS" && commande.statut !== "EN_COURS") return false;
+    if (filtre === "PAYEE" && commande.statut !== "PAYEE") return false;
     if (recherche) {
-      const search = recherche.toLowerCase();
-      return (
-        c.id.toString().includes(search) ||
-        (c.tableNom || "").toLowerCase().includes(search)
-      );
+      const searchLower = recherche.toLowerCase();
+      const idMatch = commande.id.toString().includes(searchLower);
+      const tableMatch = (commande.tableNom || "")
+        .toLowerCase()
+        .includes(searchLower);
+      if (!idMatch && !tableMatch) return false;
     }
     return true;
   });
 
   const getStatutBadge = (statut) => {
-    if (statut === "EN_COURS")
+    if (statut === "EN_COURS") {
       return "bg-amber-50 text-amber-800/70 border border-amber-200/50";
-    if (statut === "PAYEE")
+    }
+    if (statut === "PAYEE") {
       return "bg-emerald-50 text-emerald-700 border border-emerald-200/50";
+    }
     return "bg-gray-100 text-gray-500 border border-gray-200";
   };
 
-  const getStatutLabel = (statut) =>
-    statut === "EN_COURS" ? "EN COURS" : statut === "PAYEE" ? "PAYÉ" : statut;
-  const formatHeure = (dateString) =>
-    dateString
-      ? new Date(dateString).toLocaleTimeString("fr-FR", {
-          hour: "2-digit",
-          minute: "2-digit",
-        })
-      : "--:--";
+  const getStatutLabel = (statut) => {
+    if (statut === "EN_COURS") return "EN COURS";
+    if (statut === "PAYEE") return "PAYÉ";
+    return statut;
+  };
 
-  if (loading) return <SkeletonCommandes />;
+  const formatHeure = (dateString) => {
+    if (!dateString) return "--:--";
+    const date = new Date(dateString);
+    return date.toLocaleTimeString("fr-FR", {
+      hour: "2-digit",
+      minute: "2-digit",
+    });
+  };
+
+  if (loading) {
+    return <SkeletonCommandes />;
+  }
 
   return (
     <main className="flex-1 w-full max-w-7xl mx-auto px-8 py-12">
+      {/* Notification */}
       {notification && (
         <div
-          className={`fixed top-24 right-4 z-50 px-4 py-3 rounded-xl shadow-lg transition-all duration-300 ${notification.type === "error" ? "bg-red-500 text-white" : notification.type === "info" ? "bg-blue-500 text-white" : "bg-emerald-500 text-white"}`}
+          className={`fixed top-24 right-4 z-50 px-4 py-3 rounded-xl shadow-lg transition-all duration-300 ${
+            notification.type === "error"
+              ? "bg-red-500 text-white"
+              : notification.type === "info"
+                ? "bg-blue-500 text-white"
+                : "bg-emerald-500 text-white"
+          }`}
         >
           <div className="flex items-center gap-2">
             <span className="material-symbols-outlined text-lg">
@@ -141,29 +178,52 @@ export default function GestionCommandes() {
         </div>
       )}
 
+      {/* Modal Facture */}
       {factureData && (
         <Facture commande={factureData} onClose={() => setFactureData(null)} />
       )}
 
+      {/* Search and Filter Section */}
       <section className="mb-10 flex flex-col md:flex-row items-center justify-between gap-8">
         <div className="flex items-center p-1 bg-gray-50/60 backdrop-blur-md rounded-xl border border-gray-100">
-          {["TOUS", "EN_COURS", "PAYEE"].map((f) => (
-            <button
-              key={f}
-              onClick={() => setFiltre(f)}
-              className={`px-7 py-2 rounded-[10px] text-sm font-medium transition-all duration-300 ${filtre === f ? "bg-white shadow-sm text-[#002868]" : "text-gray-400 hover:text-gray-600"}`}
-            >
-              {f === "TOUS" ? "Tous" : f === "EN_COURS" ? "En cours" : "Payé"}
-              {f === "EN_COURS" &&
-                nbCommandesEnCours() > 0 &&
-                filtre !== "EN_COURS" && (
-                  <span className="absolute -top-1 -right-1 bg-amber-500 text-white text-[9px] font-bold rounded-full w-4 h-4 flex items-center justify-center">
-                    {nbCommandesEnCours()}
-                  </span>
-                )}
-            </button>
-          ))}
+          <button
+            onClick={() => setFiltre("TOUS")}
+            className={`px-7 py-2 rounded-[10px] text-sm font-medium transition-all duration-300 ${
+              filtre === "TOUS"
+                ? "bg-white shadow-sm text-[#002868]"
+                : "text-gray-400 hover:text-gray-600"
+            }`}
+          >
+            Tous
+          </button>
+          <button
+            onClick={() => setFiltre("EN_COURS")}
+            className={`px-7 py-2 rounded-[10px] text-sm font-medium transition-all duration-300 relative ${
+              filtre === "EN_COURS"
+                ? "bg-white shadow-sm text-[#002868]"
+                : "text-gray-400 hover:text-gray-600"
+            }`}
+          >
+            En cours
+            {/* ✅ BULLE UNIQUEMENT SUR "EN COURS" (pas sur "Payé") */}
+            {nbCommandesEnCours() > 0 && filtre !== "EN_COURS" && (
+              <span className="absolute -top-1 -right-1 bg-amber-500 text-white text-[9px] font-bold rounded-full w-4 h-4 flex items-center justify-center">
+                {nbCommandesEnCours()}
+              </span>
+            )}
+          </button>
+          <button
+            onClick={() => setFiltre("PAYEE")}
+            className={`px-7 py-2 rounded-[10px] text-sm font-medium transition-all duration-300 ${
+              filtre === "PAYEE"
+                ? "bg-white shadow-sm text-[#002868]"
+                : "text-gray-400 hover:text-gray-600"
+            }`}
+          >
+            Payé
+          </button>
         </div>
+
         <div className="relative group w-full max-w-md">
           <span className="absolute left-4 top-1/2 -translate-y-1/2 material-symbols-outlined text-gray-300 text-xl">
             search
@@ -173,11 +233,12 @@ export default function GestionCommandes() {
             value={recherche}
             onChange={(e) => setRecherche(e.target.value)}
             className="w-full pl-11 pr-6 py-3 bg-white/50 border border-gray-100 rounded-xl focus:ring-2 focus:ring-[#002868]/20 focus:bg-white transition-all duration-300 text-sm placeholder:text-gray-300 font-light outline-none"
-            placeholder="Rechercher une commande..."
+            placeholder="Rechercher une commande ou une table..."
           />
         </div>
       </section>
 
+      {/* Orders Table */}
       <div className="bg-white rounded-3xl shadow-[0_10px_40px_-10px_rgba(0,0,0,0.04)] overflow-hidden border border-gray-100">
         <div className="overflow-x-auto">
           <table className="w-full text-left border-collapse">
@@ -221,14 +282,14 @@ export default function GestionCommandes() {
                   </td>
                 </tr>
               ) : (
-                commandesFiltrees.map((c) => (
+                commandesFiltrees.map((commande) => (
                   <tr
-                    key={c.id}
+                    key={commande.id}
                     className="hover:bg-gray-50/30 transition-all duration-300 group"
                   >
                     <td className="px-10 py-7">
                       <span className="text-[0.9rem] font-medium text-[#002868] tracking-tight">
-                        #{c.numeroFacture || c.id}
+                        #{commande.numeroFacture || commande.id}
                       </span>
                     </td>
                     <td className="px-8 py-7">
@@ -236,15 +297,15 @@ export default function GestionCommandes() {
                         <span className="material-symbols-outlined text-xl text-gray-300">
                           table_bar
                         </span>
-                        {c.tableNom || `Table ${c.tableId}`}
+                        {commande.tableNom || `Table ${commande.tableId}`}
                       </span>
                     </td>
                     <td className="px-8 py-7 font-light text-gray-400 text-sm tracking-tight">
-                      {formatHeure(c.dateOuverture)}
+                      {formatHeure(commande.dateOuverture)}
                     </td>
                     <td className="px-8 py-7">
                       <span className="text-[1rem] font-medium text-gray-800">
-                        {(c.total || 0).toLocaleString("fr-FR")}
+                        {(commande.total || 0).toLocaleString("fr-FR")}
                         <span className="text-[0.75rem] font-light text-gray-400 ml-0.5">
                           Ar
                         </span>
@@ -252,16 +313,18 @@ export default function GestionCommandes() {
                     </td>
                     <td className="px-8 py-7">
                       <span
-                        className={`inline-flex items-center px-4 py-1.5 rounded-full text-[0.65rem] font-medium uppercase tracking-widest ${getStatutBadge(c.statut)}`}
+                        className={`inline-flex items-center px-4 py-1.5 rounded-full text-[0.65rem] font-medium uppercase tracking-widest ${getStatutBadge(commande.statut)}`}
                       >
-                        {getStatutLabel(c.statut)}
+                        {getStatutLabel(commande.statut)}
                       </span>
                     </td>
                     <td className="px-10 py-7">
                       <div className="flex items-center justify-end">
-                        {c.statut === "EN_COURS" && (
+                        {commande.statut === "EN_COURS" && (
                           <button
-                            onClick={() => encaisserCommande(c.id, c.tableId)}
+                            onClick={() =>
+                              encaisserCommande(commande.id, commande.tableId)
+                            }
                             disabled={isProcessing}
                             className="flex items-center gap-2.5 px-6 py-2.5 rounded-xl bg-[#002868] text-white text-[0.7rem] font-medium shadow-sm hover:bg-[#001a4a] transition-all duration-300 active:scale-[0.97] disabled:opacity-50"
                           >
@@ -271,9 +334,9 @@ export default function GestionCommandes() {
                             <span>Encaisser</span>
                           </button>
                         )}
-                        {c.statut === "PAYEE" && (
+                        {commande.statut === "PAYEE" && (
                           <button
-                            onClick={() => setFactureData(c)}
+                            onClick={() => setFactureData(commande)}
                             className="flex items-center gap-2.5 px-6 py-2.5 rounded-xl bg-gray-100 text-gray-500 text-[0.7rem] font-medium hover:bg-gray-200 transition-all duration-300 active:scale-[0.97]"
                           >
                             <span className="material-symbols-outlined text-[18px]">
@@ -290,6 +353,7 @@ export default function GestionCommandes() {
             </tbody>
           </table>
         </div>
+
         <footer className="px-10 py-8 bg-gray-50/10 border-t border-gray-100 flex flex-col sm:flex-row items-center justify-between gap-6">
           <span className="text-[0.75rem] text-gray-400 font-light tracking-tight">
             Affichage de{" "}
@@ -324,6 +388,12 @@ export default function GestionCommandes() {
             </button>
           </div>
         </footer>
+      </div>
+
+      {/* Background Decoration */}
+      <div className="fixed top-0 right-0 -z-10 w-full h-full opacity-30 pointer-events-none">
+        <div className="absolute top-[-5%] right-[-5%] w-[70%] h-[70%] bg-[radial-gradient(circle_at_top_right,_#e2e8ff_0%,_transparent_70%)] blur-[120px]"></div>
+        <div className="absolute bottom-[-10%] left-[-5%] w-[50%] h-[50%] bg-[radial-gradient(circle_at_bottom_left,_#f1f5f9_0%,_transparent_70%)] blur-[120px]"></div>
       </div>
     </main>
   );
