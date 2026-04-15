@@ -51,15 +51,14 @@ export default function ServeurDashboard() {
     localStorage.setItem("commandesEnCours", JSON.stringify(commandesEnCours));
   }, [commandesEnCours]);
 
-  // ✅ WebSocket pour mise à jour temps réel des tables
   useEffect(() => {
     chargerTables();
     webSocketService.connect();
 
-    const unsubscribeTables = webSocketService.subscribeToTables((data) => {
-      console.log("🔄 WebSocket tables reçu:", data);
+    const unsubscribe = webSocketService.subscribe((data) => {
+      console.log("🔄 WebSocket reçu:", data);
 
-      // Mise à jour ciblée d'une table
+      // Si c'est une mise à jour ciblée (objet avec tableId et status)
       if (data && typeof data === "object" && data.tableId && data.status) {
         setTables((prev) =>
           prev.map((table) =>
@@ -68,19 +67,15 @@ export default function ServeurDashboard() {
               : table,
           ),
         );
-      } else {
-        // Fallback : rechargement complet
+      }
+      // Si c'est un message de rechargement
+      else if (data === "TABLE_UPDATED" || data === "REFRESH") {
         chargerTables();
       }
     });
 
-    const unsubscribeCommandes = webSocketService.subscribeToCommandes(() => {
-      console.log("🔄 WebSocket commandes reçu");
-    });
-
     return () => {
-      unsubscribeTables();
-      unsubscribeCommandes();
+      unsubscribe();
       webSocketService.disconnect();
     };
   }, []);
