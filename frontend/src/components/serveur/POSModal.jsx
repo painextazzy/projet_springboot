@@ -40,7 +40,6 @@ export default function POSModal({
     );
   };
 
-  // Sauvegarder le panier dans le parent
   useEffect(() => {
     if (onUpdatePanier) {
       onUpdatePanier(panier);
@@ -137,12 +136,6 @@ export default function POSModal({
     setPanier((prevPanier) => prevPanier.filter((p) => p.id !== id));
   };
 
-  const viderPanier = () => {
-    if (confirm("Vider tout le panier ?")) {
-      setPanier([]);
-    }
-  };
-
   const calculerTotal = () => {
     return panier.reduce((sum, item) => sum + item.prix * item.quantite, 0);
   };
@@ -152,6 +145,7 @@ export default function POSModal({
       showNotification("Veuillez ajouter des plats", "error");
       return;
     }
+    // ✅ Ouvre la confirmation dans le panier
     setConfirmationOpen(true);
   };
 
@@ -218,7 +212,7 @@ export default function POSModal({
 
   if (loading) {
     return (
-      <div className="fixed inset-0 z-50 bg-surface flex items-center justify-center">
+      <div className="fixed inset-0 z-50 bg-surface-bright flex items-center justify-center">
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
           <p className="text-secondary">Chargement du menu...</p>
@@ -227,135 +221,133 @@ export default function POSModal({
     );
   }
 
-  // Vue Panier sur mobile
+  // Vue Panier (quand on clique sur le FAB)
   if (showCart) {
     return (
-      <div className="fixed inset-0 z-50 bg-surface flex flex-col h-screen overflow-hidden">
-        <div className="flex-1 flex flex-col max-w-md mx-auto w-full relative overflow-hidden">
-          <header className="pt-4 pb-2 px-6 flex justify-between items-center bg-surface sticky top-0 z-50 border-b border-outline-variant/10">
-            <div className="flex items-center gap-4">
-              <button
-                onClick={() => setShowCart(false)}
-                className="material-symbols-outlined text-on-surface p-2 -ml-2 hover:bg-surface-container rounded-full transition-colors"
-              >
-                arrow_back
-              </button>
-              <h1 className="font-headline font-extrabold text-xl tracking-tight text-on-surface">
-                Votre Panier
-              </h1>
-            </div>
-            <div className="flex flex-col items-end">
-              <span className="text-[10px] font-bold text-secondary uppercase tracking-wider">
-                Table
-              </span>
-              <span className="font-headline text-xl font-extrabold text-on-surface leading-none">
-                {table.nom || table.numero}
-              </span>
-            </div>
-          </header>
+      <div className="fixed inset-0 z-50 bg-surface-bright flex flex-col h-screen max-w-md mx-auto shadow-2xl overflow-hidden">
+        <header className="pt-4 pb-2 px-6 flex justify-between items-center bg-surface-bright sticky top-0 z-50 border-b border-outline-variant/10">
+          <div className="flex items-center gap-4">
+            <button
+              onClick={() => setShowCart(false)}
+              className="material-symbols-outlined text-on-surface p-2 -ml-2 hover:bg-surface-container rounded-full transition-colors"
+            >
+              arrow_back
+            </button>
+            <h1 className="font-headline font-extrabold text-xl tracking-tight text-on-surface">
+              Votre Panier
+            </h1>
+          </div>
+          <div className="flex flex-col items-end">
+            <span className="text-[10px] font-bold text-secondary uppercase tracking-wider">
+              Table
+            </span>
+            <span className="font-headline text-xl font-extrabold text-on-surface leading-none">
+              {table.nom || table.numero}
+            </span>
+          </div>
+        </header>
 
-          <main className="flex-1 overflow-y-auto px-6 py-6 space-y-6">
-            {panier.length === 0 ? (
-              <div className="text-center py-12">
-                <span className="material-symbols-outlined text-5xl text-slate-300 mb-3">
-                  shopping_basket
-                </span>
-                <p className="text-secondary">Votre panier est vide</p>
-              </div>
-            ) : (
-              <div className="space-y-4">
-                {panier.map((item) => (
-                  <div
-                    key={item.id}
-                    className="bg-surface-container-low rounded-xl p-4 flex flex-col gap-3"
-                  >
-                    <div className="flex justify-between items-start">
-                      <div>
-                        <h3 className="font-headline text-base font-bold text-on-surface">
-                          {item.nom}
-                        </h3>
-                        <p className="text-primary font-semibold text-sm">
-                          {formatPrix(item.prix)}
-                        </p>
-                      </div>
+        <main className="flex-1 overflow-y-auto px-6 py-6 space-y-6 pb-32">
+          {panier.length === 0 ? (
+            <div className="text-center py-12">
+              <span className="material-symbols-outlined text-5xl text-slate-300 mb-3">
+                shopping_basket
+              </span>
+              <p className="text-secondary">Votre panier est vide</p>
+            </div>
+          ) : (
+            <div className="space-y-4">
+              {panier.map((item) => (
+                <div
+                  key={item.id}
+                  className="bg-surface-container-low rounded-xl p-4 flex flex-col gap-3"
+                >
+                  <div className="flex justify-between items-start">
+                    <div>
+                      <h3 className="font-headline text-base font-bold text-on-surface">
+                        {item.nom}
+                      </h3>
+                      <p className="text-primary font-semibold text-sm">
+                        {formatPrix(item.prix)}
+                      </p>
+                    </div>
+                    <button
+                      onClick={() => supprimerDuPanier(item.id)}
+                      className="text-error hover:bg-error/10 p-2 rounded-full transition-all"
+                    >
+                      <span className="material-symbols-outlined text-base">
+                        delete
+                      </span>
+                    </button>
+                  </div>
+                  <div className="flex justify-between items-center bg-surface-container-lowest rounded-lg p-2">
+                    <div className="flex items-center gap-4">
                       <button
-                        onClick={() => supprimerDuPanier(item.id)}
-                        className="text-error hover:bg-error/10 p-2 rounded-full transition-all"
+                        onClick={() => modifierQuantitePanier(item.id, -1)}
+                        className="w-8 h-8 flex items-center justify-center rounded-full bg-surface-container-highest text-on-surface hover:bg-outline-variant transition-colors"
                       >
                         <span className="material-symbols-outlined text-base">
-                          delete
+                          remove
+                        </span>
+                      </button>
+                      <span className="font-headline font-bold text-base min-w-[1.5rem] text-center">
+                        {item.quantite}
+                      </span>
+                      <button
+                        onClick={() => modifierQuantitePanier(item.id, 1)}
+                        className="w-8 h-8 flex items-center justify-center rounded-full bg-primary-container text-on-primary-container hover:bg-primary transition-colors"
+                      >
+                        <span className="material-symbols-outlined text-base">
+                          add
                         </span>
                       </button>
                     </div>
-                    <div className="flex justify-between items-center bg-surface-container-lowest rounded-lg p-2">
-                      <div className="flex items-center gap-4">
-                        <button
-                          onClick={() => modifierQuantitePanier(item.id, -1)}
-                          className="w-8 h-8 flex items-center justify-center rounded-full bg-surface-container-highest text-on-surface hover:bg-outline-variant transition-colors"
-                        >
-                          <span className="material-symbols-outlined text-base">
-                            remove
-                          </span>
-                        </button>
-                        <span className="font-headline font-bold text-base min-w-[1.5rem] text-center">
-                          {item.quantite}
-                        </span>
-                        <button
-                          onClick={() => modifierQuantitePanier(item.id, 1)}
-                          className="w-8 h-8 flex items-center justify-center rounded-full bg-primary-container text-on-primary-container hover:bg-primary transition-colors"
-                        >
-                          <span className="material-symbols-outlined text-base">
-                            add
-                          </span>
-                        </button>
-                      </div>
-                      <p className="font-headline font-extrabold text-on-surface">
-                        {formatPrix(item.prix * item.quantite)}
-                      </p>
-                    </div>
+                    <p className="font-headline font-extrabold text-on-surface">
+                      {formatPrix(item.prix * item.quantite)}
+                    </p>
                   </div>
-                ))}
-              </div>
-            )}
-
-            {panier.length > 0 && (
-              <div className="mt-6 p-5 bg-surface-container-highest rounded-2xl">
-                <div className="flex justify-between items-center mb-3">
-                  <span className="text-secondary font-medium">Sous-total</span>
-                  <span className="text-on-surface font-semibold">
-                    {formatPrix(calculerTotal())}
-                  </span>
                 </div>
-                <div className="flex justify-between items-center pt-3 border-t border-outline-variant/30">
-                  <span className="font-headline text-lg font-bold text-on-surface">
-                    Total à régler
-                  </span>
-                  <span className="font-headline text-xl font-extrabold text-primary">
-                    {formatPrix(calculerTotal())}
-                  </span>
-                </div>
-              </div>
-            )}
-          </main>
+              ))}
+            </div>
+          )}
 
-          <div className="fixed bottom-0 left-0 right-0 max-w-md mx-auto px-6 pb-8">
-            <button
-              onClick={validerCommande}
-              disabled={panier.length === 0}
-              className="w-full h-14 bg-gradient-to-br from-[#00307d] to-[#0045ab] text-white rounded-xl shadow-xl shadow-primary/20 flex items-center justify-center gap-3 transition-transform active:scale-95 disabled:opacity-50"
-            >
-              <span className="material-symbols-outlined">receipt_long</span>
-              <span className="font-headline font-bold text-base uppercase tracking-wider">
-                Demander l'Addition
-              </span>
-            </button>
-          </div>
+          {panier.length > 0 && (
+            <div className="mt-6 p-5 bg-surface-container-highest rounded-2xl">
+              <div className="flex justify-between items-center mb-3">
+                <span className="text-secondary font-medium">Sous-total</span>
+                <span className="text-on-surface font-semibold">
+                  {formatPrix(calculerTotal())}
+                </span>
+              </div>
+              <div className="flex justify-between items-center pt-3 border-t border-outline-variant/30">
+                <span className="font-headline text-lg font-bold text-on-surface">
+                  Total à régler
+                </span>
+                <span className="font-headline text-xl font-extrabold text-primary">
+                  {formatPrix(calculerTotal())}
+                </span>
+              </div>
+            </div>
+          )}
+        </main>
+
+        <div className="fixed bottom-0 left-0 right-0 max-w-md mx-auto px-6 pb-8">
+          <button
+            onClick={validerCommande}
+            disabled={panier.length === 0}
+            className="w-full h-14 bg-gradient-to-br from-[#00307d] to-[#0045ab] text-white rounded-xl shadow-xl shadow-primary/20 flex items-center justify-center gap-3 transition-transform active:scale-95 disabled:opacity-50"
+          >
+            <span className="material-symbols-outlined">receipt_long</span>
+            <span className="font-headline font-bold text-base uppercase tracking-wider">
+              Demander l'Addition
+            </span>
+          </button>
         </div>
       </div>
     );
   }
 
-  // Vue principale - Design grand écran (menu à gauche, ticket à droite)
+  // Vue principale POS - Design mobile original
   return (
     <>
       {/* Toast Notification */}
@@ -371,12 +363,28 @@ export default function POSModal({
         </div>
       )}
 
-      {/* Modal POS - Layout grand écran */}
-      <div className="fixed inset-0 z-50 bg-surface flex flex-col overflow-hidden">
-        {/* Top Control Row */}
-        <div className="h-20 w-full flex justify-between items-center px-8 z-50 bg-surface border-b border-outline-variant/10">
-          <div className="flex items-center bg-surface-container-highest px-4 py-2.5 rounded-xl w-80 group focus-within:bg-surface-container-lowest transition-all focus-within:ring-1 focus-within:ring-outline-variant/50">
-            <span className="material-symbols-outlined text-secondary mr-2">
+      {/* App Container - Style iPhone */}
+      <div className="fixed inset-0 z-50 bg-surface-bright flex flex-col h-screen max-w-md mx-auto shadow-2xl overflow-hidden">
+        {/* TopAppBar */}
+        <header className="pt-4 pb-2 px-6 flex justify-between items-center bg-surface-bright sticky top-0 z-50">
+          <div className="flex items-center gap-4">
+            <button
+              onClick={onClose}
+              className="material-symbols-outlined text-on-surface p-2 -ml-2 hover:bg-surface-container rounded-full transition-colors"
+            >
+              close
+            </button>
+            <h1 className="font-headline font-extrabold text-xl tracking-tight text-on-surface">
+              Executive POS
+            </h1>
+          </div>
+        </header>
+
+        {/* Scrollable Content Area */}
+        <main className="flex-1 overflow-y-auto px-6 space-y-6 pb-32">
+          {/* Prominent Search Bar */}
+          <div className="relative mt-2">
+            <span className="material-symbols-outlined absolute left-4 top-1/2 -translate-y-1/2 text-on-surface-variant">
               search
             </span>
             <input
@@ -384,224 +392,131 @@ export default function POSModal({
               type="text"
               value={recherche}
               onChange={(e) => setRecherche(e.target.value)}
-              className="bg-transparent border-none focus:ring-0 text-sm w-full font-body placeholder:text-secondary outline-none"
-              placeholder="Rechercher un produit..."
+              className="w-full h-14 pl-12 pr-4 rounded-2xl border-none bg-surface-container-high focus:bg-white focus:ring-2 focus:ring-primary/20 transition-all outline-none text-base placeholder:text-on-surface-variant/60"
+              placeholder="Rechercher un article..."
             />
           </div>
-          <button
-            onClick={onClose}
-            className="w-12 h-12 flex items-center justify-center rounded-full hover:bg-surface-container-high transition-colors group"
-          >
-            <span className="material-symbols-outlined text-on-surface text-3xl group-active:scale-90 transition-transform">
-              close
-            </span>
-          </button>
-        </div>
 
-        <main className="flex-1 flex overflow-hidden">
-          {/* Left: Menu Grid & Controls */}
-          <section className="flex-1 overflow-y-auto p-8 pt-2 bg-surface space-y-8">
-            {/* Category Filters */}
-            <div className="flex items-center gap-3 overflow-x-auto pb-2 scrollbar-hide">
+          {/* Categories Horizontal Scroll */}
+          <section className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide -mx-6 px-6">
+            <button
+              onClick={() => setCategorieActive("TOUS")}
+              className={`whitespace-nowrap px-6 py-3 rounded-full text-sm font-bold transition-all ${
+                categorieActive === "TOUS"
+                  ? "bg-primary text-on-primary shadow-md shadow-primary/20"
+                  : "bg-surface-container-high text-on-surface-variant hover:bg-surface-container-highest"
+              }`}
+            >
+              Tous
+            </button>
+            {categories.map((cat) => (
               <button
-                onClick={() => setCategorieActive("TOUS")}
-                className={`px-6 py-2.5 rounded-xl text-sm font-semibold font-headline transition-all ${
-                  categorieActive === "TOUS"
-                    ? "bg-primary text-on-primary shadow-lg"
-                    : "bg-surface-container-high text-secondary hover:bg-surface-container-highest"
+                key={cat}
+                onClick={() => setCategorieActive(cat)}
+                className={`whitespace-nowrap px-6 py-3 rounded-full text-sm font-bold transition-all ${
+                  categorieActive === cat
+                    ? "bg-primary text-on-primary shadow-md shadow-primary/20"
+                    : "bg-surface-container-high text-on-surface-variant hover:bg-surface-container-highest"
                 }`}
               >
-                Tous
+                {getCategorieLabel(cat)}
               </button>
-              {categories.map((cat) => (
-                <button
-                  key={cat}
-                  onClick={() => setCategorieActive(cat)}
-                  className={`px-6 py-2.5 rounded-xl text-sm font-semibold font-headline transition-all ${
-                    categorieActive === cat
-                      ? "bg-primary text-on-primary shadow-lg"
-                      : "bg-surface-container-high text-secondary hover:bg-surface-container-highest"
-                  }`}
-                >
-                  {getCategorieLabel(cat)}
-                </button>
-              ))}
-            </div>
-
-            {/* Product Grid */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-              {platsFiltres.length === 0 ? (
-                <div className="col-span-full text-center py-12 text-secondary">
-                  Aucun plat trouvé
-                </div>
-              ) : (
-                platsFiltres.map((plat) => (
-                  <div
-                    key={plat.id}
-                    className="bg-surface-container-low rounded-xl overflow-hidden group hover:shadow-[0px_20px_40px_rgba(25,28,30,0.06)] transition-all flex flex-col"
-                  >
-                    <div className="h-40 overflow-hidden relative">
-                      {plat.imageUrl ? (
-                        <img
-                          src={plat.imageUrl}
-                          alt={plat.nom}
-                          className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
-                          onError={(e) => {
-                            e.target.onerror = null;
-                            e.target.src =
-                              "https://placehold.co/400x300/e2e8f0/64748b?text=🍽️";
-                          }}
-                        />
-                      ) : (
-                        <div className="w-full h-full flex items-center justify-center text-4xl bg-surface-container">
-                          🍽️
-                        </div>
-                      )}
-                      <div className="absolute top-3 right-3 bg-white/90 px-2 py-1 rounded text-[10px] font-bold font-label tracking-wider text-primary">
-                        STOCK: {plat.quantite}
-                      </div>
-                    </div>
-                    <div className="p-4 flex-1 flex flex-col justify-between">
-                      <div>
-                        <h3 className="font-headline font-bold text-on-surface text-base">
-                          {plat.nom}
-                        </h3>
-                        <p className="text-primary font-bold mt-1 font-body">
-                          {formatPrix(plat.prix)}
-                        </p>
-                      </div>
-                      <div className="mt-4 flex items-center justify-between">
-                        <div className="flex items-center bg-surface-container-highest rounded-lg px-2 py-1">
-                          <button
-                            onClick={() => modifierQuantitePlat(plat.id, -1)}
-                            className="w-6 h-6 flex items-center justify-center text-secondary hover:text-on-surface transition-colors"
-                          >
-                            <span className="material-symbols-outlined text-sm">
-                              remove
-                            </span>
-                          </button>
-                          <span className="px-3 text-xs font-bold font-body">
-                            {quantites[plat.id] || 1}
-                          </span>
-                          <button
-                            onClick={() => modifierQuantitePlat(plat.id, 1)}
-                            className="w-6 h-6 flex items-center justify-center text-secondary hover:text-on-surface transition-colors"
-                          >
-                            <span className="material-symbols-outlined text-sm">
-                              add
-                            </span>
-                          </button>
-                        </div>
-                        <button
-                          onClick={() => ajouterAuPanier(plat)}
-                          disabled={plat.quantite <= 0}
-                          className="bg-primary text-on-primary px-4 py-2 rounded-lg text-xs font-bold font-headline uppercase tracking-wider hover:opacity-90 transition-opacity disabled:opacity-50"
-                        >
-                          Ajouter
-                        </button>
-                      </div>
-                    </div>
-                  </div>
-                ))
-              )}
-            </div>
+            ))}
           </section>
 
-          {/* Right: Current Order Ticket */}
-          <aside className="w-96 bg-surface-container-low flex flex-col shadow-[20px_0px_40px_rgba(25,28,30,0.03)] z-40 border-l border-outline-variant/10">
-            <div className="p-6 flex items-center justify-between border-b border-outline-variant/10">
-              <h2 className="font-headline font-bold text-lg text-on-surface">
-                Ticket Actuel
-              </h2>
-              <span className="bg-primary/10 text-primary px-3 py-1 rounded-full text-[10px] font-bold tracking-widest font-label">
-                TABLE #{table.nom || table.numero}
-              </span>
-            </div>
-
-            {/* Order Items List */}
-            <div className="flex-1 overflow-y-auto px-6 py-4 space-y-6">
-              {panier.length === 0 ? (
-                <div className="text-center py-12">
-                  <span className="material-symbols-outlined text-4xl text-slate-300 mb-2">
-                    shopping_cart
-                  </span>
-                  <p className="text-slate-400 text-sm">Aucun article</p>
-                </div>
-              ) : (
-                panier.map((item) => (
-                  <div
-                    key={item.id}
-                    className="flex items-start justify-between gap-4 group"
-                  >
-                    <div className="flex-1">
-                      <p className="text-sm font-bold font-headline text-on-surface">
-                        {item.nom}
-                      </p>
-                      <div className="flex items-center gap-2 mt-2">
-                        <div className="flex items-center bg-surface-container-high rounded-lg p-0.5">
-                          <button
-                            onClick={() => modifierQuantitePanier(item.id, -1)}
-                            className="w-6 h-6 flex items-center justify-center text-secondary hover:text-primary transition-colors"
-                          >
-                            <span className="material-symbols-outlined text-base">
-                              remove
-                            </span>
-                          </button>
-                          <span className="px-3 text-xs font-bold font-body">
-                            {item.quantite}
-                          </span>
-                          <button
-                            onClick={() => modifierQuantitePanier(item.id, 1)}
-                            className="w-6 h-6 flex items-center justify-center text-secondary hover:text-primary transition-colors"
-                          >
-                            <span className="material-symbols-outlined text-base">
-                              add
-                            </span>
-                          </button>
-                        </div>
+          {/* Product Grid - 2 colonnes */}
+          <div className="grid grid-cols-2 gap-4 pb-4">
+            {platsFiltres.length === 0 ? (
+              <div className="col-span-2 text-center py-12 text-secondary">
+                Aucun plat trouvé
+              </div>
+            ) : (
+              platsFiltres.map((plat) => (
+                <div
+                  key={plat.id}
+                  className="bg-white rounded-3xl p-3 shadow-sm border border-surface-container-high flex flex-col gap-3 group"
+                >
+                  <div className="aspect-square rounded-2xl overflow-hidden bg-surface-container relative">
+                    {plat.imageUrl ? (
+                      <img
+                        src={plat.imageUrl}
+                        alt={plat.nom}
+                        className="w-full h-full object-cover"
+                        onError={(e) => {
+                          e.target.onerror = null;
+                          e.target.src =
+                            "https://placehold.co/400x300/e2e8f0/64748b?text=🍽️";
+                        }}
+                      />
+                    ) : (
+                      <div className="w-full h-full flex items-center justify-center text-4xl bg-surface-container">
+                        🍽️
                       </div>
-                    </div>
-                    <div className="text-right flex flex-col items-end">
-                      <p className="text-sm font-bold font-body text-on-surface">
-                        {formatPrix(item.prix * item.quantite)}
-                      </p>
-                      <button
-                        onClick={() => supprimerDuPanier(item.id)}
-                        className="text-error/60 hover:text-error transition-colors mt-2"
-                      >
-                        <span className="material-symbols-outlined text-sm">
-                          delete
-                        </span>
-                      </button>
+                    )}
+                    <div className="absolute bottom-2 right-2 flex items-center bg-primary text-on-primary rounded-lg px-2 py-1 text-xs font-bold shadow-lg">
+                      {formatPrix(plat.prix)}
                     </div>
                   </div>
-                ))
-              )}
-            </div>
-
-            {/* Ticket Footer */}
-            <div className="p-6 bg-surface-container-high space-y-4 border-t border-outline-variant/10">
-              <div className="flex items-center justify-between">
-                <span className="text-sm font-bold font-headline text-on-surface tracking-tight">
-                  Total Final
-                </span>
-                <span className="text-2xl font-extrabold font-headline text-primary">
-                  {formatPrix(calculerTotal())}
-                </span>
-              </div>
-              <button
-                onClick={validerCommande}
-                disabled={panier.length === 0}
-                className="w-full bg-gradient-to-br from-primary to-primary-container text-on-primary py-4 rounded-lg font-headline font-bold text-sm tracking-widest uppercase shadow-[0px_20px_40px_rgba(0,48,125,0.2)] transition-transform active:scale-95 disabled:opacity-50"
-              >
-                Addition
-              </button>
-            </div>
-          </aside>
+                  <div className="flex flex-col px-1">
+                    <h3 className="text-sm font-bold text-on-surface leading-tight">
+                      {plat.nom}
+                    </h3>
+                    <p className="text-[11px] text-secondary font-medium">
+                      {getCategorieLabel(plat.categorie)}
+                    </p>
+                  </div>
+                  <div className="flex justify-end px-1 mb-0.5">
+                    <span
+                      className={`text-[10px] font-medium ${plat.quantite <= 0 ? "text-error" : plat.quantite <= 5 ? "text-amber-600" : "text-secondary/70"}`}
+                    >
+                      Stock: {plat.quantite}
+                    </span>
+                  </div>
+                  <div className="flex items-center justify-between bg-surface-container-low rounded-xl p-1 mt-1">
+                    <button
+                      onClick={() => modifierQuantitePlat(plat.id, -1)}
+                      className="material-symbols-outlined text-base p-1.5 hover:bg-surface-container-high rounded-lg transition-colors text-primary"
+                    >
+                      remove
+                    </button>
+                    <span className="text-sm font-bold px-2">
+                      {quantites[plat.id] || 1}
+                    </span>
+                    <button
+                      onClick={() => ajouterAuPanier(plat)}
+                      disabled={plat.quantite <= 0}
+                      className="material-symbols-outlined text-base p-1.5 bg-primary text-on-primary rounded-lg transition-colors shadow-sm disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      add
+                    </button>
+                  </div>
+                </div>
+              ))
+            )}
+          </div>
         </main>
+
+        {/* Floating Order Summary & Navigation Container */}
+        <div className="fixed bottom-0 left-0 w-full z-[100] pointer-events-none">
+          <div className="flex justify-end p-6 pointer-events-auto w-full max-w-md mx-auto">
+            <button
+              onClick={() => setShowCart(true)}
+              className="w-14 h-14 bg-[#00307d] text-white rounded-full flex items-center justify-center shadow-2xl active:scale-90 transition-transform relative"
+            >
+              <span className="material-symbols-outlined text-2xl">
+                shopping_basket
+              </span>
+              {panier.length > 0 && (
+                <span className="absolute -top-1 -right-1 w-5 h-5 bg-error text-white text-[10px] flex items-center justify-center rounded-full border-2 border-surface-bright shadow-md font-bold">
+                  {panier.length > 99 ? "99+" : panier.length}
+                </span>
+              )}
+            </button>
+          </div>
+        </div>
       </div>
 
-      {/* Modal de confirmation */}
+      {/* Modal de confirmation DANS le panier (pas de popup externe) */}
       {confirmationOpen && (
         <div className="fixed inset-0 z-[150] bg-black/50 flex items-center justify-center p-4">
           <div className="bg-white rounded-2xl max-w-md w-full p-6 mx-4">
