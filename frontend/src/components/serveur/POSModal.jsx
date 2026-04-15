@@ -256,7 +256,7 @@ export default function POSModal({
               </span>
               <p className="text-secondary">Votre panier est vide</p>
             </div>
-          ) : (
+          ) : !showConfirmationInCart ? (
             <div className="space-y-4">
               {panier.map((item) => (
                 <div
@@ -310,29 +310,8 @@ export default function POSModal({
                 </div>
               ))}
             </div>
-          )}
-
-          {panier.length > 0 && !showConfirmationInCart && (
-            <div className="mt-6 p-5 bg-surface-container-highest rounded-2xl">
-              <div className="flex justify-between items-center mb-3">
-                <span className="text-secondary font-medium">Sous-total</span>
-                <span className="text-on-surface font-semibold">
-                  {formatPrix(calculerTotal())}
-                </span>
-              </div>
-              <div className="flex justify-between items-center pt-3 border-t border-outline-variant/30">
-                <span className="font-headline text-lg font-bold text-on-surface">
-                  Total à régler
-                </span>
-                <span className="font-headline text-xl font-extrabold text-primary">
-                  {formatPrix(calculerTotal())}
-                </span>
-              </div>
-            </div>
-          )}
-
-          {showConfirmationInCart && (
-            <div className="mt-6 p-5 bg-white rounded-2xl shadow-lg border border-primary/20">
+          ) : (
+            <div className="bg-white rounded-2xl shadow-lg border border-primary/20 p-5">
               <div className="text-center mb-4">
                 <div className="w-14 h-14 rounded-full bg-green-100 flex items-center justify-center mx-auto mb-3">
                   <span className="material-symbols-outlined text-2xl text-green-600">
@@ -385,7 +364,7 @@ export default function POSModal({
   }
 
   // ============================================
-  // VUE PRINCIPALE - Responsive
+  // VUE PRINCIPALE - Responsive (mobile/desktop)
   // ============================================
   return (
     <>
@@ -402,7 +381,7 @@ export default function POSModal({
       )}
 
       <div className="fixed inset-0 z-50 bg-surface-bright flex flex-col lg:flex-row overflow-hidden">
-        {/* LEFT COLUMN - Menu */}
+        {/* ========== LEFT COLUMN - MENU ========== */}
         <div className="flex-1 flex flex-col h-full overflow-hidden lg:w-2/3">
           <header className="pt-4 pb-2 px-6 flex justify-between items-center bg-surface-bright sticky top-0 z-50 border-b border-outline-variant/10">
             <div className="flex items-center gap-4">
@@ -427,6 +406,7 @@ export default function POSModal({
           </header>
 
           <main className="flex-1 overflow-y-auto px-6 space-y-6 pb-32">
+            {/* Search Bar */}
             <div className="relative mt-2">
               <span className="material-symbols-outlined absolute left-4 top-1/2 -translate-y-1/2 text-on-surface-variant">
                 search
@@ -441,6 +421,7 @@ export default function POSModal({
               />
             </div>
 
+            {/* Categories */}
             <section className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide -mx-6 px-6">
               <button
                 onClick={() => setCategorieActive("TOUS")}
@@ -467,6 +448,7 @@ export default function POSModal({
               ))}
             </section>
 
+            {/* Product Grid */}
             <div className="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 pb-4">
               {platsFiltres.length === 0 ? (
                 <div className="col-span-full text-center py-12 text-secondary">
@@ -557,7 +539,8 @@ export default function POSModal({
             </div>
           </div>
         </div>
-        // RIGHT COLUMN - Panier (visible sur PC uniquement)
+
+        {/* ========== RIGHT COLUMN - PANIER (PC) ========== */}
         <div className="hidden lg:flex lg:w-1/3 bg-white border-l border-slate-200 flex-col h-full">
           <div className="p-5 border-b border-slate-100">
             <h2 className="text-lg font-bold text-slate-900">
@@ -575,7 +558,6 @@ export default function POSModal({
                 <p className="text-slate-400 text-sm">Panier vide</p>
               </div>
             ) : !showConfirmationInCart ? (
-              // Affichage normal des articles
               panier.map((item) => (
                 <div
                   key={item.id}
@@ -623,7 +605,6 @@ export default function POSModal({
                 </div>
               ))
             ) : (
-              // ✅ Confirmation dans le panier PC
               <div className="bg-white rounded-2xl shadow-lg border border-primary/20 p-5">
                 <div className="text-center mb-4">
                   <div className="w-14 h-14 rounded-full bg-green-100 flex items-center justify-center mx-auto mb-3">
@@ -659,7 +640,6 @@ export default function POSModal({
             )}
           </div>
 
-          {/* Total et bouton de validation (caché pendant la confirmation) */}
           {!showConfirmationInCart && panier.length > 0 && (
             <div className="p-5 border-t border-slate-200 bg-white">
               <div className="flex justify-between items-center mb-4">
