@@ -101,8 +101,7 @@ public class CommandeService {
         
         // ✅ Changer le statut de la table en OCCUPEE
         tableService.updateStatus(request.getTableId(), "occupee");
-        webSocketService.notifyTableChanged();
-        webSocketService.notifyCommandeChanged();
+      webSocketService.notifyDataChanged();
         
         return convertToDTO(commande);
     }
