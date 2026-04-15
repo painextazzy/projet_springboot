@@ -29,7 +29,6 @@ export default function ServeurDashboard() {
       try {
         return JSON.parse(saved);
       } catch (e) {
-        console.error("Erreur parsing localStorage:", e);
         return {};
       }
     }
@@ -52,17 +51,15 @@ export default function ServeurDashboard() {
     localStorage.setItem("commandesEnCours", JSON.stringify(commandesEnCours));
   }, [commandesEnCours]);
 
-  // ✅ WebSocket optimisé : met à jour uniquement la table concernée
+  // ✅ WebSocket : mise à jour ciblée (pas de rechargement)
   useEffect(() => {
-    chargerTables(); // Chargement initial
-
+    chargerTables();
     webSocketService.connect();
 
-    // Écouter les tables avec mise à jour ciblée
-    const unsubscribeTables = webSocketService.subscribeToTables((data) => {
-      console.log("🔄 WebSocket tables reçu:", data);
+    const unsubscribe = webSocketService.subscribe((data) => {
+      console.log("🔄 WebSocket reçu:", data);
 
-      // ✅ Si c'est une mise à jour ciblée (avec tableId et status)
+      // Mise à jour ciblée pour les tables
       if (data && typeof data === "object" && data.tableId && data.status) {
         setTables((prev) =>
           prev.map((table) =>
@@ -72,21 +69,14 @@ export default function ServeurDashboard() {
           ),
         );
       }
-      // Fallback : rechargement complet
-      else {
+      // Rechargement complet uniquement en fallback
+      else if (data === "REFRESH" || data === "TABLE_UPDATED") {
         chargerTables();
       }
     });
 
-    // Écouter les commandes (juste pour info, pas de rechargement)
-    const unsubscribeCommandes = webSocketService.subscribeToCommandes(() => {
-      console.log("🔄 WebSocket commandes reçu");
-      // Optionnel : recharger les commandes si nécessaire
-    });
-
     return () => {
-      unsubscribeTables();
-      unsubscribeCommandes();
+      unsubscribe();
       webSocketService.disconnect();
     };
   }, []);
@@ -108,18 +98,12 @@ export default function ServeurDashboard() {
   const chargerTables = async () => {
     try {
       setLoading(true);
-      setError("");
       const data = await api.getTables();
-      if (Array.isArray(data)) {
-        setTables(data);
-      } else {
-        setTables([]);
-        setError("Format de données invalide");
-      }
+      if (Array.isArray(data)) setTables(data);
+      else setTables([]);
     } catch (error) {
       console.error("Erreur chargement tables:", error);
       setError("Impossible de charger les tables");
-      showNotification("Erreur de chargement des tables", "error");
     } finally {
       setLoading(false);
     }
@@ -145,19 +129,15 @@ export default function ServeurDashboard() {
   };
 
   const handleCommandeValidee = (commande, tableId) => {
-    console.log("📝 handleCommandeValidee reçu - tableId:", tableId);
-
     // ✅ Mise à jour locale immédiate (pas de rechargement)
-    setTables((prevTables) =>
-      prevTables.map((t) => (t.id === tableId ? { ...t, status: "LIBRE" } : t)),
+    setTables((prev) =>
+      prev.map((t) => (t.id === tableId ? { ...t, status: "LIBRE" } : t)),
     );
-
     setCommandesEnCours((prev) => {
       const newCommandes = { ...prev };
       delete newCommandes[tableId];
       return newCommandes;
     });
-
     showNotification(
       `Commande #${commande.id} enregistrée, table libérée`,
       "success",
@@ -165,10 +145,7 @@ export default function ServeurDashboard() {
   };
 
   const handleUpdatePanier = (tableId, panier) => {
-    setCommandesEnCours((prev) => ({
-      ...prev,
-      [tableId]: panier,
-    }));
+    setCommandesEnCours((prev) => ({ ...prev, [tableId]: panier }));
   };
 
   const handleClosePOS = () => {
@@ -176,9 +153,7 @@ export default function ServeurDashboard() {
     setSelectedTable(null);
   };
 
-  const getPanierForTable = (tableId) => {
-    return commandesEnCours[tableId] || [];
-  };
+  const getPanierForTable = (tableId) => commandesEnCours[tableId] || [];
 
   const getTableStatus = (table) => {
     const hasCommande = commandesEnCours[table.id]?.length > 0;
@@ -187,68 +162,45 @@ export default function ServeurDashboard() {
   };
 
   const getStatutClass = (status) => {
-    switch (status) {
-      case "LIBRE":
-        return {
-          bg: "bg-emerald-50",
-          text: "text-emerald-600",
-          label: "Disponible",
-          btnBg: "bg-emerald-500 hover:bg-emerald-600",
-          btnText: "text-white",
-          iconBg: "bg-slate-50",
-          iconColor: "text-slate-400",
-          icon: "table_bar",
-          arrowColor: "text-white",
-        };
-      case "OCCUPEE":
-        return {
-          bg: "bg-blue-50",
-          text: "text-blue-600",
-          label: "Occupée",
-          btnBg: "bg-blue-600 hover:bg-blue-700",
-          btnText: "text-white",
-          iconBg: "bg-blue-50",
-          iconColor: "text-blue-500",
-          icon: "table_restaurant",
-          arrowColor: "text-white",
-        };
-      case "A_NETTOYER":
-        return {
-          bg: "bg-amber-50",
-          text: "text-amber-600",
-          label: "À nettoyer",
-          btnBg: "bg-emerald-500 hover:bg-emerald-600",
-          btnText: "text-white",
-          iconBg: "bg-slate-50",
-          iconColor: "text-slate-400",
-          icon: "cleaning",
-          arrowColor: "text-white",
-        };
-      case "COMMANDE_EN_COURS":
-        return {
-          bg: "bg-orange-50",
-          text: "text-orange-600",
-          label: "Commande en cours",
-          btnBg: "bg-orange-500 hover:bg-orange-600",
-          btnText: "text-white",
-          iconBg: "bg-orange-50",
-          iconColor: "text-orange-500",
-          icon: "receipt",
-          arrowColor: "text-white",
-        };
-      default:
-        return {
-          bg: "bg-gray-100",
-          text: "text-gray-600",
-          label: status || "Inconnu",
-          btnBg: "bg-gray-500 hover:bg-gray-600",
-          btnText: "text-white",
-          iconBg: "bg-gray-100",
-          iconColor: "text-gray-400",
-          icon: "table_restaurant",
-          arrowColor: "text-white",
-        };
-    }
+    const classes = {
+      LIBRE: {
+        bg: "bg-emerald-50",
+        text: "text-emerald-600",
+        label: "Disponible",
+        btnBg: "bg-emerald-500",
+        icon: "table_bar",
+      },
+      OCCUPEE: {
+        bg: "bg-blue-50",
+        text: "text-blue-600",
+        label: "Occupée",
+        btnBg: "bg-blue-600",
+        icon: "table_restaurant",
+      },
+      A_NETTOYER: {
+        bg: "bg-amber-50",
+        text: "text-amber-600",
+        label: "À nettoyer",
+        btnBg: "bg-emerald-500",
+        icon: "cleaning",
+      },
+      COMMANDE_EN_COURS: {
+        bg: "bg-orange-50",
+        text: "text-orange-600",
+        label: "Commande en cours",
+        btnBg: "bg-orange-500",
+        icon: "receipt",
+      },
+    };
+    return (
+      classes[status] || {
+        bg: "bg-gray-100",
+        text: "text-gray-600",
+        label: status || "Inconnu",
+        btnBg: "bg-gray-500",
+        icon: "table_restaurant",
+      }
+    );
   };
 
   const tablesFiltrees = tables.filter((table) => {
@@ -262,32 +214,26 @@ export default function ServeurDashboard() {
     )
       return false;
     if (filtre === "A_NETTOYER" && statutUpper !== "A_NETTOYER") return false;
-    if (recherche) {
-      const searchLower = recherche.toLowerCase();
-      const nomMatch = (table.nom || "").toLowerCase().includes(searchLower);
-      const capaciteMatch = table.capacite?.toString().includes(searchLower);
-      if (!nomMatch && !capaciteMatch) return false;
-    }
+    if (
+      recherche &&
+      !table.nom?.toLowerCase().includes(recherche.toLowerCase())
+    )
+      return false;
     return true;
   });
 
-  const countByStatus = (status) => {
-    return tables.filter((t) => {
+  const countByStatus = (status) =>
+    tables.filter((t) => {
       const tableStatus = getTableStatus(t);
-      if (status === "OCCUPEES") {
+      if (status === "OCCUPEES")
         return tableStatus === "OCCUPEE" || tableStatus === "COMMANDE_EN_COURS";
-      }
       return tableStatus === status;
     }).length;
-  };
 
-  if (loading) {
-    return <SkeletonServeurDashboard />;
-  }
+  if (loading) return <SkeletonServeurDashboard />;
 
   return (
     <div className="min-h-screen bg-surface">
-      {/* Indicateur WebSocket */}
       <div className="fixed bottom-4 right-4 z-50 flex items-center gap-2 bg-white/80 rounded-full px-3 py-1 shadow-md">
         <div
           className={`w-2 h-2 rounded-full ${webSocketService.isConnected ? "bg-green-500 animate-pulse" : "bg-red-500"}`}
@@ -297,7 +243,6 @@ export default function ServeurDashboard() {
         </span>
       </div>
 
-      {/* ========== NAVBAR ========== */}
       <nav className="fixed top-0 right-0 left-0 h-20 bg-surface-container-low backdrop-blur-md z-30 border-b border-outline-variant/10">
         <div className="flex justify-end items-center px-8 w-full h-full">
           <div className="relative" ref={dropdownRef}>
@@ -315,7 +260,6 @@ export default function ServeurDashboard() {
                 {isDropdownOpen ? "expand_less" : "expand_more"}
               </span>
             </button>
-
             {isDropdownOpen && (
               <div className="absolute right-0 top-12 w-56 bg-white rounded-xl shadow-lg border border-gray-100 overflow-hidden z-50">
                 <div className="px-4 py-3 border-b border-gray-100 bg-gray-50/50">
@@ -345,7 +289,7 @@ export default function ServeurDashboard() {
                   >
                     <span className="material-symbols-outlined text-error text-lg">
                       logout
-                    </span>
+                    </span>{" "}
                     Déconnexion
                   </button>
                 </div>
@@ -355,7 +299,6 @@ export default function ServeurDashboard() {
         </div>
       </nav>
 
-      {/* ========== MAIN CONTENT ========== */}
       <main className="pt-24 pb-20 px-8 max-w-7xl mx-auto">
         <div className="mb-12">
           <h1 className="text-4xl font-extrabold text-primary mb-2 tracking-tight">
@@ -368,11 +311,7 @@ export default function ServeurDashboard() {
 
         {notification.show && (
           <div
-            className={`fixed top-24 right-4 z-50 px-4 py-3 rounded-xl shadow-lg transition-all duration-300 ${
-              notification.type === "error"
-                ? "bg-red-500 text-white"
-                : "bg-emerald-500 text-white"
-            }`}
+            className={`fixed top-24 right-4 z-50 px-4 py-3 rounded-xl shadow-lg transition-all duration-300 ${notification.type === "error" ? "bg-red-500 text-white" : "bg-emerald-500 text-white"}`}
           >
             {notification.message}
           </div>
@@ -382,41 +321,25 @@ export default function ServeurDashboard() {
           <div className="flex items-center p-1 bg-slate-100/50 rounded-2xl w-fit">
             <button
               onClick={() => setFiltre("TOUTES")}
-              className={`px-6 py-2.5 text-sm font-semibold rounded-xl transition-all ${
-                filtre === "TOUTES"
-                  ? "bg-white shadow-sm text-primary"
-                  : "text-secondary hover:text-primary"
-              }`}
+              className={`px-6 py-2.5 text-sm font-semibold rounded-xl transition-all ${filtre === "TOUTES" ? "bg-white shadow-sm text-primary" : "text-secondary hover:text-primary"}`}
             >
-              Toutes les tables ({tables.length})
+              Toutes ({tables.length})
             </button>
             <button
               onClick={() => setFiltre("DISPONIBLES")}
-              className={`px-6 py-2.5 text-sm font-medium rounded-xl transition-all ${
-                filtre === "DISPONIBLES"
-                  ? "bg-white shadow-sm text-primary"
-                  : "text-secondary hover:text-primary"
-              }`}
+              className={`px-6 py-2.5 text-sm font-medium rounded-xl transition-all ${filtre === "DISPONIBLES" ? "bg-white shadow-sm text-primary" : "text-secondary hover:text-primary"}`}
             >
               Disponibles ({countByStatus("LIBRE")})
             </button>
             <button
               onClick={() => setFiltre("OCCUPEES")}
-              className={`px-6 py-2.5 text-sm font-medium rounded-xl transition-all ${
-                filtre === "OCCUPEES"
-                  ? "bg-white shadow-sm text-primary"
-                  : "text-secondary hover:text-primary"
-              }`}
+              className={`px-6 py-2.5 text-sm font-medium rounded-xl transition-all ${filtre === "OCCUPEES" ? "bg-white shadow-sm text-primary" : "text-secondary hover:text-primary"}`}
             >
               Occupées ({countByStatus("OCCUPEES")})
             </button>
             <button
               onClick={() => setFiltre("A_NETTOYER")}
-              className={`px-6 py-2.5 text-sm font-medium rounded-xl transition-all ${
-                filtre === "A_NETTOYER"
-                  ? "bg-white shadow-sm text-primary"
-                  : "text-secondary hover:text-primary"
-              }`}
+              className={`px-6 py-2.5 text-sm font-medium rounded-xl transition-all ${filtre === "A_NETTOYER" ? "bg-white shadow-sm text-primary" : "text-secondary hover:text-primary"}`}
             >
               À nettoyer ({countByStatus("A_NETTOYER")})
             </button>
@@ -443,12 +366,11 @@ export default function ServeurDashboard() {
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-8">
             {tablesFiltrees.map((table) => {
-              const tableStatus = getTableStatus(table);
-              const statusInfo = getStatutClass(tableStatus);
-              const hasCommande = tableStatus === "COMMANDE_EN_COURS";
-              const isOccupied = tableStatus === "OCCUPEE";
-              const isAvailable = tableStatus === "LIBRE";
-              const isToClean = tableStatus === "A_NETTOYER";
+              const statusInfo = getStatutClass(getTableStatus(table));
+              const isToClean = getTableStatus(table) === "A_NETTOYER";
+              const hasCommande = getTableStatus(table) === "COMMANDE_EN_COURS";
+              const isAvailable = getTableStatus(table) === "LIBRE";
+              const isOccupied = getTableStatus(table) === "OCCUPEE";
 
               return (
                 <div
@@ -457,7 +379,7 @@ export default function ServeurDashboard() {
                 >
                   <div className="flex justify-between items-start mb-8">
                     <div
-                      className={`w-14 h-14 rounded-2xl ${statusInfo.iconBg} flex items-center justify-center ${statusInfo.iconColor}`}
+                      className={`w-14 h-14 rounded-2xl bg-slate-50 flex items-center justify-center text-slate-400`}
                     >
                       <span className="material-symbols-outlined text-3xl">
                         {statusInfo.icon}
@@ -469,7 +391,6 @@ export default function ServeurDashboard() {
                       {statusInfo.label}
                     </span>
                   </div>
-
                   <div className="mb-8">
                     <h3 className="text-2xl font-extrabold text-on-surface mb-2">
                       {table.nom || `Table ${table.numero}`}
@@ -484,10 +405,9 @@ export default function ServeurDashboard() {
                       </span>
                     </div>
                   </div>
-
                   <button
                     onClick={() => handleTableClick(table)}
-                    className={`w-full py-4 ${statusInfo.btnBg} ${statusInfo.btnText} rounded-xl font-bold text-sm flex items-center justify-center gap-2 shadow-lg transition-all active:scale-[0.98]`}
+                    className={`w-full py-4 ${statusInfo.btnBg} text-white rounded-xl font-bold text-sm flex items-center justify-center gap-2 shadow-lg transition-all active:scale-[0.98]`}
                   >
                     {isToClean
                       ? "Nettoyer la table"
@@ -498,9 +418,7 @@ export default function ServeurDashboard() {
                           : isOccupied
                             ? "Gérer la commande"
                             : "Voir"}
-                    <span
-                      className={`material-symbols-outlined text-sm ${statusInfo.arrowColor}`}
-                    >
+                    <span className="material-symbols-outlined text-sm">
                       arrow_forward
                     </span>
                   </button>
