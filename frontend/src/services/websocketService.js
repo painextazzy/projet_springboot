@@ -26,15 +26,15 @@ class WebSocketService {
         console.log("✅ WebSocket connecté");
         this.isConnected = true;
 
-        // Subscribe aux commandes
         this.client.subscribe("/topic/commandes", () => {
           console.log("📡 Message commandes reçu");
           this.commandesListeners.forEach((listener) => listener());
+          this.tablesListeners.forEach((listener) => listener());
         });
 
-        // Subscribe aux tables
         this.client.subscribe("/topic/tables", () => {
           console.log("📡 Message tables reçu");
+          this.commandesListeners.forEach((listener) => listener());
           this.tablesListeners.forEach((listener) => listener());
         });
       },
@@ -56,6 +56,20 @@ class WebSocketService {
       this.client.deactivate();
       this.isConnected = false;
     }
+  }
+
+  // ✅ AJOUTE CETTE MÉTHODE (pour compatibilité)
+  subscribe(callback) {
+    this.commandesListeners.push(callback);
+    this.tablesListeners.push(callback);
+    return () => {
+      this.commandesListeners = this.commandesListeners.filter(
+        (cb) => cb !== callback,
+      );
+      this.tablesListeners = this.tablesListeners.filter(
+        (cb) => cb !== callback,
+      );
+    };
   }
 
   subscribeToCommandes(callback) {
