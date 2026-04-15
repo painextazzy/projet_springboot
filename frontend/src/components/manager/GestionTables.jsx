@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { api } from "../../services/api";
 import SkeletonTables from "./skeletons/SkeletonTables";
+import webSocketService from "../../services/websocketService";
 
 export default function GestionTables() {
   const [tables, setTables] = useState([]);
@@ -21,6 +22,21 @@ export default function GestionTables() {
     message: "",
     type: "",
   });
+  // ✅ WebSocket pour mises à jour en temps réel
+  useEffect(() => {
+    chargerTables();
+    webSocketService.connect();
+
+    const unsubscribe = webSocketService.subscribe(() => {
+      console.log("🔄 WebSocket: rechargement des tables");
+      chargerTables();
+    });
+
+    return () => {
+      unsubscribe();
+      webSocketService.disconnect();
+    };
+  }, []);
 
   useEffect(() => {
     chargerTables();
