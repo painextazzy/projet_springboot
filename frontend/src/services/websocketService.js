@@ -1,7 +1,9 @@
 import { Client } from "@stomp/stompjs";
 import SockJS from "sockjs-client";
 
-const WS_URL = import.meta.env.VITE_WS_URL || "ws://localhost:8080/ws";
+const WS_URL =
+  import.meta.env.VITE_WS_URL ||
+  "https://projetspringboot-production.up.railway.app/ws";
 
 class WebSocketService {
   constructor() {
