@@ -60,13 +60,21 @@ export default function ServeurDashboard() {
   useEffect(() => {
     webSocketService.connect();
 
-    const unsubscribe = webSocketService.subscribe(() => {
-      console.log("🔄 WebSocket: mise à jour des données");
+    // Écouter les commandes
+    const unsubscribeCommandes = webSocketService.subscribeToCommandes(() => {
+      console.log("🔄 WebSocket: mise à jour des commandes");
+      chargerTables();
+    });
+
+    // Écouter les tables
+    const unsubscribeTables = webSocketService.subscribeToTables(() => {
+      console.log("🔄 WebSocket: mise à jour des tables");
       chargerTables();
     });
 
     return () => {
-      unsubscribe();
+      unsubscribeCommandes();
+      unsubscribeTables();
       webSocketService.disconnect();
     };
   }, []);
