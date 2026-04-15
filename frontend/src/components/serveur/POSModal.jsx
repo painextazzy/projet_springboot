@@ -557,8 +557,7 @@ export default function POSModal({
             </div>
           </div>
         </div>
-
-        {/* RIGHT COLUMN - Panier (visible sur PC uniquement) */}
+        // RIGHT COLUMN - Panier (visible sur PC uniquement)
         <div className="hidden lg:flex lg:w-1/3 bg-white border-l border-slate-200 flex-col h-full">
           <div className="p-5 border-b border-slate-100">
             <h2 className="text-lg font-bold text-slate-900">
@@ -575,7 +574,8 @@ export default function POSModal({
                 </span>
                 <p className="text-slate-400 text-sm">Panier vide</p>
               </div>
-            ) : (
+            ) : !showConfirmationInCart ? (
+              // Affichage normal des articles
               panier.map((item) => (
                 <div
                   key={item.id}
@@ -622,25 +622,61 @@ export default function POSModal({
                   </div>
                 </div>
               ))
+            ) : (
+              // ✅ Confirmation dans le panier PC
+              <div className="bg-white rounded-2xl shadow-lg border border-primary/20 p-5">
+                <div className="text-center mb-4">
+                  <div className="w-14 h-14 rounded-full bg-green-100 flex items-center justify-center mx-auto mb-3">
+                    <span className="material-symbols-outlined text-2xl text-green-600">
+                      receipt
+                    </span>
+                  </div>
+                  <h3 className="text-lg font-bold text-slate-900">
+                    Confirmer la commande
+                  </h3>
+                  <p className="text-slate-500 text-sm mt-1">
+                    Valider cette commande ?<br />
+                    <span className="font-bold text-primary text-lg">
+                      {formatPrix(calculerTotal())}
+                    </span>
+                  </p>
+                </div>
+                <div className="flex gap-3">
+                  <button
+                    onClick={annulerConfirmation}
+                    className="flex-1 py-2 border border-slate-200 rounded-lg text-sm font-medium hover:bg-slate-50 transition"
+                  >
+                    Annuler
+                  </button>
+                  <button
+                    onClick={confirmerCommande}
+                    className="flex-1 py-2 bg-green-500 text-white rounded-lg text-sm font-medium hover:bg-green-600 transition"
+                  >
+                    Confirmer
+                  </button>
+                </div>
+              </div>
             )}
           </div>
 
-          <div className="p-5 border-t border-slate-200 bg-white">
-            <div className="flex justify-between items-center mb-4">
-              <p className="text-sm text-slate-500">Total</p>
-              <p className="text-xl font-bold text-primary">
-                {formatPrix(calculerTotal())}
-              </p>
+          {/* Total et bouton de validation (caché pendant la confirmation) */}
+          {!showConfirmationInCart && panier.length > 0 && (
+            <div className="p-5 border-t border-slate-200 bg-white">
+              <div className="flex justify-between items-center mb-4">
+                <p className="text-sm text-slate-500">Total</p>
+                <p className="text-xl font-bold text-primary">
+                  {formatPrix(calculerTotal())}
+                </p>
+              </div>
+              <button
+                onClick={demanderAddition}
+                className="w-full py-3 bg-gradient-to-r from-green-500 to-green-600 text-white rounded-xl font-semibold text-base hover:from-green-600 hover:to-green-700 transition-all shadow-md flex items-center justify-center gap-2"
+              >
+                <span className="material-symbols-outlined">receipt</span>
+                Valider la commande
+              </button>
             </div>
-            <button
-              onClick={demanderAddition}
-              disabled={panier.length === 0}
-              className="w-full py-3 bg-gradient-to-r from-green-500 to-green-600 text-white rounded-xl font-semibold text-base hover:from-green-600 hover:to-green-700 transition-all disabled:opacity-50 shadow-md flex items-center justify-center gap-2"
-            >
-              <span className="material-symbols-outlined">receipt</span>
-              Valider la commande
-            </button>
-          </div>
+          )}
         </div>
       </div>
     </>
