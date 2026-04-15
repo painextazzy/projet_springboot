@@ -38,10 +38,6 @@ export default function GestionTables() {
     };
   }, []);
 
-  useEffect(() => {
-    chargerTables();
-  }, []);
-
   const showNotification = (message, type = "success") => {
     setNotification({ show: true, message, type });
     setTimeout(
