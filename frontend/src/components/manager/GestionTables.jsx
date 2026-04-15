@@ -1,7 +1,8 @@
+// src/components/manager/GestionTables.jsx
 import React, { useState, useEffect } from "react";
 import { api } from "../../services/api";
-import SkeletonTables from "./skeletons/SkeletonTables";
 import webSocketService from "../../services/websocketService";
+import SkeletonTables from "./skeletons/SkeletonTables";
 
 export default function GestionTables() {
   const [tables, setTables] = useState([]);
@@ -22,14 +23,27 @@ export default function GestionTables() {
     message: "",
     type: "",
   });
-  // ✅ WebSocket pour mises à jour en temps réel
+
+  // ✅ WebSocket avec mise à jour ciblée
   useEffect(() => {
     chargerTables();
     webSocketService.connect();
 
-    const unsubscribe = webSocketService.subscribe(() => {
-      console.log("🔄 WebSocket: rechargement des tables");
-      chargerTables();
+    const unsubscribe = webSocketService.subscribe((data) => {
+      console.log("🔄 WebSocket tables reçu:", data);
+
+      // Mise à jour ciblée
+      if (data && typeof data === "object" && data.tableId && data.status) {
+        setTables((prev) =>
+          prev.map((table) =>
+            table.id === data.tableId
+              ? { ...table, status: data.status }
+              : table,
+          ),
+        );
+      } else {
+        chargerTables(); // Fallback
+      }
     });
 
     return () => {
@@ -49,24 +63,18 @@ export default function GestionTables() {
   const chargerTables = async () => {
     setLoading(true);
     try {
-      setError("");
       const data = await api.getTables();
-      console.log("Tables chargées:", data);
       setTables(data);
     } catch (err) {
-      console.error("Erreur chargement:", err);
       setError("Impossible de charger les tables");
-      showNotification("Erreur de chargement des tables", "error");
     } finally {
       setLoading(false);
     }
   };
 
-  // Gestion des statuts (majuscules/minuscules)
   const getStatusInfo = (status) => {
     const statusLower = (status || "").toLowerCase();
-
-    const statusMap = {
+    const map = {
       libre: {
         label: "Libre",
         bg: "bg-green-100",
@@ -89,9 +97,8 @@ export default function GestionTables() {
         iconColor: "text-amber-500/40",
       },
     };
-
     return (
-      statusMap[statusLower] || {
+      map[statusLower] || {
         label: status || "Inconnu",
         bg: "bg-gray-100",
         text: "text-gray-700",
@@ -101,16 +108,15 @@ export default function GestionTables() {
     );
   };
 
-  // Filtrer les tables
   const tablesFiltrees = tables.filter((table) => {
     if (filtreActif !== "TOUTES") {
       const statusLower = (table.status || "").toLowerCase();
-      const statusFilter = {
+      const filterMap = {
         LIBRES: "libre",
         OCCUPEES: "occupee",
         A_NETTOYER: "a_nettoyer",
-      }[filtreActif];
-      if (statusFilter && statusLower !== statusFilter) return false;
+      };
+      if (filterMap[filtreActif] !== statusLower) return false;
     }
     if (recherche && !table.nom.toLowerCase().includes(recherche.toLowerCase()))
       return false;
@@ -122,20 +128,17 @@ export default function GestionTables() {
       showNotification("Veuillez remplir tous les champs", "error");
       return;
     }
-
     try {
-      const nouvelleTable = {
+      const response = await api.createTable({
         nom: formData.nom,
         capacite: parseInt(formData.capacite),
         status: formData.status,
-      };
-      const response = await api.createTable(nouvelleTable);
-      setTables([...tables, response]);
+      });
+      setTables((prev) => [...prev, response]);
       setShowModal(false);
       resetForm();
       showNotification("Table ajoutée avec succès", "success");
     } catch (error) {
-      console.error("Erreur ajout:", error);
       showNotification("Erreur lors de l'ajout", "error");
     }
   };
@@ -145,21 +148,20 @@ export default function GestionTables() {
       showNotification("Veuillez remplir tous les champs", "error");
       return;
     }
-
     try {
-      const tableModifiee = {
+      const response = await api.updateTable(tableEdit.id, {
         nom: formData.nom,
         capacite: parseInt(formData.capacite),
         status: formData.status,
-      };
-      const response = await api.updateTable(tableEdit.id, tableModifiee);
-      setTables(tables.map((t) => (t.id === tableEdit.id ? response : t)));
+      });
+      setTables((prev) =>
+        prev.map((t) => (t.id === tableEdit.id ? response : t)),
+      );
       setShowModal(false);
       setTableEdit(null);
       resetForm();
       showNotification("Table modifiée avec succès", "success");
     } catch (error) {
-      console.error("Erreur modification:", error);
       showNotification("Erreur lors de la modification", "error");
     }
   };
@@ -168,11 +170,10 @@ export default function GestionTables() {
     if (confirm(`Supprimer la table "${nom}" ?`)) {
       try {
         await api.deleteTable(id);
-        setTables(tables.filter((t) => t.id !== id));
+        setTables((prev) => prev.filter((t) => t.id !== id));
         setShowActionMenu(null);
         showNotification("Table supprimée avec succès", "success");
       } catch (error) {
-        console.error("Erreur suppression:", error);
         showNotification("Erreur lors de la suppression", "error");
       }
     }
@@ -180,12 +181,13 @@ export default function GestionTables() {
 
   const handleChangerStatus = async (id, nouveauStatus) => {
     try {
-      const statusToSend = nouveauStatus.toLowerCase();
-      const response = await api.updateTableStatus(id, statusToSend);
-      setTables(tables.map((t) => (t.id === id ? response : t)));
+      const response = await api.updateTableStatus(
+        id,
+        nouveauStatus.toLowerCase(),
+      );
+      setTables((prev) => prev.map((t) => (t.id === id ? response : t)));
       showNotification("Statut modifié avec succès", "success");
     } catch (error) {
-      console.error("Erreur changement status:", error);
       showNotification("Erreur lors du changement de statut", "error");
     }
   };
@@ -207,19 +209,11 @@ export default function GestionTables() {
     setShowModal(true);
   };
 
-  const resetForm = () => {
-    setFormData({
-      nom: "",
-      capacite: "",
-      status: "libre",
-    });
-  };
+  const resetForm = () =>
+    setFormData({ nom: "", capacite: "", status: "libre" });
 
-  if (loading) {
-    return <SkeletonTables />;
-  }
-
-  if (error) {
+  if (loading) return <SkeletonTables />;
+  if (error)
     return (
       <div className="text-center py-12">
         <p className="text-red-500">{error}</p>
@@ -231,209 +225,172 @@ export default function GestionTables() {
         </button>
       </div>
     );
-  }
 
   return (
     <div className="flex-1 flex flex-col">
-      {/* Notification Toast */}
       {notification.show && (
         <div
-          className={`fixed top-20 right-4 z-50 px-4 py-3 rounded-xl shadow-lg transition-all duration-300 ${
-            notification.type === "error"
-              ? "bg-red-500 text-white"
-              : "bg-green-500 text-white"
-          }`}
+          className={`fixed top-20 right-4 z-50 px-4 py-3 rounded-xl shadow-lg ${notification.type === "error" ? "bg-red-500 text-white" : "bg-green-500 text-white"}`}
         >
-          <div className="flex items-center gap-2">
-            <span className="material-symbols-outlined text-lg">
-              {notification.type === "error" ? "error" : "check_circle"}
-            </span>
-            <span className="text-sm font-medium">{notification.message}</span>
-          </div>
+          {notification.message}
         </div>
       )}
-
-      {/* Content Canvas */}
       <div className="p-4 sm:p-6 md:p-8 max-w-[1600px] mx-auto w-full">
-        {/* Page Header */}
-        <div className="flex flex-col sm:flex-row sm:justify-between sm:items-end gap-4 mb-6 sm:mb-8">
+        <div className="flex justify-between items-end mb-8">
           <div>
-            <h2 className="font-headline text-2xl sm:text-3xl font-extrabold text-on-surface tracking-tight">
+            <h2 className="font-headline text-3xl font-extrabold text-on-surface tracking-tight">
               Gestion des Tables
             </h2>
-            <p className="text-secondary text-sm sm:text-base mt-1">
+            <p className="text-secondary mt-1">
               Configurez et supervisez la disposition de votre restaurant.
             </p>
           </div>
+          <button
+            onClick={openAddModal}
+            className="flex items-center gap-2 bg-primary text-white px-4 py-2 rounded-xl hover:bg-primary/90 transition"
+          >
+            <span className="material-symbols-outlined text-lg">add</span>{" "}
+            Ajouter une table
+          </button>
         </div>
 
-        {/* Filters and Search bar - Responsive */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
-          {/* Filtres - scroll horizontal sur mobile */}
-          <div className="flex items-center gap-2 bg-surface-container-low p-1.5 rounded-2xl overflow-x-auto whitespace-nowrap">
+          <div className="flex gap-2 bg-surface-container-low p-1.5 rounded-2xl overflow-x-auto whitespace-nowrap">
             {[
               { id: "TOUTES", label: "Toutes" },
               { id: "LIBRES", label: "Libres" },
               { id: "OCCUPEES", label: "Occupées" },
               { id: "A_NETTOYER", label: "À nettoyer" },
-            ].map((filtre) => (
+            ].map((f) => (
               <button
-                key={filtre.id}
-                onClick={() => setFiltreActif(filtre.id)}
-                className={`px-3 sm:px-5 py-1.5 sm:py-2 rounded-xl transition-all text-xs sm:text-sm ${
-                  filtreActif === filtre.id
-                    ? "bg-surface-container-lowest shadow-sm text-primary font-semibold"
-                    : "text-secondary hover:bg-surface-container-high font-medium"
-                }`}
+                key={f.id}
+                onClick={() => setFiltreActif(f.id)}
+                className={`px-4 py-2 rounded-xl text-sm ${filtreActif === f.id ? "bg-surface-container-lowest shadow-sm text-primary font-semibold" : "text-secondary hover:bg-surface-container-high font-medium"}`}
               >
-                {filtre.label}
+                {f.label}
               </button>
             ))}
           </div>
-
           <div className="relative w-full sm:max-w-sm">
-            <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-secondary text-lg sm:text-xl">
+            <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-secondary text-xl">
               search
             </span>
             <input
               type="text"
               value={recherche}
               onChange={(e) => setRecherche(e.target.value)}
-              className="w-full bg-surface-container-lowest border border-outline-variant/30 rounded-xl py-2 pl-10 pr-4 text-sm focus:ring-2 focus:ring-primary/20 transition-all outline-none"
+              className="w-full bg-surface-container-lowest border border-outline-variant/30 rounded-xl py-2 pl-10 pr-4 text-sm focus:ring-2 focus:ring-primary/20 outline-none"
               placeholder="Rechercher une table..."
             />
           </div>
         </div>
 
-        {/* Grid Layout - Responsive */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-4 sm:gap-6">
-          {/* Carte "Ajouter une table" */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
           <button
             onClick={openAddModal}
-            className="bg-surface-container-lowest p-4 sm:p-6 rounded-2xl sm:rounded-3xl border-2 border-dashed border-outline-variant/30 shadow-sm hover:border-primary/50 hover:bg-surface-container-low transition-all group flex flex-col items-center justify-center min-h-[240px] sm:min-h-[280px] text-secondary hover:text-primary"
+            className="bg-surface-container-lowest p-6 rounded-3xl border-2 border-dashed border-outline-variant/30 hover:border-primary/50 hover:bg-surface-container-low transition-all group flex flex-col items-center justify-center min-h-[280px] text-secondary hover:text-primary"
           >
-            <div className="flex flex-col items-center gap-3 sm:gap-4">
-              <span className="material-symbols-outlined text-4xl sm:text-5xl">
+            <div className="flex flex-col items-center gap-4">
+              <span className="material-symbols-outlined text-5xl">
                 add_circle
               </span>
-              <span className="font-headline font-bold text-xs sm:text-sm">
+              <span className="font-headline font-bold text-sm">
                 Ajouter une table
               </span>
             </div>
           </button>
 
-          {/* Cartes des tables existantes */}
           {tablesFiltrees.map((table) => {
             const statusInfo = getStatusInfo(table.status);
             return (
               <div
                 key={table.id}
-                className="bg-surface-container-lowest p-4 sm:p-6 rounded-2xl sm:rounded-3xl border border-outline-variant/10 shadow-sm hover:shadow-xl transition-all group flex flex-col min-h-[240px] sm:min-h-[280px] relative"
+                className="bg-surface-container-lowest p-6 rounded-3xl border border-outline-variant/10 shadow-sm hover:shadow-xl transition-all group flex flex-col min-h-[280px] relative"
               >
-                {/* En-tête */}
-                <div className="flex justify-between items-start gap-2 mb-2">
-                  <h3 className="font-headline text-base sm:text-lg font-bold text-on-surface truncate">
+                <div className="flex justify-between items-start mb-2">
+                  <h3 className="font-headline text-lg font-bold text-on-surface">
                     {table.nom}
                   </h3>
                   <span
-                    className={`px-2 sm:px-3 py-0.5 sm:py-1 ${statusInfo.bg} ${statusInfo.text} text-[8px] sm:text-[10px] font-bold rounded-full uppercase tracking-wider whitespace-nowrap`}
+                    className={`px-3 py-1 ${statusInfo.bg} ${statusInfo.text} text-[10px] font-bold rounded-full uppercase tracking-wider`}
                   >
                     {statusInfo.label}
                   </span>
                 </div>
-
-                {/* Capacité */}
-                <div className="flex items-center gap-2 text-secondary mb-3 sm:mb-4">
+                <div className="flex items-center gap-2 text-secondary mb-4">
                   <span className="material-symbols-outlined text-sm">
                     groups
                   </span>
-                  <span className="text-[11px] sm:text-xs font-medium">
+                  <span className="text-xs font-medium">
                     {table.capacite} personnes
                   </span>
                 </div>
-
-                {/* Icône centrale */}
-                <div className="flex-1 flex flex-col items-center justify-center py-3 sm:py-4">
+                <div className="flex-1 flex flex-col items-center justify-center py-4">
                   <span
-                    className={`material-symbols-outlined text-5xl sm:text-7xl ${statusInfo.iconColor}`}
+                    className={`material-symbols-outlined text-7xl ${statusInfo.iconColor}`}
                   >
                     {statusInfo.icon}
                   </span>
                 </div>
-
-                {/* Bouton settings avec menu */}
-                <div className="flex justify-end pt-2 sm:pt-4 relative">
+                <div className="flex justify-end pt-4 relative">
                   <button
                     onClick={() =>
                       setShowActionMenu(
                         showActionMenu === table.id ? null : table.id,
                       )
                     }
-                    className="w-8 h-8 sm:w-10 sm:h-10 flex items-center justify-center rounded-xl text-secondary hover:bg-surface-container-high transition-all"
+                    className="w-10 h-10 flex items-center justify-center rounded-xl text-secondary hover:bg-surface-container-high transition-all"
                   >
-                    <span className="material-symbols-outlined text-base sm:text-lg">
-                      settings
-                    </span>
+                    <span className="material-symbols-outlined">settings</span>
                   </button>
-
-                  {/* Menu déroulant */}
                   {showActionMenu === table.id && (
-                    <div className="absolute bottom-10 sm:bottom-12 right-0 bg-white rounded-xl shadow-lg border border-outline-variant/10 overflow-hidden z-10 min-w-[130px] sm:min-w-[140px]">
+                    <div className="absolute bottom-12 right-0 bg-white rounded-xl shadow-lg border border-outline-variant/10 overflow-hidden z-10 min-w-[140px]">
                       <button
                         onClick={() => openEditModal(table)}
-                        className="w-full px-3 sm:px-4 py-2 text-left text-xs sm:text-sm text-secondary hover:bg-surface-container-low flex items-center gap-2 transition"
+                        className="w-full px-4 py-2 text-left text-sm text-secondary hover:bg-surface-container-low flex items-center gap-2 transition"
                       >
-                        <span className="material-symbols-outlined text-base sm:text-lg">
+                        <span className="material-symbols-outlined text-lg">
                           edit
-                        </span>
+                        </span>{" "}
                         Modifier
                       </button>
                       <button
                         onClick={() => handleChangerStatus(table.id, "libre")}
-                        className="w-full px-3 sm:px-4 py-2 text-left text-xs sm:text-sm text-secondary hover:bg-surface-container-low flex items-center gap-2 transition"
+                        className="w-full px-4 py-2 text-left text-sm text-secondary hover:bg-surface-container-low flex items-center gap-2 transition"
                       >
-                        <span className="material-symbols-outlined text-base sm:text-lg">
+                        <span className="material-symbols-outlined text-lg">
                           check_circle
-                        </span>
+                        </span>{" "}
                         Marquer libre
                       </button>
                       <button
                         onClick={() => handleChangerStatus(table.id, "occupee")}
-                        className="w-full px-3 sm:px-4 py-2 text-left text-xs sm:text-sm text-secondary hover:bg-surface-container-low flex items-center gap-2 transition"
+                        className="w-full px-4 py-2 text-left text-sm text-secondary hover:bg-surface-container-low flex items-center gap-2 transition"
                       >
-                        <span className="material-symbols-outlined text-base sm:text-lg">
+                        <span className="material-symbols-outlined text-lg">
                           person
-                        </span>
+                        </span>{" "}
                         Marquer occupée
                       </button>
                       <button
                         onClick={() =>
                           handleChangerStatus(table.id, "a_nettoyer")
                         }
-                        className="w-full px-3 sm:px-4 py-2 text-left text-xs sm:text-sm text-secondary hover:bg-surface-container-low flex items-center gap-2 transition"
+                        className="w-full px-4 py-2 text-left text-sm text-secondary hover:bg-surface-container-low flex items-center gap-2 transition"
                       >
-                        <span className="material-symbols-outlined text-base sm:text-lg">
+                        <span className="material-symbols-outlined text-lg">
                           cleaning
-                        </span>
+                        </span>{" "}
                         À nettoyer
                       </button>
                       <button
                         onClick={() => handleSupprimer(table.id, table.nom)}
-                        className="w-full px-3 sm:px-4 py-2 text-left text-xs sm:text-sm text-error hover:bg-error/5 flex items-center gap-2 transition border-t border-outline-variant/10"
+                        className="w-full px-4 py-2 text-left text-sm text-error hover:bg-error/5 flex items-center gap-2 transition border-t border-outline-variant/10"
                       >
-                        <span className="material-symbols-outlined text-base sm:text-lg">
+                        <span className="material-symbols-outlined text-lg">
                           delete
-                        </span>
+                        </span>{" "}
                         Supprimer
-                      </button>
-                      <button
-                        onClick={() => setShowActionMenu(null)}
-                        className="w-full px-3 sm:px-4 py-2 text-left text-xs sm:text-sm text-secondary hover:bg-surface-container-low flex items-center gap-2 transition border-t border-outline-variant/10"
-                      >
-                        <span className="material-symbols-outlined text-base sm:text-lg">
-                          close
-                        </span>
-                        Annuler
                       </button>
                     </div>
                   )}
@@ -442,20 +399,13 @@ export default function GestionTables() {
             );
           })}
         </div>
-
-        {tablesFiltrees.length === 0 && (
-          <div className="text-center py-12">
-            <p className="text-secondary">Aucune table trouvée</p>
-          </div>
-        )}
       </div>
 
-      {/* Modal Ajouter/Modifier - Responsive */}
       {showModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
-          <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full mx-4 p-5 sm:p-6">
+          <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full p-6">
             <div className="flex justify-between items-center mb-4">
-              <h3 className="text-lg sm:text-xl font-bold text-on-surface">
+              <h3 className="text-xl font-bold text-on-surface">
                 {tableEdit ? "Modifier la table" : "Ajouter une table"}
               </h3>
               <button
@@ -465,7 +415,6 @@ export default function GestionTables() {
                 ✕
               </button>
             </div>
-
             <div className="space-y-4">
               <div>
                 <label className="block text-sm font-medium text-secondary mb-1">
@@ -481,7 +430,6 @@ export default function GestionTables() {
                   placeholder="Ex: Table 21"
                 />
               </div>
-
               <div>
                 <label className="block text-sm font-medium text-secondary mb-1">
                   Capacité
@@ -496,7 +444,6 @@ export default function GestionTables() {
                   placeholder="Nombre de personnes"
                 />
               </div>
-
               <div>
                 <label className="block text-sm font-medium text-secondary mb-1">
                   Statut
@@ -514,17 +461,16 @@ export default function GestionTables() {
                 </select>
               </div>
             </div>
-
             <div className="flex gap-3 mt-6">
               <button
                 onClick={tableEdit ? handleModifier : handleAjouter}
-                className="flex-1 bg-primary text-white py-2 rounded-xl font-semibold hover:bg-primary/90 transition text-sm sm:text-base"
+                className="flex-1 bg-primary text-white py-2 rounded-xl font-semibold hover:bg-primary/90 transition"
               >
                 {tableEdit ? "Modifier" : "Ajouter"}
               </button>
               <button
                 onClick={() => setShowModal(false)}
-                className="flex-1 bg-gray-200 text-gray-700 py-2 rounded-xl font-semibold hover:bg-gray-300 transition text-sm sm:text-base"
+                className="flex-1 bg-gray-200 text-gray-700 py-2 rounded-xl font-semibold hover:bg-gray-300 transition"
               >
                 Annuler
               </button>
@@ -532,11 +478,6 @@ export default function GestionTables() {
           </div>
         </div>
       )}
-
-      {/* Visual Anchor */}
-      <div className="fixed bottom-8 right-8 pointer-events-none opacity-20">
-        <div className="w-32 h-32 sm:w-48 sm:h-48 bg-primary rounded-full blur-[100px]"></div>
-      </div>
     </div>
   );
 }
