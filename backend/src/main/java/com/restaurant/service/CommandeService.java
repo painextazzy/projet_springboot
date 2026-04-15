@@ -35,6 +35,9 @@ public class CommandeService {
     private TableRepository tableRepository;
     
     @Autowired
+    private TableService tableService;  // ✅ Injecté
+    
+    @Autowired
     private WebSocketService webSocketService;
     
     private LocalDateTime nowMadagascar() {
@@ -96,6 +99,9 @@ public class CommandeService {
         commande.setTotal(total);
         commande = commandeRepository.save(commande);
         
+        // ✅ Changer le statut de la table en OCCUPEE
+        tableService.updateStatus(request.getTableId(), "occupee");
+        webSocketService.notifyTableChanged();
         webSocketService.notifyCommandeChanged();
         
         return convertToDTO(commande);
@@ -197,6 +203,9 @@ public class CommandeService {
         commande.setDateCloture(nowMadagascar());
         commande = commandeRepository.save(commande);
         
+        // ✅ Libérer la table (statut LIBRE)
+        tableService.updateStatus(commande.getTableId(), "libre");
+        webSocketService.notifyTableChanged();
         webSocketService.notifyCommandeChanged();
         
         List<LigneCommande> lignes = ligneCommandeRepository.findByCommandeId(id);
