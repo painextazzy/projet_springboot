@@ -1,7 +1,9 @@
 // src/components/manager/Facture.jsx
-import React, { useEffect } from "react";
+import React, { useEffect, useRef } from "react";
 
 const Facture = ({ commande, onClose }) => {
+  const printRef = useRef();
+
   if (!commande) return null;
 
   const date = new Date(commande.dateCloture || new Date());
@@ -16,18 +18,84 @@ const Facture = ({ commande, onClose }) => {
   const lignes = commande.lignes || [];
 
   const handlePrint = () => {
-    window.print();
+    // Récupérer le contenu HTML de la facture seulement
+    const printContent = printRef.current.innerHTML;
+
+    // Créer une nouvelle fenêtre pour l'impression
+    const printWindow = window.open("", "_blank", "width=400,height=600");
+
+    printWindow.document.write(`
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <meta charset="UTF-8">
+        <title>Facture #${numeroFacture}</title>
+        <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+        <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;600;700;800&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+        <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet">
+        <style>
+          @media print {
+            @page { 
+              size: 80mm auto; 
+              margin: 0mm;
+            }
+            body {
+              margin: 0;
+              padding: 0;
+            }
+          }
+          
+          * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+          }
+          
+          body {
+            font-family: 'Inter', sans-serif;
+            background: white;
+            display: flex;
+            justify-content: center;
+            padding: 0;
+            margin: 0;
+          }
+          
+          .print-wrapper {
+            width: 80mm;
+            background: white;
+          }
+          
+          .serrated-edge {
+            clip-path: polygon(0% 0%, 2.5% 100%, 5% 0%, 7.5% 100%, 10% 0%, 12.5% 100%, 15% 0%, 17.5% 100%, 20% 0%, 22.5% 100%, 25% 0%, 27.5% 100%, 30% 0%, 32.5% 100%, 35% 0%, 37.5% 100%, 40% 0%, 42.5% 100%, 45% 0%, 47.5% 100%, 50% 0%, 52.5% 100%, 55% 0%, 57.5% 100%, 60% 0%, 62.5% 100%, 65% 0%, 67.5% 100%, 70% 0%, 72.5% 100%, 75% 0%, 77.5% 100%, 80% 0%, 82.5% 100%, 85% 0%, 87.5% 100%, 90% 0%, 92.5% 100%, 95% 0%, 97.5% 100%, 100% 0%, 100% 100%, 0% 100%);
+          }
+        </style>
+      </head>
+      <body>
+        <div class="print-wrapper">
+          ${printContent}
+        </div>
+        <script>
+          // Auto-imprimer dès que la page est chargée
+          window.onload = function() {
+            window.print();
+            setTimeout(() => {
+              window.close();
+            }, 500);
+          }
+        </script>
+      </body>
+      </html>
+    `);
+
+    printWindow.document.close();
   };
 
-  // Supprimer l'auto-fermeture
+  // Auto-print sur desktop
   useEffect(() => {
-    // Ne plus fermer automatiquement
-    // On garde seulement le print auto sur desktop si nécessaire
     const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
     if (!isMobile) {
-      // Petit délai pour laisser le temps à l'affichage
       setTimeout(() => {
-        window.print();
+        handlePrint();
       }, 500);
     }
   }, []);
@@ -46,7 +114,7 @@ const Facture = ({ commande, onClose }) => {
         padding: "16px",
       }}
     >
-      {/* Bouton de fermeture en haut à droite */}
+      {/* Bouton de fermeture */}
       <div
         style={{
           position: "sticky",
@@ -78,7 +146,8 @@ const Facture = ({ commande, onClose }) => {
         </button>
       </div>
 
-      <div id="facture-content">
+      {/* Contenu de la facture - uniquement ceci sera imprimé */}
+      <div ref={printRef}>
         <div
           className="receipt-container"
           style={{
@@ -249,62 +318,46 @@ const Facture = ({ commande, onClose }) => {
 
       {/* Bouton d'impression en bas */}
       <div
-        className="fixed bottom-0 left-0 right-0 flex justify-center p-4 z-50"
         style={{
+          position: "fixed",
+          bottom: 0,
+          left: 0,
+          right: 0,
+          display: "flex",
+          justifyContent: "center",
+          padding: "16px",
           background:
             "linear-gradient(to top, #f7f9fb 0%, rgba(247,249,251,0) 100%)",
+          zIndex: 50,
         }}
       >
         <button
           onClick={handlePrint}
-          className="flex items-center gap-3 bg-gradient-to-r from-[#00307d] to-[#0045ab] text-white px-6 py-3 rounded-full font-semibold shadow-lg active:scale-95 transition-all"
           style={{
+            display: "flex",
+            alignItems: "center",
+            gap: "12px",
+            background: "linear-gradient(135deg, #00307d 0%, #0045ab 100%)",
+            color: "white",
+            border: "none",
+            padding: "14px 32px",
+            borderRadius: "60px",
+            fontSize: "16px",
+            fontWeight: 600,
+            cursor: "pointer",
+            boxShadow: "0 8px 20px rgba(0, 48, 125, 0.3)",
             fontFamily: "Inter, sans-serif",
-            fontSize: "14px",
           }}
         >
           <span
             className="material-symbols-outlined"
-            style={{ fontSize: "20px" }}
+            style={{ fontSize: "22px" }}
           >
             print
           </span>
           <span>Imprimer la facture</span>
         </button>
       </div>
-
-      <style>{`
-        @media print {
-          body * {
-            visibility: hidden;
-          }
-          #facture-content, #facture-content * {
-            visibility: visible;
-          }
-          #facture-content {
-            position: absolute;
-            left: 0;
-            top: 0;
-            width: 100%;
-            margin: 0;
-            padding: 0;
-          }
-          .fixed {
-            display: none !important;
-          }
-          @page {
-            size: 80mm auto;
-            margin: 0mm;
-          }
-        }
-        
-        @media (max-width: 480px) {
-          button {
-            padding: 12px 24px !important;
-            font-size: 13px !important;
-          }
-        }
-      `}</style>
     </div>
   );
 };
