@@ -21,7 +21,6 @@ export default function POSModal({
   const [quantites, setQuantites] = useState({});
   const [tableOccupee, setTableOccupee] = useState(false);
   const [confirmationOpen, setConfirmationOpen] = useState(false);
-  const [showCart, setShowCart] = useState(false);
   const [ticketId, setTicketId] = useState(Math.floor(Math.random() * 1000));
   const [notification, setNotification] = useState({
     show: false,
@@ -29,8 +28,6 @@ export default function POSModal({
     type: "",
   });
 
-  const isFirstRender = useRef(true);
-  const prevPanierRef = useRef(initialPanier);
   const searchInputRef = useRef(null);
 
   const showNotification = (message, type = "success") => {
@@ -44,21 +41,6 @@ export default function POSModal({
   useEffect(() => {
     chargerMenu();
   }, []);
-
-  useEffect(() => {
-    if (isFirstRender.current) {
-      isFirstRender.current = false;
-      prevPanierRef.current = panier;
-      return;
-    }
-
-    if (JSON.stringify(prevPanierRef.current) !== JSON.stringify(panier)) {
-      prevPanierRef.current = panier;
-      if (onUpdatePanier) {
-        onUpdatePanier(panier);
-      }
-    }
-  }, [panier, onUpdatePanier]);
 
   const chargerMenu = async () => {
     try {
@@ -86,13 +68,8 @@ export default function POSModal({
       try {
         await api.updateTableStatus(table.id, "OCCUPEE");
         setTableOccupee(true);
-        showNotification(
-          `Table ${table.nom || table.numero} occupée`,
-          "success",
-        );
       } catch (error) {
         console.error("Erreur prise de table:", error);
-        showNotification("Erreur lors de la prise de table", "error");
       }
     }
   };
@@ -171,7 +148,6 @@ export default function POSModal({
 
   const confirmerCommande = async () => {
     setConfirmationOpen(false);
-    setShowCart(false);
     try {
       const commande = {
         tableId: table.id,
@@ -193,9 +169,7 @@ export default function POSModal({
       }
 
       showNotification("Commande enregistrée, table libérée !", "success");
-      setTimeout(() => {
-        onClose();
-      }, 1500);
+      onClose();
     } catch (error) {
       console.error("Erreur:", error);
       showNotification(
@@ -234,7 +208,7 @@ export default function POSModal({
 
   if (loading) {
     return (
-      <div className="fixed inset-0 z-50 bg-surface-bright flex items-center justify-center">
+      <div className="fixed inset-0 z-50 bg-white flex items-center justify-center">
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
           <p className="text-secondary">Chargement du menu...</p>
@@ -250,7 +224,7 @@ export default function POSModal({
         <div
           className={`fixed top-16 left-1/2 -translate-x-1/2 z-[200] px-4 py-2 rounded-full shadow-lg transition-all duration-300 text-sm font-medium ${
             notification.type === "error"
-              ? "bg-error text-white"
+              ? "bg-red-500 text-white"
               : "bg-primary text-white"
           }`}
         >
@@ -258,289 +232,275 @@ export default function POSModal({
         </div>
       )}
 
-      {/* Main POS View */}
-      {!showCart ? (
-        <div className="fixed inset-0 z-50 bg-white flex flex-col h-screen w-screen overflow-hidden">
-          {/* TopAppBar */}
-          <header className="pt-4 pb-2 px-6 flex justify-between items-center bg-surface-bright sticky top-0 z-50">
-            <div className="flex items-center gap-4">
-              <button
-                onClick={onClose}
-                className="material-symbols-outlined text-on-surface p-2 -ml-2 hover:bg-surface-container rounded-full transition-colors"
-              >
-                close
-              </button>
-              <h1 className="font-headline font-extrabold text-xl tracking-tight text-on-surface">
-                Executive POS
-              </h1>
-            </div>
-          </header>
+      {/* Modal POS - Plein écran avec côte à côte sur grand écran */}
+      <div className="fixed inset-0 z-50 bg-white flex flex-col h-screen w-screen overflow-hidden">
+        {/* Header */}
+        <div className="bg-white border-b border-slate-200 px-4 sm:px-6 py-3 sm:py-4 flex justify-between items-center shadow-sm sticky top-0 z-10">
+          <div>
+            <h1 className="text-lg sm:text-xl font-bold text-slate-800">
+              Prise de commande
+            </h1>
+            <p className="text-xs sm:text-sm text-slate-500">
+              Table {table.nom || table.numero} • Ticket #{ticketId}
+            </p>
+          </div>
+          <button
+            onClick={onClose}
+            className="p-2 hover:bg-slate-100 rounded-full transition-colors"
+          >
+            <span className="material-symbols-outlined">close</span>
+          </button>
+        </div>
 
-          {/* Scrollable Content */}
-          <main className="flex-1 overflow-y-auto px-6 space-y-6 pb-32">
-            {/* Search Bar */}
-            <div className="relative mt-2">
-              <span className="material-symbols-outlined absolute left-4 top-1/2 -translate-y-1/2 text-on-surface-variant">
-                search
-              </span>
-              <input
-                ref={searchInputRef}
-                type="text"
-                value={recherche}
-                onChange={(e) => setRecherche(e.target.value)}
-                className="w-full h-14 pl-12 pr-4 rounded-2xl border-none bg-surface-container-high focus:bg-white focus:ring-2 focus:ring-primary/20 transition-all outline-none text-base placeholder:text-on-surface-variant/60"
-                placeholder="Rechercher un article..."
-              />
-            </div>
-
-            {/* Categories */}
-            <section className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide -mx-6 px-6">
-              <button
-                onClick={() => setCategorieActive("TOUS")}
-                className={`whitespace-nowrap px-6 py-3 rounded-full text-sm font-bold transition-all ${
-                  categorieActive === "TOUS"
-                    ? "bg-primary text-on-primary shadow-md shadow-primary/20"
-                    : "bg-surface-container-high text-on-surface-variant hover:bg-surface-container-highest"
-                }`}
-              >
-                Tous
-              </button>
-              {categories.map((cat) => (
-                <button
-                  key={cat}
-                  onClick={() => setCategorieActive(cat)}
-                  className={`whitespace-nowrap px-6 py-3 rounded-full text-sm font-bold transition-all ${
-                    categorieActive === cat
-                      ? "bg-primary text-on-primary shadow-md shadow-primary/20"
-                      : "bg-surface-container-high text-on-surface-variant hover:bg-surface-container-highest"
-                  }`}
-                >
-                  {getCategorieLabel(cat)}
-                </button>
-              ))}
-            </section>
-
-            {/* Product Grid */}
-            <div className="grid grid-cols-2 gap-4 pb-4">
-              {platsFiltres.length === 0 ? (
-                <div className="col-span-2 text-center py-12 text-secondary">
-                  Aucun plat trouvé
+        {/* Content - Côte à côte sur grand écran (flex row), colonne sur mobile (flex col) */}
+        <div className="flex flex-col lg:flex-row flex-1 overflow-hidden">
+          {/* LEFT COLUMN - Menu (prend 2/3 sur desktop) */}
+          <div className="flex-1 flex flex-col h-full overflow-hidden lg:w-2/3">
+            {/* Barre de recherche et catégories */}
+            <div className="p-4 border-b border-slate-200 bg-white">
+              <div className="flex flex-col md:flex-row gap-4 items-start md:items-center">
+                <div className="relative w-full md:w-80">
+                  <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-xl">
+                    search
+                  </span>
+                  <input
+                    ref={searchInputRef}
+                    type="text"
+                    value={recherche}
+                    onChange={(e) => setRecherche(e.target.value)}
+                    className="w-full pl-10 pr-4 py-2.5 bg-slate-100 border-none rounded-lg focus:ring-2 focus:ring-primary/20 focus:bg-white transition-all text-sm placeholder:text-slate-400"
+                    placeholder="Rechercher un plat..."
+                  />
                 </div>
-              ) : (
-                platsFiltres.map((plat) => (
-                  <div
-                    key={plat.id}
-                    className="bg-white rounded-3xl p-3 shadow-sm border border-surface-container-high flex flex-col gap-3 group"
+
+                <div className="flex flex-wrap gap-2 overflow-x-auto flex-1">
+                  <button
+                    onClick={() => setCategorieActive("TOUS")}
+                    className={`px-4 py-1.5 rounded-full text-sm font-medium whitespace-nowrap transition-all ${
+                      categorieActive === "TOUS"
+                        ? "bg-primary text-white shadow-sm"
+                        : "bg-slate-100 text-slate-600 hover:bg-slate-200"
+                    }`}
                   >
-                    <div className="aspect-square rounded-2xl overflow-hidden bg-surface-container relative">
-                      {plat.imageUrl ? (
-                        <img
-                          src={plat.imageUrl}
-                          alt={plat.nom}
-                          className="w-full h-full object-cover"
-                          onError={(e) => {
-                            e.target.onerror = null;
-                            e.target.src =
-                              "https://placehold.co/400x300/e2e8f0/64748b?text=🍽️";
-                          }}
-                        />
-                      ) : (
-                        <div className="w-full h-full flex items-center justify-center text-4xl bg-surface-container">
-                          🍽️
-                        </div>
-                      )}
-                      <div className="absolute bottom-2 right-2 flex items-center bg-primary text-on-primary rounded-lg px-2 py-1 text-xs font-bold shadow-lg">
-                        {formatPrix(plat.prix)}
-                      </div>
-                    </div>
-                    <div className="flex flex-col px-1">
-                      <h3 className="text-sm font-bold text-on-surface leading-tight">
-                        {plat.nom}
-                      </h3>
-                      <p className="text-[11px] text-secondary font-medium">
-                        {getCategorieLabel(plat.categorie)}
-                      </p>
-                    </div>
-                    <div className="flex justify-end px-1 mb-0.5">
-                      <span
-                        className={`text-[10px] font-medium ${plat.quantite <= 0 ? "text-error" : plat.quantite <= 5 ? "text-amber-600" : "text-secondary/70"}`}
-                      >
-                        Stock: {plat.quantite}
-                      </span>
-                    </div>
-                    <div className="flex items-center justify-between bg-surface-container-low rounded-xl p-1 mt-1">
-                      <button
-                        onClick={() => modifierQuantitePlat(plat.id, -1)}
-                        className="material-symbols-outlined text-base p-1.5 hover:bg-surface-container-high rounded-lg transition-colors text-primary"
-                      >
-                        remove
-                      </button>
-                      <span className="text-sm font-bold px-2">
-                        {quantites[plat.id] || 1}
-                      </span>
-                      <button
-                        onClick={() => ajouterAuPanier(plat)}
-                        disabled={plat.quantite <= 0}
-                        className="material-symbols-outlined text-base p-1.5 bg-primary text-on-primary rounded-lg transition-colors shadow-sm disabled:opacity-50 disabled:cursor-not-allowed"
-                      >
-                        add
-                      </button>
-                    </div>
+                    Tous
+                  </button>
+                  {categories.map((cat) => (
+                    <button
+                      key={cat}
+                      onClick={() => setCategorieActive(cat)}
+                      className={`px-4 py-1.5 rounded-full text-sm font-medium whitespace-nowrap transition-all ${
+                        categorieActive === cat
+                          ? "bg-primary text-white shadow-sm"
+                          : "bg-slate-100 text-slate-600 hover:bg-slate-200"
+                      }`}
+                    >
+                      {getCategorieLabel(cat)}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </div>
+
+            {/* Scrollable Menu Grid */}
+            <div className="flex-1 overflow-y-auto p-4 sm:p-6">
+              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-4">
+                {platsFiltres.length === 0 ? (
+                  <div className="col-span-full text-center py-12 text-secondary">
+                    Aucun plat trouvé
                   </div>
-                ))
+                ) : (
+                  platsFiltres.map((plat) => {
+                    const stockStatus =
+                      plat.quantite === 0
+                        ? "Rupture"
+                        : plat.quantite <= 5
+                          ? `Stock: ${plat.quantite}`
+                          : `${plat.quantite} en stock`;
+                    const stockColor =
+                      plat.quantite === 0
+                        ? "text-red-500"
+                        : plat.quantite <= 5
+                          ? "text-orange-500"
+                          : "text-green-600";
+
+                    return (
+                      <div
+                        key={plat.id}
+                        className="bg-white rounded-xl overflow-hidden shadow-sm hover:shadow-md transition-all border border-slate-200 flex flex-col"
+                      >
+                        <div className="h-32 sm:h-36 overflow-hidden bg-slate-100 relative">
+                          {plat.imageUrl ? (
+                            <img
+                              src={plat.imageUrl}
+                              alt={plat.nom}
+                              className="w-full h-full object-cover hover:scale-105 transition-transform duration-300"
+                              onError={(e) => {
+                                e.target.onerror = null;
+                                e.target.src =
+                                  "https://placehold.co/400x300/e2e8f0/64748b?text=🍽️";
+                              }}
+                            />
+                          ) : (
+                            <div className="w-full h-full flex items-center justify-center text-3xl bg-slate-100">
+                              🍽️
+                            </div>
+                          )}
+                          <div className="absolute bottom-2 right-2 bg-primary text-white rounded-lg px-2 py-1 text-xs font-bold shadow-lg">
+                            {formatPrix(plat.prix)}
+                          </div>
+                        </div>
+                        <div className="p-3 flex-1">
+                          <h3 className="font-semibold text-sm line-clamp-1">
+                            {plat.nom}
+                          </h3>
+                          <p
+                            className={`text-xs mt-1 ${stockColor} font-medium`}
+                          >
+                            {stockStatus}
+                          </p>
+                          <div className="flex items-center justify-between mt-3">
+                            <div className="flex items-center bg-slate-100 rounded-lg">
+                              <button
+                                onClick={() =>
+                                  modifierQuantitePlat(plat.id, -1)
+                                }
+                                className="w-7 h-7 flex items-center justify-center text-primary hover:bg-white rounded-l-lg transition-all"
+                              >
+                                <span className="material-symbols-outlined text-sm">
+                                  remove
+                                </span>
+                              </button>
+                              <span className="w-8 text-center text-sm font-medium">
+                                {quantites[plat.id] || 1}
+                              </span>
+                              <button
+                                onClick={() => modifierQuantitePlat(plat.id, 1)}
+                                className="w-7 h-7 flex items-center justify-center text-primary hover:bg-white rounded-r-lg transition-all"
+                              >
+                                <span className="material-symbols-outlined text-sm">
+                                  add
+                                </span>
+                              </button>
+                            </div>
+                            <button
+                              onClick={() => ajouterAuPanier(plat)}
+                              disabled={plat.quantite <= 0}
+                              className="px-3 py-1.5 bg-primary text-white rounded-lg text-xs font-medium hover:bg-primary/90 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                            >
+                              Ajouter
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })
+                )}
+              </div>
+            </div>
+          </div>
+
+          {/* RIGHT COLUMN - Panier (fixe à droite sur desktop, 1/3 de largeur) */}
+          <div className="w-full lg:w-1/3 bg-white border-t lg:border-t-0 lg:border-l border-slate-200 flex flex-col h-[40%] lg:h-full">
+            {/* En-tête panier */}
+            <div className="p-4 border-b border-slate-100 flex justify-between items-center">
+              <div>
+                <h2 className="text-base font-bold text-slate-900">
+                  Commande en cours
+                </h2>
+                <p className="text-xs text-slate-400">Ticket #{ticketId}</p>
+              </div>
+              {panier.length > 0 && (
+                <button
+                  onClick={viderPanier}
+                  className="text-xs text-red-500 hover:text-red-700 flex items-center gap-1"
+                >
+                  <span className="material-symbols-outlined text-base">
+                    delete_sweep
+                  </span>
+                  Vider
+                </button>
               )}
             </div>
-          </main>
 
-          {/* Floating Cart Button */}
-          <div className="fixed bottom-0 left-1/2 -translate-x-1/2 w-full max-w-md z-[100] pointer-events-none px-6 pb-6">
-            <button
-              onClick={() => setShowCart(true)}
-              disabled={panier.length === 0}
-              className="w-full pointer-events-auto bg-[#00307d] text-white py-4 rounded-2xl flex items-center justify-between px-6 shadow-2xl active:scale-95 transition-transform disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              <div className="flex items-center gap-3">
-                <span className="material-symbols-outlined text-2xl">
-                  shopping_basket
-                </span>
-                <span className="font-bold">Voir le panier</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <span className="text-xl font-bold">
-                  {formatPrix(calculerTotal())}
-                </span>
-                <span className="bg-white/20 rounded-full px-2 py-1 text-xs font-bold">
-                  {panier.length}
-                </span>
-              </div>
-            </button>
-          </div>
-        </div>
-      ) : (
-        /* Cart View - Détail de la commande */
-        <div className="fixed inset-0 z-50 bg-background flex flex-col h-full max-w-md mx-auto shadow-2xl overflow-hidden">
-          {/* TopAppBar */}
-          <header className="bg-surface-container-low/80 backdrop-blur-md sticky top-0 z-50 h-20 w-full">
-            <div className="flex items-center justify-between px-6 w-full h-full">
-              <button
-                onClick={() => setShowCart(false)}
-                className="text-primary hover:bg-surface-container-high transition-colors p-2 rounded-full active:scale-95 duration-150"
-              >
-                <span className="material-symbols-outlined">arrow_back</span>
-              </button>
-              <h1 className="font-headline text-lg font-bold tracking-tight text-primary">
-                Votre Panier
-              </h1>
-              <div className="flex flex-col items-end">
-                <span className="font-headline text-xs uppercase tracking-widest text-secondary font-bold">
-                  Table
-                </span>
-                <span className="font-headline text-xl font-extrabold text-on-surface leading-none">
-                  {table.nom || table.numero}
-                </span>
-              </div>
-            </div>
-          </header>
-
-          <main className="flex-1 overflow-y-auto px-6 py-8 pb-32">
-            {/* Cart Items List */}
-            <div className="space-y-6">
+            {/* Liste des articles */}
+            <div className="flex-1 overflow-y-auto p-4 space-y-3">
               {panier.length === 0 ? (
-                <div className="text-center py-12 text-secondary">
-                  <span className="material-symbols-outlined text-5xl mb-3">
-                    shopping_basket
+                <div className="text-center py-12">
+                  <span className="material-symbols-outlined text-4xl text-slate-300 mb-2">
+                    shopping_cart
                   </span>
-                  <p>Votre panier est vide</p>
+                  <p className="text-slate-400 text-sm">Panier vide</p>
                 </div>
               ) : (
                 panier.map((item) => (
                   <div
                     key={item.id}
-                    className="bg-surface-container-low rounded-xl p-5 flex flex-col gap-4 shadow-sm border border-outline-variant/15"
+                    className="flex items-center justify-between p-3 bg-slate-50 rounded-lg"
                   >
-                    <div className="flex justify-between items-start">
-                      <div className="space-y-1">
-                        <h3 className="font-headline text-lg font-bold text-on-surface">
-                          {item.nom}
-                        </h3>
-                        <p className="text-primary font-semibold">
-                          {formatPrix(item.prix)}
-                        </p>
-                      </div>
-                      <button
-                        onClick={() => supprimerDuPanier(item.id)}
-                        className="text-error hover:bg-error/10 p-2 rounded-full transition-all active:scale-90"
-                      >
-                        <span className="material-symbols-outlined">
-                          delete
-                        </span>
-                      </button>
+                    <div className="flex-1">
+                      <p className="text-sm font-medium text-slate-800">
+                        {item.nom}
+                      </p>
+                      <p className="text-xs text-slate-500">
+                        {formatPrix(item.prix)} x {item.quantite}
+                      </p>
                     </div>
-                    <div className="flex justify-between items-center bg-surface-container-lowest rounded-lg p-2 border border-outline-variant/10">
-                      <div className="flex items-center gap-4">
+                    <div className="flex items-center gap-2">
+                      <div className="flex items-center bg-white rounded-lg">
                         <button
                           onClick={() => modifierQuantitePanier(item.id, -1)}
-                          className="w-10 h-10 flex items-center justify-center rounded-full bg-surface-container-highest text-on-surface hover:bg-outline-variant transition-colors active:scale-95"
+                          className="w-7 h-7 flex items-center justify-center text-slate-500 hover:bg-slate-100 rounded-l-lg transition-all"
                         >
-                          <span className="material-symbols-outlined">
+                          <span className="material-symbols-outlined text-sm">
                             remove
                           </span>
                         </button>
-                        <span className="font-headline font-bold text-lg min-w-[1.5rem] text-center">
+                        <span className="w-8 text-center text-sm font-medium">
                           {item.quantite}
                         </span>
                         <button
                           onClick={() => modifierQuantitePanier(item.id, 1)}
-                          className="w-10 h-10 flex items-center justify-center rounded-full bg-primary-container text-on-primary-container hover:bg-primary transition-colors active:scale-95"
+                          className="w-7 h-7 flex items-center justify-center text-slate-500 hover:bg-slate-100 rounded-r-lg transition-all"
                         >
-                          <span className="material-symbols-outlined">add</span>
+                          <span className="material-symbols-outlined text-sm">
+                            add
+                          </span>
                         </button>
                       </div>
-                      <p className="font-headline font-extrabold text-on-surface">
-                        {formatPrix(item.prix * item.quantite)}
-                      </p>
+                      <button
+                        onClick={() => supprimerDuPanier(item.id)}
+                        className="text-slate-300 hover:text-red-500 transition-colors"
+                      >
+                        <span className="material-symbols-outlined text-base">
+                          close
+                        </span>
+                      </button>
                     </div>
                   </div>
                 ))
               )}
             </div>
 
-            {/* Summary Section */}
-            {panier.length > 0 && (
-              <div className="mt-12 p-6 bg-surface-container-highest rounded-2xl border border-primary/5">
-                <div className="flex justify-between items-center mb-4">
-                  <span className="text-secondary font-medium">Sous-total</span>
-                  <span className="text-on-surface font-semibold">
-                    {formatPrix(calculerTotal())}
-                  </span>
-                </div>
-                <div className="flex justify-between items-center pt-4 border-t border-outline-variant/30">
-                  <span className="font-headline text-xl font-bold text-on-surface">
-                    Total à régler
-                  </span>
-                  <span className="font-headline text-2xl font-extrabold text-primary">
-                    {formatPrix(calculerTotal())}
-                  </span>
-                </div>
+            {/* Total et validation */}
+            <div className="p-4 border-t border-slate-200 bg-white">
+              <div className="flex justify-between items-center mb-4">
+                <p className="text-sm text-slate-500">Total</p>
+                <p className="text-xl font-bold text-primary">
+                  {formatPrix(calculerTotal())}
+                </p>
               </div>
-            )}
-
-            {/* Checkout Action */}
-            <div className="fixed left-0 w-full px-6 flex justify-center pointer-events-none bottom-8">
               <button
                 onClick={validerCommande}
                 disabled={panier.length === 0}
-                className="pointer-events-auto w-full max-w-md h-16 bg-gradient-to-br from-[#00307d] to-[#0045ab] text-white rounded-xl shadow-xl shadow-primary/20 flex items-center justify-center gap-3 transition-transform active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed"
+                className="w-full py-3 bg-gradient-to-r from-green-500 to-green-600 text-white rounded-xl font-semibold text-base hover:from-green-600 hover:to-green-700 transition-all disabled:opacity-50 disabled:cursor-not-allowed shadow-md flex items-center justify-center gap-2"
               >
-                <span className="material-symbols-outlined">receipt_long</span>
-                <span className="font-headline font-bold text-lg uppercase tracking-wider">
-                  Demander l'Addition
-                </span>
+                <span className="material-symbols-outlined">receipt</span>
+                Valider la commande
               </button>
             </div>
-          </main>
+          </div>
         </div>
-      )}
+      </div>
 
       {/* Modal de confirmation */}
       {confirmationOpen && (
