@@ -1,10 +1,6 @@
 import { Client } from "@stomp/stompjs";
 import SockJS from "sockjs-client";
 
-const WS_URL =
-  import.meta.env.VITE_WS_URL ||
-  "https://projetspringboot-production.up.railway.app/ws";
-
 class WebSocketService {
   constructor() {
     this.client = null;
@@ -13,7 +9,8 @@ class WebSocketService {
 
   connect() {
     this.client = new Client({
-      webSocketFactory: () => new SockJS(WS_URL),
+      webSocketFactory: () =>
+        new SockJS("https://projetspringboot-production.up.railway.app/ws"),
       onConnect: () => {
         console.log("WebSocket connecté");
         this.client.subscribe("/topic/commandes", (message) => {
@@ -21,7 +18,7 @@ class WebSocketService {
           this.listeners.forEach((listener) => listener());
         });
         this.client.subscribe("/topic/tables", (message) => {
-          console.log("📡 Message tables reçu:", message.body);
+          console.log(" Message tables reçu:", message.body);
           this.tablesListeners.forEach((listener) => listener(message.body));
         });
       },
