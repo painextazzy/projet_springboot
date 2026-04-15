@@ -221,11 +221,11 @@ export default function POSModal({
   }
 
   // ============================================
-  // VUE PANIER (MOBILE) - accessible via FAB
+  // VUE PANIER (MOBILE) - PLEIN ÉCRAN
   // ============================================
   if (showCart) {
     return (
-      <div className="fixed inset-0 z-50 bg-surface-bright flex flex-col h-screen max-w-md mx-auto shadow-2xl overflow-hidden">
+      <div className="fixed inset-0 z-50 bg-surface-bright flex flex-col h-screen w-screen overflow-hidden">
         <header className="pt-4 pb-2 px-6 flex justify-between items-center bg-surface-bright sticky top-0 z-50 border-b border-outline-variant/10">
           <div className="flex items-center gap-4">
             <button
@@ -368,7 +368,7 @@ export default function POSModal({
         </main>
 
         {!showConfirmationInCart && panier.length > 0 && (
-          <div className="fixed bottom-0 left-0 right-0 max-w-md mx-auto px-6 pb-8">
+          <div className="fixed bottom-0 left-0 right-0 px-6 pb-8 bg-gradient-to-t from-surface-bright via-surface-bright to-transparent pt-4">
             <button
               onClick={demanderAddition}
               className="w-full h-14 bg-gradient-to-br from-[#00307d] to-[#0045ab] text-white rounded-xl shadow-xl shadow-primary/20 flex items-center justify-center gap-3 transition-transform active:scale-95"
@@ -385,7 +385,7 @@ export default function POSModal({
   }
 
   // ============================================
-  // VUE PRINCIPALE - Responsive (mobile/desktop)
+  // VUE PRINCIPALE - Responsive
   // ============================================
   return (
     <>
@@ -401,11 +401,9 @@ export default function POSModal({
         </div>
       )}
 
-      {/* Modal POS - Layout responsive */}
       <div className="fixed inset-0 z-50 bg-surface-bright flex flex-col lg:flex-row overflow-hidden">
-        {/* LEFT COLUMN - Menu (sur mobile: plein écran, sur PC: 2/3) */}
+        {/* LEFT COLUMN - Menu */}
         <div className="flex-1 flex flex-col h-full overflow-hidden lg:w-2/3">
-          {/* TopAppBar */}
           <header className="pt-4 pb-2 px-6 flex justify-between items-center bg-surface-bright sticky top-0 z-50 border-b border-outline-variant/10">
             <div className="flex items-center gap-4">
               <button
@@ -418,7 +416,6 @@ export default function POSModal({
                 Executive POS
               </h1>
             </div>
-            {/* Info table sur PC */}
             <div className="hidden lg:block text-right">
               <span className="text-[10px] font-bold text-secondary uppercase tracking-wider">
                 Table
@@ -429,9 +426,7 @@ export default function POSModal({
             </div>
           </header>
 
-          {/* Scrollable Content */}
           <main className="flex-1 overflow-y-auto px-6 space-y-6 pb-32">
-            {/* Search Bar */}
             <div className="relative mt-2">
               <span className="material-symbols-outlined absolute left-4 top-1/2 -translate-y-1/2 text-on-surface-variant">
                 search
@@ -446,7 +441,6 @@ export default function POSModal({
               />
             </div>
 
-            {/* Categories */}
             <section className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide -mx-6 px-6">
               <button
                 onClick={() => setCategorieActive("TOUS")}
@@ -473,7 +467,6 @@ export default function POSModal({
               ))}
             </section>
 
-            {/* Product Grid - 2 colonnes sur mobile, plus sur PC */}
             <div className="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 pb-4">
               {platsFiltres.length === 0 ? (
                 <div className="col-span-full text-center py-12 text-secondary">
@@ -545,7 +538,7 @@ export default function POSModal({
             </div>
           </main>
 
-          {/* Floating Cart Button (visible sur mobile uniquement) */}
+          {/* Floating Cart Button (mobile only) */}
           <div className="lg:hidden fixed bottom-0 right-0 w-full z-[100] pointer-events-none">
             <div className="flex justify-end p-6 pointer-events-auto">
               <button
@@ -567,7 +560,6 @@ export default function POSModal({
 
         {/* RIGHT COLUMN - Panier (visible sur PC uniquement) */}
         <div className="hidden lg:flex lg:w-1/3 bg-white border-l border-slate-200 flex-col h-full">
-          {/* En-tête panier PC */}
           <div className="p-5 border-b border-slate-100">
             <h2 className="text-lg font-bold text-slate-900">
               Commande en cours
@@ -575,7 +567,6 @@ export default function POSModal({
             <p className="text-xs text-slate-400">Ticket #{ticketId}</p>
           </div>
 
-          {/* Liste des articles */}
           <div className="flex-1 overflow-y-auto p-4 space-y-3">
             {panier.length === 0 ? (
               <div className="text-center py-12">
@@ -634,7 +625,6 @@ export default function POSModal({
             )}
           </div>
 
-          {/* Total et validation PC */}
           <div className="p-5 border-t border-slate-200 bg-white">
             <div className="flex justify-between items-center mb-4">
               <p className="text-sm text-slate-500">Total</p>
@@ -653,44 +643,6 @@ export default function POSModal({
           </div>
         </div>
       </div>
-
-      {/* Modal de confirmation (fallback) - utilisé si nécessaire */}
-      {showConfirmationInCart && (
-        <div className="fixed inset-0 z-[150] bg-black/50 flex items-center justify-center p-4 lg:hidden">
-          <div className="bg-white rounded-2xl max-w-md w-full p-6 mx-4">
-            <div className="text-center mb-4">
-              <div className="w-14 h-14 rounded-full bg-green-100 flex items-center justify-center mx-auto mb-3">
-                <span className="material-symbols-outlined text-2xl text-green-600">
-                  receipt
-                </span>
-              </div>
-              <h3 className="text-lg font-bold text-slate-900">
-                Confirmer la commande
-              </h3>
-              <p className="text-slate-500 text-sm mt-1">
-                Valider cette commande ?<br />
-                <span className="font-bold text-primary text-lg">
-                  {formatPrix(calculerTotal())}
-                </span>
-              </p>
-            </div>
-            <div className="flex gap-3">
-              <button
-                onClick={annulerConfirmation}
-                className="flex-1 py-2 border border-slate-200 rounded-lg text-sm font-medium hover:bg-slate-50 transition"
-              >
-                Annuler
-              </button>
-              <button
-                onClick={confirmerCommande}
-                className="flex-1 py-2 bg-green-500 text-white rounded-lg text-sm font-medium hover:bg-green-600 transition"
-              >
-                Confirmer
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
     </>
   );
 }
