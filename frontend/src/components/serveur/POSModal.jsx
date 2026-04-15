@@ -232,7 +232,7 @@ export default function POSModal({
         </div>
       )}
 
-      {/* Modal POS - Plein écran avec côte à côte sur grand écran */}
+      {/* Modal POS */}
       <div className="fixed inset-0 z-50 bg-white flex flex-col h-screen w-screen overflow-hidden">
         {/* Header */}
         <div className="bg-white border-b border-slate-200 px-4 sm:px-6 py-3 sm:py-4 flex justify-between items-center shadow-sm sticky top-0 z-10">
@@ -252,9 +252,9 @@ export default function POSModal({
           </button>
         </div>
 
-        {/* Content - Côte à côte sur grand écran (flex row), colonne sur mobile (flex col) */}
+        {/* Content - Responsive: colonne sur mobile, lignes sur desktop */}
         <div className="flex flex-col lg:flex-row flex-1 overflow-hidden">
-          {/* LEFT COLUMN - Menu (prend 2/3 sur desktop) */}
+          {/* LEFT COLUMN - Menu (prend tout l'espace sur mobile, 2/3 sur desktop) */}
           <div className="flex-1 flex flex-col h-full overflow-hidden lg:w-2/3">
             {/* Barre de recherche et catégories */}
             <div className="p-4 border-b border-slate-200 bg-white">
@@ -399,7 +399,7 @@ export default function POSModal({
             </div>
           </div>
 
-          {/* RIGHT COLUMN - Panier (fixe à droite sur desktop, 1/3 de largeur) */}
+          {/* RIGHT COLUMN - Panier (fixe en bas sur mobile, colonne à droite sur desktop) */}
           <div className="w-full lg:w-1/3 bg-white border-t lg:border-t-0 lg:border-l border-slate-200 flex flex-col h-[40%] lg:h-full">
             {/* En-tête panier */}
             <div className="p-4 border-b border-slate-100 flex justify-between items-center">
