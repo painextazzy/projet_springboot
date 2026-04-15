@@ -33,13 +33,14 @@ const Facture = ({ commande, onClose }) => {
               @page { size: 80mm auto; margin: 0mm; }
               body { margin: 0; padding: 0; background: white; }
               .receipt-container { box-shadow: none !important; width: 80mm; margin: 0 auto; border: none !important; }
-              .no-print { display: none; }
+              .no-print { display: none !important; }
             }
             * { margin: 0; padding: 0; box-sizing: border-box; }
             body {
               font-family: 'Inter', sans-serif;
               background: #f7f9fb;
               display: flex;
+              flex-direction: column;
               justify-content: center;
               align-items: center;
               min-height: 100vh;
@@ -58,68 +59,76 @@ const Facture = ({ commande, onClose }) => {
               clip-path: polygon(0% 0%, 2.5% 100%, 5% 0%, 7.5% 100%, 10% 0%, 12.5% 100%, 15% 0%, 17.5% 100%, 20% 0%, 22.5% 100%, 25% 0%, 27.5% 100%, 30% 0%, 32.5% 100%, 35% 0%, 37.5% 100%, 40% 0%, 42.5% 100%, 45% 0%, 47.5% 100%, 50% 0%, 52.5% 100%, 55% 0%, 57.5% 100%, 60% 0%, 62.5% 100%, 65% 0%, 67.5% 100%, 70% 0%, 72.5% 100%, 75% 0%, 77.5% 100%, 80% 0%, 82.5% 100%, 85% 0%, 87.5% 100%, 90% 0%, 92.5% 100%, 95% 0%, 97.5% 100%, 100% 0%, 100% 100%, 0% 100%);
             }
             
-            /* Styles responsives pour le bouton d'impression */
-            .print-button-container {
+            /* Styles du bouton d'impression responsive */
+            .print-footer {
               position: fixed;
-              bottom: 20px;
+              bottom: 0;
               left: 0;
               right: 0;
               display: flex;
               justify-content: center;
+              padding: 16px;
+              background: linear-gradient(to top, rgba(247,249,251,1) 0%, rgba(247,249,251,0) 100%);
               z-index: 1000;
-              padding: 0 16px;
             }
             
-            .print-button {
+            .print-button-bottom {
               display: flex;
               align-items: center;
-              gap: 10px;
+              gap: 12px;
               background: linear-gradient(135deg, #00307d 0%, #0045ab 100%);
               color: white;
               border: none;
-              padding: 14px 28px;
-              border-radius: 50px;
+              padding: 14px 32px;
+              border-radius: 60px;
               font-size: 16px;
               font-weight: 600;
               cursor: pointer;
-              box-shadow: 0 4px 15px rgba(0, 48, 125, 0.3);
-              transition: all 0.3s ease;
-              backdrop-filter: blur(0px);
+              box-shadow: 0 8px 20px rgba(0, 48, 125, 0.3);
+              transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+              font-family: 'Inter', sans-serif;
             }
             
-            .print-button:hover {
+            .print-button-bottom:hover {
               transform: translateY(-2px);
-              box-shadow: 0 6px 20px rgba(0, 48, 125, 0.4);
+              box-shadow: 0 12px 28px rgba(0, 48, 125, 0.4);
             }
             
-            .print-button:active {
+            .print-button-bottom:active {
               transform: translateY(0);
             }
             
-            .print-icon {
-              font-size: 20px;
+            .print-icon-bottom {
+              font-size: 22px;
               font-weight: 400;
             }
             
+            /* Responsive */
             @media (max-width: 480px) {
-              .print-button {
-                padding: 12px 24px;
-                font-size: 14px;
+              .print-button-bottom {
+                padding: 12px 28px;
+                font-size: 15px;
+                gap: 10px;
               }
               
-              .print-icon {
-                font-size: 18px;
+              .print-icon-bottom {
+                font-size: 20px;
+              }
+              
+              .print-footer {
+                padding: 12px;
               }
             }
             
             @media (max-width: 380px) {
-              .print-button {
-                padding: 10px 20px;
-                font-size: 13px;
+              .print-button-bottom {
+                padding: 10px 24px;
+                font-size: 14px;
+                gap: 8px;
               }
               
-              .print-icon {
-                font-size: 16px;
+              .print-icon-bottom {
+                font-size: 18px;
               }
             }
           </style>
@@ -220,16 +229,15 @@ const Facture = ({ commande, onClose }) => {
             <div class="h-1 bg-gray-100 serrated-edge rotate-180"></div>
           </div>
           
-          <!-- Bouton d'impression responsive avec icône -->
-          <div class="print-button-container no-print">
-            <button onclick="window.print()" class="print-button">
-              <span class="material-symbols-outlined print-icon">print</span>
+          <!-- Bouton d'impression en bas avec icône - NE S'IMPRIME PAS -->
+          <div class="print-footer no-print">
+            <button onclick="window.print()" class="print-button-bottom">
+              <span class="material-symbols-outlined print-icon-bottom">print</span>
               <span>Imprimer la facture</span>
             </button>
           </div>
           
           <script>
-            // Auto-print après 300ms
             setTimeout(() => { window.print(); }, 300);
           </script>
         </body>
