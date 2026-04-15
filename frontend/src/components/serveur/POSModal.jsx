@@ -260,7 +260,7 @@ export default function POSModal({
 
       {/* Main POS View */}
       {!showCart ? (
-        <div className="fixed inset-0 z-50 bg-surface-bright flex flex-col h-full max-w-md mx-auto shadow-2xl overflow-hidden">
+        <div className="fixed inset-0 z-50 bg-white flex flex-col h-screen w-screen overflow-hidden">
           {/* TopAppBar */}
           <header className="pt-4 pb-2 px-6 flex justify-between items-center bg-surface-bright sticky top-0 z-50">
             <div className="flex items-center gap-4">
