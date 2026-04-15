@@ -541,7 +541,6 @@ const DashboardHome = () => {
     <div className="bg-background font-body text-on-surface antialiased">
       <main className="min-h-screen">
         <section className="py-12 px-8 max-w-[1600px] mx-auto">
-          {/* Header */}
           <div className="mb-10 flex flex-col md:flex-row md:items-end justify-between gap-6">
             <div>
               <h2 className="text-3xl font-bold font-headline text-on-surface tracking-tight mb-2">
