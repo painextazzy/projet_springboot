@@ -2,7 +2,7 @@
 import { Client } from "@stomp/stompjs";
 import SockJS from "sockjs-client";
 
-const WS_URL = import.meta.env.VITE_WS_UR;
+const WS_URL = import.meta.env.VITE_WS_URL;
 
 class WebSocketService {
   constructor() {
