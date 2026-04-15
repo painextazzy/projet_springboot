@@ -1,14 +1,14 @@
+// src/services/websocketService.js
 import { Client } from "@stomp/stompjs";
 import SockJS from "sockjs-client";
 
-// ✅ Valeur par défaut si la variable d'environnement n'existe pas
-const WS_URL = import.meta.env.VITE_WS_URL;
+const WS_URL = import.meta.env.VITE_WS_UR;
 
 class WebSocketService {
   constructor() {
     this.client = null;
-    this.listeners = []; // Pour les commandes
-    this.tablesListeners = []; // Pour les tables
+    this.commandesListeners = [];
+    this.tablesListeners = [];
     this.isConnected = false;
   }
 
@@ -29,7 +29,7 @@ class WebSocketService {
         // Subscribe aux commandes
         this.client.subscribe("/topic/commandes", () => {
           console.log("📡 Message commandes reçu");
-          this.listeners.forEach((listener) => listener());
+          this.commandesListeners.forEach((listener) => listener());
         });
 
         // Subscribe aux tables
@@ -58,15 +58,15 @@ class WebSocketService {
     }
   }
 
-  // Pour les commandes
-  subscribe(callback) {
-    this.listeners.push(callback);
+  subscribeToCommandes(callback) {
+    this.commandesListeners.push(callback);
     return () => {
-      this.listeners = this.listeners.filter((cb) => cb !== callback);
+      this.commandesListeners = this.commandesListeners.filter(
+        (cb) => cb !== callback,
+      );
     };
   }
 
-  // Pour les tables
   subscribeToTables(callback) {
     this.tablesListeners.push(callback);
     return () => {
