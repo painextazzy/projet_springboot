@@ -22,9 +22,7 @@ export default function ServeurDashboard() {
     message: "",
     type: "",
   });
-  const [wsConnected, setWsConnected] = useState(false);
 
-  // Stocker les commandes en cours par table ID
   const [commandesEnCours, setCommandesEnCours] = useState(() => {
     const saved = localStorage.getItem("commandesEnCours");
     if (saved) {
@@ -40,7 +38,6 @@ export default function ServeurDashboard() {
 
   const user = JSON.parse(localStorage.getItem("user") || "{}");
 
-  // Fermer le dropdown quand on clique en dehors
   useEffect(() => {
     const handleClickOutside = (event) => {
       if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
@@ -51,37 +48,47 @@ export default function ServeurDashboard() {
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
-  // Sauvegarder dans localStorage
   useEffect(() => {
     localStorage.setItem("commandesEnCours", JSON.stringify(commandesEnCours));
   }, [commandesEnCours]);
 
-  // ✅ WebSocket pour les mises à jour en temps réel (tables ET commandes)
+  // ✅ WebSocket optimisé : met à jour uniquement la table concernée
   useEffect(() => {
+    chargerTables(); // Chargement initial
+
     webSocketService.connect();
 
-    // Écouter les commandes
-    const unsubscribeCommandes = webSocketService.subscribeToCommandes(() => {
-      console.log("🔄 WebSocket: mise à jour des commandes");
-      chargerTables();
+    // Écouter les tables avec mise à jour ciblée
+    const unsubscribeTables = webSocketService.subscribeToTables((data) => {
+      console.log("🔄 WebSocket tables reçu:", data);
+
+      // ✅ Si c'est une mise à jour ciblée (avec tableId et status)
+      if (data && typeof data === "object" && data.tableId && data.status) {
+        setTables((prev) =>
+          prev.map((table) =>
+            table.id === data.tableId
+              ? { ...table, status: data.status }
+              : table,
+          ),
+        );
+      }
+      // Fallback : rechargement complet
+      else {
+        chargerTables();
+      }
     });
 
-    // Écouter les tables
-    const unsubscribeTables = webSocketService.subscribeToTables(() => {
-      console.log("🔄 WebSocket: mise à jour des tables");
-      chargerTables();
+    // Écouter les commandes (juste pour info, pas de rechargement)
+    const unsubscribeCommandes = webSocketService.subscribeToCommandes(() => {
+      console.log("🔄 WebSocket commandes reçu");
+      // Optionnel : recharger les commandes si nécessaire
     });
 
     return () => {
-      unsubscribeCommandes();
       unsubscribeTables();
+      unsubscribeCommandes();
       webSocketService.disconnect();
     };
-  }, []);
-
-  // Charger les tables au démarrage
-  useEffect(() => {
-    chargerTables();
   }, []);
 
   const handleLogout = () => {
@@ -140,6 +147,7 @@ export default function ServeurDashboard() {
   const handleCommandeValidee = (commande, tableId) => {
     console.log("📝 handleCommandeValidee reçu - tableId:", tableId);
 
+    // ✅ Mise à jour locale immédiate (pas de rechargement)
     setTables((prevTables) =>
       prevTables.map((t) => (t.id === tableId ? { ...t, status: "LIBRE" } : t)),
     );
@@ -280,14 +288,12 @@ export default function ServeurDashboard() {
   return (
     <div className="min-h-screen bg-surface">
       {/* Indicateur WebSocket */}
-      <div className="fixed bottom-4 right-4 z-50 flex items-center gap-2">
+      <div className="fixed bottom-4 right-4 z-50 flex items-center gap-2 bg-white/80 rounded-full px-3 py-1 shadow-md">
         <div
-          className={`w-2 h-2 rounded-full ${webSocketService.client?.connected ? "bg-green-500 animate-pulse" : "bg-red-500"}`}
+          className={`w-2 h-2 rounded-full ${webSocketService.isConnected ? "bg-green-500 animate-pulse" : "bg-red-500"}`}
         ></div>
-        <span className="text-xs text-gray-400">
-          {webSocketService.client?.connected
-            ? "Temps réel actif"
-            : "Reconnexion..."}
+        <span className="text-xs text-gray-500">
+          {webSocketService.isConnected ? "Temps réel actif" : "Reconnexion..."}
         </span>
       </div>
 
@@ -351,7 +357,6 @@ export default function ServeurDashboard() {
 
       {/* ========== MAIN CONTENT ========== */}
       <main className="pt-24 pb-20 px-8 max-w-7xl mx-auto">
-        {/* Title Section */}
         <div className="mb-12">
           <h1 className="text-4xl font-extrabold text-primary mb-2 tracking-tight">
             Aperçu des Tables
@@ -361,7 +366,6 @@ export default function ServeurDashboard() {
           </p>
         </div>
 
-        {/* Notification */}
         {notification.show && (
           <div
             className={`fixed top-24 right-4 z-50 px-4 py-3 rounded-xl shadow-lg transition-all duration-300 ${
@@ -374,7 +378,6 @@ export default function ServeurDashboard() {
           </div>
         )}
 
-        {/* Filter & Search Bar */}
         <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6 mb-12">
           <div className="flex items-center p-1 bg-slate-100/50 rounded-2xl w-fit">
             <button
@@ -433,7 +436,6 @@ export default function ServeurDashboard() {
           </div>
         </div>
 
-        {/* Tables Grid */}
         {tablesFiltrees.length === 0 ? (
           <div className="text-center py-12">
             <p className="text-secondary">Aucune table trouvée</p>
@@ -508,7 +510,6 @@ export default function ServeurDashboard() {
           </div>
         )}
 
-        {/* Footer */}
         <footer className="w-full flex flex-col md:flex-row justify-between items-center mt-16 pt-10 border-t border-slate-100">
           <div className="text-slate-400 font-medium text-xs tracking-wide mb-6 md:mb-0">
             © 2024 Petite Bouffe. Tous droits réservés.
@@ -536,7 +537,6 @@ export default function ServeurDashboard() {
         </footer>
       </main>
 
-      {/* Modal POS */}
       {showPOS && selectedTable && (
         <POSModal
           table={selectedTable}
