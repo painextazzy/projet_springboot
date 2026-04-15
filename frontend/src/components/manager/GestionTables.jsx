@@ -3,7 +3,7 @@ import React, { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { api } from "../../services/api";
 import POSModal from "../../components/serveur/POSModal";
-import SkeletonServeurDashboard from "./skeletons/SkeletonServeurDashboard";
+import SkeletonServeurDashboard from "./skeletons/SkeletonTables";
 
 export default function ServeurDashboard() {
   const navigate = useNavigate();
