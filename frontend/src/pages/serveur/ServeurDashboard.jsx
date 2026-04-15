@@ -51,15 +51,15 @@ export default function ServeurDashboard() {
     localStorage.setItem("commandesEnCours", JSON.stringify(commandesEnCours));
   }, [commandesEnCours]);
 
-  // ✅ WebSocket : mise à jour ciblée (pas de rechargement)
+  // ✅ WebSocket pour mise à jour temps réel des tables
   useEffect(() => {
     chargerTables();
     webSocketService.connect();
 
-    const unsubscribe = webSocketService.subscribe((data) => {
-      console.log("🔄 WebSocket reçu:", data);
+    const unsubscribeTables = webSocketService.subscribeToTables((data) => {
+      console.log("🔄 WebSocket tables reçu:", data);
 
-      // Mise à jour ciblée pour les tables
+      // Mise à jour ciblée d'une table
       if (data && typeof data === "object" && data.tableId && data.status) {
         setTables((prev) =>
           prev.map((table) =>
@@ -68,15 +68,19 @@ export default function ServeurDashboard() {
               : table,
           ),
         );
-      }
-      // Rechargement complet uniquement en fallback
-      else if (data === "REFRESH" || data === "TABLE_UPDATED") {
+      } else {
+        // Fallback : rechargement complet
         chargerTables();
       }
     });
 
+    const unsubscribeCommandes = webSocketService.subscribeToCommandes(() => {
+      console.log("🔄 WebSocket commandes reçu");
+    });
+
     return () => {
-      unsubscribe();
+      unsubscribeTables();
+      unsubscribeCommandes();
       webSocketService.disconnect();
     };
   }, []);
@@ -99,8 +103,11 @@ export default function ServeurDashboard() {
     try {
       setLoading(true);
       const data = await api.getTables();
-      if (Array.isArray(data)) setTables(data);
-      else setTables([]);
+      if (Array.isArray(data)) {
+        setTables(data);
+      } else {
+        setTables([]);
+      }
     } catch (error) {
       console.error("Erreur chargement tables:", error);
       setError("Impossible de charger les tables");
@@ -129,7 +136,7 @@ export default function ServeurDashboard() {
   };
 
   const handleCommandeValidee = (commande, tableId) => {
-    // ✅ Mise à jour locale immédiate (pas de rechargement)
+    // ✅ Mise à jour locale immédiate
     setTables((prev) =>
       prev.map((t) => (t.id === tableId ? { ...t, status: "LIBRE" } : t)),
     );
@@ -169,6 +176,7 @@ export default function ServeurDashboard() {
         label: "Disponible",
         btnBg: "bg-emerald-500",
         icon: "table_bar",
+        btnText: "Prendre commande",
       },
       OCCUPEE: {
         bg: "bg-blue-50",
@@ -176,6 +184,7 @@ export default function ServeurDashboard() {
         label: "Occupée",
         btnBg: "bg-blue-600",
         icon: "table_restaurant",
+        btnText: "Gérer la commande",
       },
       A_NETTOYER: {
         bg: "bg-amber-50",
@@ -183,6 +192,7 @@ export default function ServeurDashboard() {
         label: "À nettoyer",
         btnBg: "bg-emerald-500",
         icon: "cleaning",
+        btnText: "Nettoyer la table",
       },
       COMMANDE_EN_COURS: {
         bg: "bg-orange-50",
@@ -190,6 +200,7 @@ export default function ServeurDashboard() {
         label: "Commande en cours",
         btnBg: "bg-orange-500",
         icon: "receipt",
+        btnText: "Reprendre la commande",
       },
     };
     return (
@@ -199,6 +210,7 @@ export default function ServeurDashboard() {
         label: status || "Inconnu",
         btnBg: "bg-gray-500",
         icon: "table_restaurant",
+        btnText: "Voir",
       }
     );
   };
@@ -234,6 +246,7 @@ export default function ServeurDashboard() {
 
   return (
     <div className="min-h-screen bg-surface">
+      {/* Indicateur WebSocket */}
       <div className="fixed bottom-4 right-4 z-50 flex items-center gap-2 bg-white/80 rounded-full px-3 py-1 shadow-md">
         <div
           className={`w-2 h-2 rounded-full ${webSocketService.isConnected ? "bg-green-500 animate-pulse" : "bg-red-500"}`}
@@ -243,6 +256,7 @@ export default function ServeurDashboard() {
         </span>
       </div>
 
+      {/* ========== NAVBAR ========== */}
       <nav className="fixed top-0 right-0 left-0 h-20 bg-surface-container-low backdrop-blur-md z-30 border-b border-outline-variant/10">
         <div className="flex justify-end items-center px-8 w-full h-full">
           <div className="relative" ref={dropdownRef}>
@@ -299,6 +313,7 @@ export default function ServeurDashboard() {
         </div>
       </nav>
 
+      {/* ========== MAIN CONTENT ========== */}
       <main className="pt-24 pb-20 px-8 max-w-7xl mx-auto">
         <div className="mb-12">
           <h1 className="text-4xl font-extrabold text-primary mb-2 tracking-tight">
@@ -367,20 +382,13 @@ export default function ServeurDashboard() {
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-8">
             {tablesFiltrees.map((table) => {
               const statusInfo = getStatutClass(getTableStatus(table));
-              const isToClean = getTableStatus(table) === "A_NETTOYER";
-              const hasCommande = getTableStatus(table) === "COMMANDE_EN_COURS";
-              const isAvailable = getTableStatus(table) === "LIBRE";
-              const isOccupied = getTableStatus(table) === "OCCUPEE";
-
               return (
                 <div
                   key={table.id}
                   className="bg-white p-8 rounded-[2rem] shadow-premium hover:shadow-premium-hover transition-all duration-500 border border-slate-100 group"
                 >
                   <div className="flex justify-between items-start mb-8">
-                    <div
-                      className={`w-14 h-14 rounded-2xl bg-slate-50 flex items-center justify-center text-slate-400`}
-                    >
+                    <div className="w-14 h-14 rounded-2xl bg-slate-50 flex items-center justify-center text-slate-400">
                       <span className="material-symbols-outlined text-3xl">
                         {statusInfo.icon}
                       </span>
@@ -409,15 +417,7 @@ export default function ServeurDashboard() {
                     onClick={() => handleTableClick(table)}
                     className={`w-full py-4 ${statusInfo.btnBg} text-white rounded-xl font-bold text-sm flex items-center justify-center gap-2 shadow-lg transition-all active:scale-[0.98]`}
                   >
-                    {isToClean
-                      ? "Nettoyer la table"
-                      : hasCommande
-                        ? "Reprendre la commande"
-                        : isAvailable
-                          ? "Prendre commande"
-                          : isOccupied
-                            ? "Gérer la commande"
-                            : "Voir"}
+                    {statusInfo.btnText}
                     <span className="material-symbols-outlined text-sm">
                       arrow_forward
                     </span>
