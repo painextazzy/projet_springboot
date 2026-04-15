@@ -2,13 +2,15 @@
 import { Client } from "@stomp/stompjs";
 import SockJS from "sockjs-client";
 
-const WS_URL = import.meta.env.VITE_WS_URL;
+const WS_URL =
+  import.meta.env.VITE_WS_URL ||
+  "https://projetspringboot-production.up.railway.app/ws";
 
 class WebSocketService {
   constructor() {
     this.client = null;
+    this.tableListeners = [];
     this.commandesListeners = [];
-    this.tablesListeners = [];
     this.isConnected = false;
   }
 
@@ -26,16 +28,22 @@ class WebSocketService {
         console.log("✅ WebSocket connecté");
         this.isConnected = true;
 
-        this.client.subscribe("/topic/commandes", () => {
-          console.log("📡 Message commandes reçu");
-          this.commandesListeners.forEach((listener) => listener());
-          this.tablesListeners.forEach((listener) => listener());
+        // Écouter les commandes
+        this.client.subscribe("/topic/commandes", (message) => {
+          console.log("📡 Message commandes reçu:", message.body);
+          this.commandesListeners.forEach((listener) => listener(message.body));
         });
 
-        this.client.subscribe("/topic/tables", () => {
-          console.log("📡 Message tables reçu");
-          this.commandesListeners.forEach((listener) => listener());
-          this.tablesListeners.forEach((listener) => listener());
+        // Écouter les tables
+        this.client.subscribe("/topic/tables", (message) => {
+          console.log("📡 Message tables reçu:", message.body);
+          try {
+            const data = JSON.parse(message.body);
+            this.tableListeners.forEach((listener) => listener(data));
+          } catch (e) {
+            // Si c'est une simple string (pas de JSON)
+            this.tableListeners.forEach((listener) => listener(message.body));
+          }
         });
       },
       onDisconnect: () => {
@@ -58,17 +66,10 @@ class WebSocketService {
     }
   }
 
-  // ✅ AJOUTE CETTE MÉTHODE (pour compatibilité)
-  subscribe(callback) {
-    this.commandesListeners.push(callback);
-    this.tablesListeners.push(callback);
+  subscribeToTables(callback) {
+    this.tableListeners.push(callback);
     return () => {
-      this.commandesListeners = this.commandesListeners.filter(
-        (cb) => cb !== callback,
-      );
-      this.tablesListeners = this.tablesListeners.filter(
-        (cb) => cb !== callback,
-      );
+      this.tableListeners = this.tableListeners.filter((cb) => cb !== callback);
     };
   }
 
@@ -81,10 +82,13 @@ class WebSocketService {
     };
   }
 
-  subscribeToTables(callback) {
-    this.tablesListeners.push(callback);
+  // Compatibilité
+  subscribe(callback) {
+    this.tableListeners.push(callback);
+    this.commandesListeners.push(callback);
     return () => {
-      this.tablesListeners = this.tablesListeners.filter(
+      this.tableListeners = this.tableListeners.filter((cb) => cb !== callback);
+      this.commandesListeners = this.commandesListeners.filter(
         (cb) => cb !== callback,
       );
     };
