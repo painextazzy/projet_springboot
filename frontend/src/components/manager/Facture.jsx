@@ -57,6 +57,71 @@ const Facture = ({ commande, onClose }) => {
             .serrated-edge {
               clip-path: polygon(0% 0%, 2.5% 100%, 5% 0%, 7.5% 100%, 10% 0%, 12.5% 100%, 15% 0%, 17.5% 100%, 20% 0%, 22.5% 100%, 25% 0%, 27.5% 100%, 30% 0%, 32.5% 100%, 35% 0%, 37.5% 100%, 40% 0%, 42.5% 100%, 45% 0%, 47.5% 100%, 50% 0%, 52.5% 100%, 55% 0%, 57.5% 100%, 60% 0%, 62.5% 100%, 65% 0%, 67.5% 100%, 70% 0%, 72.5% 100%, 75% 0%, 77.5% 100%, 80% 0%, 82.5% 100%, 85% 0%, 87.5% 100%, 90% 0%, 92.5% 100%, 95% 0%, 97.5% 100%, 100% 0%, 100% 100%, 0% 100%);
             }
+            
+            /* Styles responsives pour le bouton d'impression */
+            .print-button-container {
+              position: fixed;
+              bottom: 20px;
+              left: 0;
+              right: 0;
+              display: flex;
+              justify-content: center;
+              z-index: 1000;
+              padding: 0 16px;
+            }
+            
+            .print-button {
+              display: flex;
+              align-items: center;
+              gap: 10px;
+              background: linear-gradient(135deg, #00307d 0%, #0045ab 100%);
+              color: white;
+              border: none;
+              padding: 14px 28px;
+              border-radius: 50px;
+              font-size: 16px;
+              font-weight: 600;
+              cursor: pointer;
+              box-shadow: 0 4px 15px rgba(0, 48, 125, 0.3);
+              transition: all 0.3s ease;
+              backdrop-filter: blur(0px);
+            }
+            
+            .print-button:hover {
+              transform: translateY(-2px);
+              box-shadow: 0 6px 20px rgba(0, 48, 125, 0.4);
+            }
+            
+            .print-button:active {
+              transform: translateY(0);
+            }
+            
+            .print-icon {
+              font-size: 20px;
+              font-weight: 400;
+            }
+            
+            @media (max-width: 480px) {
+              .print-button {
+                padding: 12px 24px;
+                font-size: 14px;
+              }
+              
+              .print-icon {
+                font-size: 18px;
+              }
+            }
+            
+            @media (max-width: 380px) {
+              .print-button {
+                padding: 10px 20px;
+                font-size: 13px;
+              }
+              
+              .print-icon {
+                font-size: 16px;
+              }
+            }
           </style>
         </head>
         <body>
@@ -155,13 +220,16 @@ const Facture = ({ commande, onClose }) => {
             <div class="h-1 bg-gray-100 serrated-edge rotate-180"></div>
           </div>
           
-          <div class="no-print mt-5 text-center">
-            <button onclick="window.print()" class="bg-[#00307d] text-white font-medium py-2 px-5 rounded-full text-sm shadow-lg">
-              🖨️ Imprimer
+          <!-- Bouton d'impression responsive avec icône -->
+          <div class="print-button-container no-print">
+            <button onclick="window.print()" class="print-button">
+              <span class="material-symbols-outlined print-icon">print</span>
+              <span>Imprimer la facture</span>
             </button>
           </div>
           
           <script>
+            // Auto-print après 300ms
             setTimeout(() => { window.print(); }, 300);
           </script>
         </body>
