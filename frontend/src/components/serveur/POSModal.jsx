@@ -149,7 +149,7 @@ export default function POSModal({
       showNotification("Veuillez ajouter des plats", "error");
       return;
     }
-    setShowConfirmationInCart(true);
+    confirmerCommande();
   };
 
   const confirmerCommande = async () => {
