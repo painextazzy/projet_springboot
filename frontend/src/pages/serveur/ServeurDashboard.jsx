@@ -158,7 +158,7 @@ export default function ServeurDashboard() {
   };
 
   const handleCommandeValidee = (commande, tableId) => {
-    // ✅ Mise à jour locale immédiate
+    // Mise à jour locale immédiate
     setTables((prev) =>
       prev.map((t) => (t.id === tableId ? { ...t, status: "LIBRE" } : t)),
     );
@@ -167,6 +167,7 @@ export default function ServeurDashboard() {
       delete newCommandes[tableId];
       return newCommandes;
     });
+    chargerTables(false);
     showNotification(
       `Commande #${commande.id} enregistrée, table libérée`,
       "success",
@@ -174,7 +175,15 @@ export default function ServeurDashboard() {
   };
 
   const handleUpdatePanier = (tableId, panier) => {
-    setCommandesEnCours((prev) => ({ ...prev, [tableId]: panier }));
+    setCommandesEnCours((prev) => {
+      const updated = { ...prev };
+      if (!panier || panier.length === 0) {
+        delete updated[tableId];
+      } else {
+        updated[tableId] = panier;
+      }
+      return updated;
+    });
   };
 
   const handleClosePOS = () => {
