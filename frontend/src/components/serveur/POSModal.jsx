@@ -347,7 +347,17 @@ export default function POSModal({
         </main>
 
         {!showConfirmationInCart && panier.length > 0 && (
-          <div className="fixed bottom-0 left-0 right-0 px-6 pb-8 bg-gradient-to-t from-surface-bright via-surface-bright to-transparent pt-4">
+          <div className="fixed bottom-0 left-0 right-0 px-6 pb-6 bg-gradient-to-t from-surface-bright via-surface-bright to-transparent pt-4">
+            <div className="mb-3 rounded-3xl bg-surface-container-high p-4 shadow-sm border border-slate-200 flex items-center justify-between">
+              <div>
+                <p className="text-xs uppercase tracking-[0.18em] text-secondary font-bold">
+                  Total commande
+                </p>
+                <p className="text-lg font-bold text-slate-900 mt-1">
+                  {formatPrix(calculerTotal())}
+                </p>
+              </div>
+            </div>
             <button
               onClick={demanderAddition}
               className="w-full h-14 bg-gradient-to-br from-[#00307d] to-[#0045ab] text-white rounded-xl shadow-xl shadow-primary/20 flex items-center justify-center gap-3 transition-transform active:scale-95"
