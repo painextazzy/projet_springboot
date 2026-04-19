@@ -18,10 +18,6 @@ export default function ServeurDashboard() {
   const [showPOS, setShowPOS] = useState(false);
   const [filtre, setFiltre] = useState("TOUTES");
   const [recherche, setRecherche] = useState("");
-  const [isDarkMode, setIsDarkMode] = useState(() => {
-    const saved = localStorage.getItem("darkMode");
-    return saved ? JSON.parse(saved) : false;
-  });
   const [notification, setNotification] = useState({
     show: false,
     message: "",
@@ -55,15 +51,6 @@ export default function ServeurDashboard() {
   useEffect(() => {
     localStorage.setItem("commandesEnCours", JSON.stringify(commandesEnCours));
   }, [commandesEnCours]);
-
-  useEffect(() => {
-    if (isDarkMode) {
-      document.documentElement.classList.add("dark");
-    } else {
-      document.documentElement.classList.remove("dark");
-    }
-    localStorage.setItem("darkMode", JSON.stringify(isDarkMode));
-  }, [isDarkMode]);
 
   useEffect(() => {
     chargerTables(true);
@@ -138,10 +125,6 @@ export default function ServeurDashboard() {
     localStorage.removeItem("user");
     localStorage.removeItem("role");
     window.location.href = "/";
-  };
-
-  const toggleDarkMode = () => {
-    setIsDarkMode(!isDarkMode);
   };
 
   const showNotification = (message, type = "success") => {
@@ -407,15 +390,6 @@ export default function ServeurDashboard() {
       {/* ========== NAVBAR ========== */}
       <nav className="fixed top-0 right-0 left-0 h-20 bg-surface-container-low backdrop-blur-md z-30 border-b border-outline-variant/10">
         <div className="flex justify-end items-center px-8 w-full h-full gap-4">
-          <button
-            onClick={toggleDarkMode}
-            className="flex items-center justify-center w-10 h-10 rounded-full text-secondary hover:text-on-surface hover:bg-surface-container transition-colors"
-            title={isDarkMode ? "Mode clair" : "Mode sombre"}
-          >
-            <span className="material-symbols-outlined text-xl">
-              {isDarkMode ? "light_mode" : "dark_mode"}
-            </span>
-          </button>
           <div className="relative" ref={dropdownRef}>
             <button
               onClick={() => setIsDropdownOpen(!isDropdownOpen)}
