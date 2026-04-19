@@ -395,11 +395,11 @@ export default function ServeurDashboard() {
   return (
     <div className="min-h-screen bg-surface">
       {/* Indicateur WebSocket */}
-      <div className="fixed bottom-4 right-4 z-50 flex items-center gap-2 bg-white/80 rounded-full px-3 py-1 shadow-md">
+      <div className="fixed bottom-4 right-4 z-50 flex items-center gap-2 bg-surface-container-low/80 dark:bg-surface-container-high/90 rounded-full px-3 py-1 shadow-md">
         <div
           className={`w-2 h-2 rounded-full ${webSocketService.isConnected ? "bg-green-500 animate-pulse" : "bg-red-500"}`}
         ></div>
-        <span className="text-xs text-gray-500">
+        <span className="text-xs text-secondary dark:text-on-surface">
           {webSocketService.isConnected ? "Temps réel actif" : "Reconnexion..."}
         </span>
       </div>
@@ -432,8 +432,8 @@ export default function ServeurDashboard() {
               </span>
             </button>
             {isDropdownOpen && (
-              <div className="absolute right-0 top-12 w-56 bg-white rounded-xl shadow-lg border border-gray-100 overflow-hidden z-50">
-                <div className="px-4 py-3 border-b border-gray-100 bg-gray-50/50">
+              <div className="absolute right-0 top-12 w-56 bg-surface-container-low dark:bg-surface-container rounded-xl shadow-lg border border-surface-container-high dark:border-surface-container-low overflow-hidden z-50">
+                <div className="px-4 py-3 border-b border-surface-container-high dark:border-surface-container-low bg-surface-container-low/50 dark:bg-surface-container-high/50">
                   <div className="flex items-center gap-3">
                     <div className="w-10 h-10 rounded-full bg-gradient-to-br from-primary to-primary-dark flex items-center justify-center text-white">
                       <span className="material-symbols-outlined text-lg">
@@ -490,42 +490,42 @@ export default function ServeurDashboard() {
         )}
 
         <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6 mb-12">
-          <div className="flex items-center p-1 bg-slate-100/50 rounded-2xl w-fit">
+          <div className="flex items-center p-1 bg-surface-container-low/50 dark:bg-surface-container-high/50 rounded-2xl w-fit">
             <button
               onClick={() => setFiltre("TOUTES")}
-              className={`px-6 py-2.5 text-sm font-semibold rounded-xl transition-all ${filtre === "TOUTES" ? "bg-white shadow-sm text-primary" : "text-secondary hover:text-primary"}`}
+              className={`px-6 py-2.5 text-sm font-semibold rounded-xl transition-all ${filtre === "TOUTES" ? "bg-surface-container-low dark:bg-surface-container-high shadow-sm text-primary" : "text-secondary hover:text-primary"}`}
             >
               Toutes ({tables.length})
             </button>
             <button
               onClick={() => setFiltre("DISPONIBLES")}
-              className={`px-6 py-2.5 text-sm font-medium rounded-xl transition-all ${filtre === "DISPONIBLES" ? "bg-white shadow-sm text-primary" : "text-secondary hover:text-primary"}`}
+              className={`px-6 py-2.5 text-sm font-medium rounded-xl transition-all ${filtre === "DISPONIBLES" ? "bg-surface-container-low dark:bg-surface-container-high shadow-sm text-primary" : "text-secondary hover:text-primary"}`}
             >
               Disponibles ({countByStatus("LIBRE")})
             </button>
             <button
               onClick={() => setFiltre("OCCUPEES")}
-              className={`px-6 py-2.5 text-sm font-medium rounded-xl transition-all ${filtre === "OCCUPEES" ? "bg-white shadow-sm text-primary" : "text-secondary hover:text-primary"}`}
+              className={`px-6 py-2.5 text-sm font-medium rounded-xl transition-all ${filtre === "OCCUPEES" ? "bg-surface-container-low dark:bg-surface-container-high shadow-sm text-primary" : "text-secondary hover:text-primary"}`}
             >
               Occupées ({countByStatus("OCCUPEES")})
             </button>
             <button
               onClick={() => setFiltre("A_NETTOYER")}
-              className={`px-6 py-2.5 text-sm font-medium rounded-xl transition-all ${filtre === "A_NETTOYER" ? "bg-white shadow-sm text-primary" : "text-secondary hover:text-primary"}`}
+              className={`px-6 py-2.5 text-sm font-medium rounded-xl transition-all ${filtre === "A_NETTOYER" ? "bg-surface-container-low dark:bg-surface-container-high shadow-sm text-primary" : "text-secondary hover:text-primary"}`}
             >
               À nettoyer ({countByStatus("A_NETTOYER")})
             </button>
           </div>
 
           <div className="relative w-full lg:w-80 group">
-            <span className="material-symbols-outlined absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-primary transition-colors">
+            <span className="material-symbols-outlined absolute left-4 top-1/2 -translate-y-1/2 text-secondary dark:text-on-surface/70 group-focus-within:text-primary transition-colors">
               search
             </span>
             <input
               type="text"
               value={recherche}
               onChange={(e) => setRecherche(e.target.value)}
-              className="w-full pl-12 pr-4 py-3 bg-slate-100/50 border-none rounded-2xl focus:ring-2 focus:ring-primary/10 focus:bg-white transition-all text-sm outline-none placeholder:text-slate-400"
+              className="w-full pl-12 pr-4 py-3 bg-surface-container-low/50 dark:bg-surface-container-high/50 border-none rounded-2xl focus:ring-2 focus:ring-primary/10 focus:bg-surface-container transition-all text-sm outline-none placeholder:text-secondary"
               placeholder="Rechercher une table..."
             />
           </div>
@@ -542,10 +542,10 @@ export default function ServeurDashboard() {
               return (
                 <div
                   key={table.id}
-                  className="bg-white p-8 rounded-[2rem] shadow-premium hover:shadow-premium-hover transition-all duration-500 border border-slate-100 group"
+                  className="bg-surface-container-low dark:bg-surface-container p-8 rounded-[2rem] shadow-premium hover:shadow-premium-hover transition-all duration-500 border border-surface-container-high dark:border-surface-container-low group"
                 >
                   <div className="flex justify-between items-start mb-8">
-                    <div className="w-14 h-14 rounded-2xl bg-slate-50 flex items-center justify-center text-slate-400">
+                    <div className="w-14 h-14 rounded-2xl bg-surface-container-lowest dark:bg-surface-container-low flex items-center justify-center text-secondary dark:text-on-surface">
                       <span className="material-symbols-outlined text-3xl">
                         {statusInfo.icon}
                       </span>

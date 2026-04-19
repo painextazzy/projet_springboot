@@ -368,7 +368,7 @@ export default function POSModal({
 
         {!showConfirmationInCart && panier.length > 0 && (
           <div className="fixed bottom-0 left-0 right-0 px-6 pb-6 bg-gradient-to-t from-surface-bright via-surface-bright to-transparent pt-4">
-            <div className="mb-3 rounded-3xl bg-surface-container-high p-4 shadow-sm border border-slate-200 flex items-center justify-between">
+            <div className="mb-3 rounded-3xl bg-surface-container-high dark:bg-surface-container p-4 shadow-sm border border-surface-container-high dark:border-surface-container-low flex items-center justify-between">
               <div>
                 <p className="text-xs uppercase tracking-[0.18em] text-secondary font-bold">
                   Total commande
@@ -451,7 +451,7 @@ export default function POSModal({
                 type="text"
                 value={recherche}
                 onChange={(e) => setRecherche(e.target.value)}
-                className="w-full h-14 pl-12 pr-4 rounded-2xl border-none bg-surface-container-high focus:bg-white focus:ring-2 focus:ring-primary/20 transition-all outline-none text-base placeholder:text-on-surface-variant/60"
+                className="w-full h-14 pl-12 pr-4 rounded-2xl border-none bg-surface-container-high dark:bg-surface-container-high focus:bg-surface-container focus:ring-2 focus:ring-primary/20 transition-all outline-none text-base placeholder:text-on-surface-variant/60"
                 placeholder="Rechercher un article..."
               />
             </div>
@@ -493,7 +493,7 @@ export default function POSModal({
                 platsFiltres.map((plat) => (
                   <div
                     key={plat.id}
-                    className="bg-white rounded-3xl p-3 shadow-sm border border-surface-container-high flex flex-col gap-3 group"
+                    className="bg-surface-container-low dark:bg-surface-container rounded-3xl p-3 shadow-sm border border-surface-container-high dark:border-surface-container-low flex flex-col gap-3 group"
                   >
                     <div className="aspect-square rounded-2xl overflow-hidden bg-surface-container relative">
                       {plat.imageUrl ? (
@@ -576,9 +576,9 @@ export default function POSModal({
         </div>
 
         {/* ========== RIGHT COLUMN - PANIER (PC) ========== */}
-        <div className="hidden lg:flex lg:w-1/3 bg-white border-l border-slate-200 flex-col h-full">
-          <div className="p-5 border-b border-slate-100">
-            <h2 className="text-lg font-bold text-slate-900">
+        <div className="hidden lg:flex lg:w-1/3 bg-surface-container-low dark:bg-surface-container border-l border-surface-container-high dark:border-surface-container-low flex-col h-full">
+          <div className="p-5 border-b border-surface-container-high dark:border-surface-container-low">
+            <h2 className="text-lg font-bold text-on-surface">
               Commande en cours
             </h2>
             <p className="text-xs text-slate-400">Ticket #{ticketId}</p>
@@ -607,10 +607,10 @@ export default function POSModal({
                     </p>
                   </div>
                   <div className="flex items-center gap-2">
-                    <div className="flex items-center bg-white rounded-lg">
+                    <div className="flex items-center bg-surface-container-low dark:bg-surface-container-highest rounded-lg">
                       <button
                         onClick={() => modifierQuantitePanier(item.id, -1)}
-                        className="w-7 h-7 flex items-center justify-center text-slate-500 hover:bg-slate-100 rounded-l-lg transition-all"
+                        className="w-7 h-7 flex items-center justify-center text-secondary dark:text-on-surface hover:bg-surface-container-high rounded-l-lg transition-all"
                       >
                         <span className="material-symbols-outlined text-sm">
                           remove
@@ -621,7 +621,7 @@ export default function POSModal({
                       </span>
                       <button
                         onClick={() => modifierQuantitePanier(item.id, 1)}
-                        className="w-7 h-7 flex items-center justify-center text-slate-500 hover:bg-slate-100 rounded-r-lg transition-all"
+                        className="w-7 h-7 flex items-center justify-center text-secondary dark:text-on-surface hover:bg-surface-container-high rounded-r-lg transition-all"
                       >
                         <span className="material-symbols-outlined text-sm">
                           add
@@ -640,17 +640,17 @@ export default function POSModal({
                 </div>
               ))
             ) : (
-              <div className="bg-white rounded-2xl shadow-lg border border-primary/20 p-5">
+              <div className="bg-surface-container-low dark:bg-surface-container rounded-2xl shadow-lg border border-primary/20 p-5">
                 <div className="text-center mb-4">
                   <div className="w-14 h-14 rounded-full bg-green-100 flex items-center justify-center mx-auto mb-3">
                     <span className="material-symbols-outlined text-2xl text-green-600">
                       receipt
                     </span>
                   </div>
-                  <h3 className="text-lg font-bold text-slate-900">
+                  <h3 className="text-lg font-bold text-on-surface">
                     Confirmer la commande
                   </h3>
-                  <p className="text-slate-500 text-sm mt-1">
+                  <p className="text-secondary dark:text-on-surface/70 text-sm mt-1">
                     Valider cette commande ?<br />
                     <span className="font-bold text-primary text-lg">
                       {formatPrix(calculerTotal())}
@@ -660,7 +660,7 @@ export default function POSModal({
                 <div className="flex gap-3">
                   <button
                     onClick={annulerConfirmation}
-                    className="flex-1 py-2 border border-slate-200 rounded-lg text-sm font-medium hover:bg-slate-50 transition"
+                    className="flex-1 py-2 border border-surface-container-high dark:border-surface-container-low rounded-lg text-sm font-medium hover:bg-surface-container-high transition"
                     disabled={isSubmitting}
                   >
                     Annuler
@@ -682,9 +682,9 @@ export default function POSModal({
           </div>
 
           {!showConfirmationInCart && panier.length > 0 && (
-            <div className="p-5 border-t border-slate-200 bg-white">
+            <div className="p-5 border-t border-surface-container-high dark:border-surface-container-low bg-surface-container-low dark:bg-surface-container">
               <div className="flex justify-between items-center mb-4">
-                <p className="text-sm text-slate-500">Total</p>
+                <p className="text-sm text-secondary dark:text-on-surface/70">Total</p>
                 <p className="text-xl font-bold text-primary">
                   {formatPrix(calculerTotal())}
                 </p>
