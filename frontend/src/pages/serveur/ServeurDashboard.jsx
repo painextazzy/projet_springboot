@@ -516,7 +516,7 @@ export default function ServeurDashboard() {
               return (
                 <div
                   key={table.id}
-                  className="bg-white p-8 rounded-[2rem] shadow-premium hover:shadow-premium-hover transition-all duration-500 border border-slate-100 group"
+                  className="bg-white p-8 rounded-[2rem] shadow-lg hover:shadow-xl transition-all duration-500 border border-slate-100 group"
                 >
                   <div className="flex justify-between items-start mb-8">
                     <div className="w-14 h-14 rounded-2xl bg-slate-50 flex items-center justify-center text-slate-400">

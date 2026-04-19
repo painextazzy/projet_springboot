@@ -367,8 +367,8 @@ export default function POSModal({
         </main>
 
         {!showConfirmationInCart && panier.length > 0 && (
-          <div className="fixed bottom-0 left-0 right-0 px-6 pb-6 bg-gradient-to-t from-surface-bright via-surface-bright to-transparent pt-4">
-            <div className="mb-3 rounded-3xl bg-surface-container-high p-4 shadow-sm border border-slate-200 flex items-center justify-between">
+          <div className="fixed bottom-0 left-0 right-0 px-6 pb-6 bg-gradient-to-t from-white via-white to-transparent pt-4">
+            <div className="mb-3 rounded-3xl bg-white p-4 shadow-lg border border-slate-200 flex items-center justify-between">
               <div>
                 <p className="text-xs uppercase tracking-[0.18em] text-secondary font-bold">
                   Total commande
