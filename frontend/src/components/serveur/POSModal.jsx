@@ -380,11 +380,16 @@ export default function POSModal({
             </div>
             <button
               onClick={demanderAddition}
-              className="w-full h-14 bg-gradient-to-br from-[#00307d] to-[#0045ab] text-white rounded-xl shadow-xl shadow-primary/20 flex items-center justify-center gap-3 transition-transform active:scale-95"
+              disabled={isSubmitting}
+              className={`w-full h-14 rounded-xl shadow-xl shadow-primary/20 flex items-center justify-center gap-3 transition-transform active:scale-95 ${
+                isSubmitting
+                  ? "bg-slate-300 text-slate-600 cursor-not-allowed"
+                  : "bg-gradient-to-br from-[#00307d] to-[#0045ab] text-white"
+              }`}
             >
               <span className="material-symbols-outlined">receipt_long</span>
               <span className="font-headline font-bold text-base uppercase tracking-wider">
-                Demander l'Addition
+                {isSubmitting ? "En cours..." : "Demander l'Addition"}
               </span>
             </button>
           </div>
@@ -686,10 +691,13 @@ export default function POSModal({
               </div>
               <button
                 onClick={demanderAddition}
-                className="w-full py-3 bg-gradient-to-r from-green-500 to-green-600 text-white rounded-xl font-semibold text-base hover:from-green-600 hover:to-green-700 transition-all shadow-md flex items-center justify-center gap-2"
+                disabled={isSubmitting}
+                className={`w-full py-3 bg-gradient-to-r from-green-500 to-green-600 text-white rounded-xl font-semibold text-base hover:from-green-600 hover:to-green-700 transition-all shadow-md flex items-center justify-center gap-2 ${
+                  isSubmitting ? "opacity-50 cursor-not-allowed" : ""
+                }`}
               >
                 <span className="material-symbols-outlined">receipt</span>
-                Valider la commande
+                {isSubmitting ? "En cours..." : "Valider la commande"}
               </button>
             </div>
           )}
