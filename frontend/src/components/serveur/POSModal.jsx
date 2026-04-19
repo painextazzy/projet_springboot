@@ -493,7 +493,7 @@ export default function POSModal({
                 platsFiltres.map((plat) => (
                   <div
                     key={plat.id}
-                    className="bg-white rounded-3xl p-3 shadow-sm border border-surface-container-high flex flex-col gap-3 group"
+                    className="bg-white rounded-3xl p-3 shadow-lg border border-surface-container-high flex flex-col gap-3 group"
                   >
                     <div className="aspect-square rounded-2xl overflow-hidden bg-surface-container relative">
                       {plat.imageUrl ? (
