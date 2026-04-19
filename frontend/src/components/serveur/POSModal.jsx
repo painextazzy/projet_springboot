@@ -19,6 +19,7 @@ export default function POSModal({
   const [tableOccupee, setTableOccupee] = useState(false);
   const [showCart, setShowCart] = useState(false);
   const [showConfirmationInCart, setShowConfirmationInCart] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const [ticketId, setTicketId] = useState(Math.floor(Math.random() * 1000));
   const [notification, setNotification] = useState({
     show: false,
@@ -38,9 +39,9 @@ export default function POSModal({
 
   useEffect(() => {
     if (onUpdatePanier) {
-      onUpdatePanier(panier);
+      onUpdatePanier(table.id, panier);
     }
-  }, [panier, onUpdatePanier]);
+  }, [panier, onUpdatePanier, table.id]);
 
   // Supprimer ce useEffect pour éviter les conflits
   // useEffect(() => {
@@ -152,6 +153,8 @@ export default function POSModal({
   };
 
   const confirmerCommande = async () => {
+    if (isSubmitting) return;
+    setIsSubmitting(true);
     setShowConfirmationInCart(false);
     setShowCart(false);
     try {
@@ -168,7 +171,7 @@ export default function POSModal({
       await api.updateTableStatus(table.id, "LIBRE");
 
       // Vider le panier immédiatement
-      if (onUpdatePanier) onUpdatePanier([]);
+      if (onUpdatePanier) onUpdatePanier(table.id, []);
       setPanier([]);
       setTableOccupee(false);
 
@@ -184,6 +187,8 @@ export default function POSModal({
         error.message || "Erreur lors de l'enregistrement",
         "error",
       );
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -341,14 +346,20 @@ export default function POSModal({
                 <button
                   onClick={annulerConfirmation}
                   className="flex-1 py-3 border border-slate-200 rounded-xl text-sm font-medium hover:bg-slate-50 transition"
+                  disabled={isSubmitting}
                 >
                   Annuler
                 </button>
                 <button
                   onClick={confirmerCommande}
-                  className="flex-1 py-3 bg-green-500 text-white rounded-xl text-sm font-medium hover:bg-green-600 transition shadow-md"
+                  disabled={isSubmitting}
+                  className={`flex-1 py-3 rounded-xl text-sm font-medium transition shadow-md ${
+                    isSubmitting
+                      ? "bg-slate-300 text-slate-600 cursor-not-allowed"
+                      : "bg-green-500 text-white hover:bg-green-600"
+                  }`}
                 >
-                  Confirmer
+                  {isSubmitting ? "En cours..." : "Confirmer"}
                 </button>
               </div>
             </div>
@@ -645,14 +656,20 @@ export default function POSModal({
                   <button
                     onClick={annulerConfirmation}
                     className="flex-1 py-2 border border-slate-200 rounded-lg text-sm font-medium hover:bg-slate-50 transition"
+                    disabled={isSubmitting}
                   >
                     Annuler
                   </button>
                   <button
                     onClick={confirmerCommande}
-                    className="flex-1 py-2 bg-green-500 text-white rounded-lg text-sm font-medium hover:bg-green-600 transition"
+                    disabled={isSubmitting}
+                    className={`flex-1 py-2 rounded-lg text-sm font-medium transition ${
+                      isSubmitting
+                        ? "bg-slate-300 text-slate-600 cursor-not-allowed"
+                        : "bg-green-500 text-white hover:bg-green-600"
+                    }`}
                   >
-                    Confirmer
+                    {isSubmitting ? "En cours..." : "Confirmer"}
                   </button>
                 </div>
               </div>

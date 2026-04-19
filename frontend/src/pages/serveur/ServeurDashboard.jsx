@@ -495,8 +495,8 @@ export default function ServeurDashboard() {
         <POSModal
           table={selectedTable}
           initialPanier={getPanierForTable(selectedTable.id)}
-          onUpdatePanier={(panier) =>
-            handleUpdatePanier(selectedTable.id, panier)
+          onUpdatePanier={(tableId, panier) =>
+            handleUpdatePanier(tableId, panier)
           }
           onClose={handleClosePOS}
           onCommandeValidee={handleCommandeValidee}
