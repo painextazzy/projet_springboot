@@ -42,6 +42,13 @@ export default function POSModal({
     }
   }, [panier, onUpdatePanier]);
 
+  // Supprimer ce useEffect pour éviter les conflits
+  // useEffect(() => {
+  //   if (onUpdatePanier) {
+  //     onUpdatePanier(panier);
+  //   }
+  // }, [panier, onUpdatePanier]);
+
   useEffect(() => {
     chargerMenu();
   }, []);
@@ -160,8 +167,9 @@ export default function POSModal({
       const response = await api.createCommande(commande);
       await api.updateTableStatus(table.id, "LIBRE");
 
-      setPanier([]);
+      // Vider le panier immédiatement
       if (onUpdatePanier) onUpdatePanier([]);
+      setPanier([]);
       setTableOccupee(false);
 
       if (onCommandeValidee) {

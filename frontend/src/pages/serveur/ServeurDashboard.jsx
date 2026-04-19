@@ -171,7 +171,8 @@ export default function ServeurDashboard() {
     const updatedCommandes = JSON.parse(localStorage.getItem("commandesEnCours") || "{}");
     delete updatedCommandes[tableId];
     localStorage.setItem("commandesEnCours", JSON.stringify(updatedCommandes));
-    chargerTables(false);
+    // Forcer le rechargement des tables
+    setTimeout(() => chargerTables(false), 100);
     showNotification(
       `Commande #${commande.id} enregistrée, table libérée`,
       "success",
