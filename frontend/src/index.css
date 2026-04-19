@@ -2,6 +2,42 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Variables CSS pour le thème */
+:root {
+  --surface: #f7f9fb;
+  --surface-bright: #f7f9fb;
+  --surface-container: #eceef0;
+  --surface-container-low: #f2f4f6;
+  --surface-container-high: #e6e8ea;
+  --surface-container-lowest: #ffffff;
+  --surface-container-highest: #e0e3e5;
+  --on-surface: #191c1e;
+  --secondary: #585e6c;
+  --primary: #00307d;
+  --primary-container: #0045ab;
+  --on-primary-container: #a3bbff;
+  --outline-variant: #c2c6d3;
+  --error: #ba1a1a;
+}
+
+/* Mode sombre */
+.dark {
+  --surface: #0d1117;
+  --surface-bright: #0d1117;
+  --surface-container: #1a1f2e;
+  --surface-container-low: #161b29;
+  --surface-container-high: #212738;
+  --surface-container-lowest: #0a0e14;
+  --surface-container-highest: #2a2f42;
+  --on-surface: #e6edf3;
+  --secondary: #9ba1b0;
+  --primary: #7ba4db;
+  --primary-container: #0045ab;
+  --on-primary-container: #a3bbff;
+  --outline-variant: #3e4553;
+  --error: #ff6b6b;
+}
+
 /* Styles personnalisés */
 body {
   margin: 1;
