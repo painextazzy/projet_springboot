@@ -12,6 +12,7 @@ export default function ServeurDashboard() {
   const dropdownRef = useRef(null);
   const [tables, setTables] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [refreshingTables, setRefreshingTables] = useState(false);
   const [error, setError] = useState("");
   const [selectedTable, setSelectedTable] = useState(null);
   const [showPOS, setShowPOS] = useState(false);
@@ -52,7 +53,7 @@ export default function ServeurDashboard() {
   }, [commandesEnCours]);
 
   useEffect(() => {
-    chargerTables();
+    chargerTables(true);
     webSocketService.connect();
 
     const unsubscribe = webSocketService.subscribe((data) => {
@@ -88,7 +89,7 @@ export default function ServeurDashboard() {
         parsed === "REFRESH" ||
         (parsed && parsed.action === "TABLE_UPDATED")
       ) {
-        chargerTables();
+        chargerTables(false);
       }
     });
 
@@ -112,9 +113,13 @@ export default function ServeurDashboard() {
     );
   };
 
-  const chargerTables = async () => {
+  const chargerTables = async (showLoading = false) => {
     try {
-      setLoading(true);
+      if (showLoading) {
+        setLoading(true);
+      } else {
+        setRefreshingTables(true);
+      }
       const data = await api.getTables();
       if (Array.isArray(data)) {
         setTables(data);
@@ -125,7 +130,11 @@ export default function ServeurDashboard() {
       console.error("Erreur chargement tables:", error);
       setError("Impossible de charger les tables");
     } finally {
-      setLoading(false);
+      if (showLoading) {
+        setLoading(false);
+      } else {
+        setRefreshingTables(false);
+      }
     }
   };
 
