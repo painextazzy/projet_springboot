@@ -167,6 +167,10 @@ export default function ServeurDashboard() {
       delete newCommandes[tableId];
       return newCommandes;
     });
+    // Forcer la mise à jour du localStorage
+    const updatedCommandes = JSON.parse(localStorage.getItem("commandesEnCours") || "{}");
+    delete updatedCommandes[tableId];
+    localStorage.setItem("commandesEnCours", JSON.stringify(updatedCommandes));
     chargerTables(false);
     showNotification(
       `Commande #${commande.id} enregistrée, table libérée`,
@@ -182,6 +186,8 @@ export default function ServeurDashboard() {
       } else {
         updated[tableId] = panier;
       }
+      // Mise à jour immédiate du localStorage
+      localStorage.setItem("commandesEnCours", JSON.stringify(updated));
       return updated;
     });
   };

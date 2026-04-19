@@ -161,6 +161,7 @@ export default function POSModal({
       await api.updateTableStatus(table.id, "LIBRE");
 
       setPanier([]);
+      if (onUpdatePanier) onUpdatePanier([]);
       setTableOccupee(false);
 
       if (onCommandeValidee) {

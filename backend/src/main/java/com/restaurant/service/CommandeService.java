@@ -204,7 +204,7 @@ public class CommandeService {
         
         // ✅ Libérer la table (statut LIBRE)
         tableService.updateStatus(commande.getTableId(), "libre");
-        webSocketService.notifyTableChanged();
+        webSocketService.notifyTableChanged(commande.getTableId(), "libre");
         webSocketService.notifyCommandeChanged();
         
         List<LigneCommande> lignes = ligneCommandeRepository.findByCommandeId(id);
