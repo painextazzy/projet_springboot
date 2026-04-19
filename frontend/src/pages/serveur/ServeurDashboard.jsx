@@ -99,6 +99,28 @@ export default function ServeurDashboard() {
     };
   }, []);
 
+  // ⭐ NOUVEAU: Nettoyer les commandes orphelines quand les tables sont chargées
+  useEffect(() => {
+    if (tables.length > 0 && Object.keys(commandesEnCours).length > 0) {
+      let hasChanges = false;
+      const updatedCommandes = { ...commandesEnCours };
+      
+      Object.keys(updatedCommandes).forEach(tableId => {
+        const table = tables.find(t => t.id === parseInt(tableId));
+        // Supprimer si table inexistante ou déjà libre/à nettoyer
+        if (!table || table.status === "LIBRE" || table.status === "A_NETTOYER") {
+          delete updatedCommandes[tableId];
+          hasChanges = true;
+        }
+      });
+      
+      if (hasChanges) {
+        setCommandesEnCours(updatedCommandes);
+        localStorage.setItem("commandesEnCours", JSON.stringify(updatedCommandes));
+      }
+    }
+  }, [tables]);
+
   const handleLogout = () => {
     localStorage.removeItem("user");
     localStorage.removeItem("role");
@@ -157,18 +179,47 @@ export default function ServeurDashboard() {
     setShowPOS(true);
   };
 
+  // ⭐ MODIFIÉ: Priorité au statut backend pour LIBRE et A_NETTOYER
+  const getTableStatus = (table) => {
+    const backendStatus = (table.status || "").toUpperCase();
+    
+    // Si la table est LIBRE ou A_NETTOYER, ignorer le localStorage
+    if (backendStatus === "LIBRE" || backendStatus === "A_NETTOYER") {
+      // Nettoyage silencieux du localStorage si nécessaire
+      if (commandesEnCours[table.id]?.length > 0) {
+        setTimeout(() => {
+          setCommandesEnCours(prev => {
+            const newCommandes = { ...prev };
+            delete newCommandes[table.id];
+            localStorage.setItem("commandesEnCours", JSON.stringify(newCommandes));
+            return newCommandes;
+          });
+        }, 0);
+      }
+      return backendStatus;
+    }
+    
+    // Pour OCCUPEE, vérifier si commande en cours
+    const hasCommande = commandesEnCours[table.id]?.length > 0;
+    if (hasCommande) return "COMMANDE_EN_COURS";
+    
+    return backendStatus;
+  };
+
   const handleCommandeValidee = (commande, tableId) => {
     // Mise à jour locale immédiate
     setTables((prev) =>
       prev.map((t) => (t.id === tableId ? { ...t, status: "LIBRE" } : t)),
     );
+    
+    // Supprimer la table du localStorage
     setCommandesEnCours((prev) => {
       const newCommandes = { ...prev };
       delete newCommandes[tableId];
+      localStorage.setItem("commandesEnCours", JSON.stringify(newCommandes));
       return newCommandes;
     });
-    // Vider complètement le localStorage pour les commandes en cours
-    localStorage.setItem("commandesEnCours", "{}");
+    
     // Forcer le rechargement des tables
     setTimeout(() => chargerTables(false), 100);
     showNotification(
@@ -185,7 +236,6 @@ export default function ServeurDashboard() {
       } else {
         updated[tableId] = panier;
       }
-      // Mise à jour immédiate du localStorage
       localStorage.setItem("commandesEnCours", JSON.stringify(updated));
       return updated;
     });
@@ -197,12 +247,6 @@ export default function ServeurDashboard() {
   };
 
   const getPanierForTable = (tableId) => commandesEnCours[tableId] || [];
-
-  const getTableStatus = (table) => {
-    const hasCommande = commandesEnCours[table.id]?.length > 0;
-    if (hasCommande) return "COMMANDE_EN_COURS";
-    return (table.status || "").toUpperCase();
-  };
 
   const getStatutClass = (status) => {
     const classes = {
@@ -248,6 +292,57 @@ export default function ServeurDashboard() {
         icon: "table_restaurant",
         btnText: "Voir",
       }
+    );
+  };
+
+  const handleNettoyerTable = async (tableId, event) => {
+    event.stopPropagation();
+    
+    try {
+      await api.updateTableStatus(tableId, "LIBRE");
+      setTables((prev) =>
+        prev.map((t) =>
+          t.id === tableId ? { ...t, status: "LIBRE" } : t
+        )
+      );
+      showNotification(`Table nettoyée et disponible`, "success");
+      
+      // Vider les commandes en cours associées
+      setCommandesEnCours((prev) => {
+        const newCommandes = { ...prev };
+        delete newCommandes[tableId];
+        localStorage.setItem("commandesEnCours", JSON.stringify(newCommandes));
+        return newCommandes;
+      });
+    } catch (error) {
+      console.error("Erreur nettoyage:", error);
+      showNotification("Erreur lors du nettoyage", "error");
+    }
+  };
+
+  const getTableActions = (table, statusInfo) => {
+    const tableStatus = getTableStatus(table);
+    
+    if (tableStatus === "A_NETTOYER") {
+      return (
+        <button
+          onClick={(e) => handleNettoyerTable(table.id, e)}
+          className={`w-full py-4 bg-emerald-500 text-white rounded-xl font-bold text-sm flex items-center justify-center gap-2 shadow-lg transition-all active:scale-[0.98]`}
+        >
+          <span className="material-symbols-outlined text-sm">cleaning</span>
+          Nettoyer & Libérer
+        </button>
+      );
+    }
+    
+    return (
+      <button
+        onClick={() => handleTableClick(table)}
+        className={`w-full py-4 ${statusInfo.btnBg} text-white rounded-xl font-bold text-sm flex items-center justify-center gap-2 shadow-lg transition-all active:scale-[0.98]`}
+      >
+        {statusInfo.btnText}
+        <span className="material-symbols-outlined text-sm">arrow_forward</span>
+      </button>
     );
   };
 
@@ -449,15 +544,7 @@ export default function ServeurDashboard() {
                       </span>
                     </div>
                   </div>
-                  <button
-                    onClick={() => handleTableClick(table)}
-                    className={`w-full py-4 ${statusInfo.btnBg} text-white rounded-xl font-bold text-sm flex items-center justify-center gap-2 shadow-lg transition-all active:scale-[0.98]`}
-                  >
-                    {statusInfo.btnText}
-                    <span className="material-symbols-outlined text-sm">
-                      arrow_forward
-                    </span>
-                  </button>
+                  {getTableActions(table, statusInfo)}
                 </div>
               );
             })}
