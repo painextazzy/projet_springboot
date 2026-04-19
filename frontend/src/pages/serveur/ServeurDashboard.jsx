@@ -58,18 +58,36 @@ export default function ServeurDashboard() {
     const unsubscribe = webSocketService.subscribe((data) => {
       console.log("🔄 WebSocket reçu:", data);
 
-      // Si c'est une mise à jour ciblée (objet avec tableId et status)
-      if (data && typeof data === "object" && data.tableId && data.status) {
+      let parsed = data;
+      if (typeof data === "string") {
+        try {
+          parsed = JSON.parse(data);
+        } catch (e) {
+          parsed = data;
+        }
+      }
+
+      if (
+        parsed &&
+        typeof parsed === "object" &&
+        parsed.tableId &&
+        parsed.status
+      ) {
         setTables((prev) =>
           prev.map((table) =>
-            table.id === data.tableId
-              ? { ...table, status: data.status }
+            table.id === parsed.tableId
+              ? { ...table, status: parsed.status }
               : table,
           ),
         );
+        return;
       }
-      // Si c'est un message de rechargement
-      else if (data === "TABLE_UPDATED" || data === "REFRESH") {
+
+      if (
+        parsed === "TABLE_UPDATED" ||
+        parsed === "REFRESH" ||
+        (parsed && parsed.action === "TABLE_UPDATED")
+      ) {
         chargerTables();
       }
     });
