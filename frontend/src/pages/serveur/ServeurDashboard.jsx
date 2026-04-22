@@ -12,6 +12,7 @@ export default function ServeurDashboard() {
   const dropdownRef = useRef(null);
   const [tables, setTables] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [refreshingTables, setRefreshingTables] = useState(false);
   const [error, setError] = useState("");
   const [selectedTable, setSelectedTable] = useState(null);
   const [showPOS, setShowPOS] = useState(false);
@@ -52,25 +53,43 @@ export default function ServeurDashboard() {
   }, [commandesEnCours]);
 
   useEffect(() => {
-    chargerTables();
+    chargerTables(true);
     webSocketService.connect();
 
     const unsubscribe = webSocketService.subscribe((data) => {
       console.log("🔄 WebSocket reçu:", data);
 
-      // Si c'est une mise à jour ciblée (objet avec tableId et status)
-      if (data && typeof data === "object" && data.tableId && data.status) {
+      let parsed = data;
+      if (typeof data === "string") {
+        try {
+          parsed = JSON.parse(data);
+        } catch (e) {
+          parsed = data;
+        }
+      }
+
+      if (
+        parsed &&
+        typeof parsed === "object" &&
+        parsed.tableId &&
+        parsed.status
+      ) {
         setTables((prev) =>
           prev.map((table) =>
-            table.id === data.tableId
-              ? { ...table, status: data.status }
+            table.id === parsed.tableId
+              ? { ...table, status: parsed.status }
               : table,
           ),
         );
+        return;
       }
-      // Si c'est un message de rechargement
-      else if (data === "TABLE_UPDATED" || data === "REFRESH") {
-        chargerTables();
+
+      if (
+        parsed === "TABLE_UPDATED" ||
+        parsed === "REFRESH" ||
+        (parsed && parsed.action === "TABLE_UPDATED")
+      ) {
+        chargerTables(false);
       }
     });
 
@@ -79,6 +98,28 @@ export default function ServeurDashboard() {
       webSocketService.disconnect();
     };
   }, []);
+
+  // ⭐ NOUVEAU: Nettoyer les commandes orphelines quand les tables sont chargées
+  useEffect(() => {
+    if (tables.length > 0 && Object.keys(commandesEnCours).length > 0) {
+      let hasChanges = false;
+      const updatedCommandes = { ...commandesEnCours };
+      
+      Object.keys(updatedCommandes).forEach(tableId => {
+        const table = tables.find(t => t.id === parseInt(tableId));
+        // Supprimer si table inexistante ou déjà libre/à nettoyer
+        if (!table || table.status === "LIBRE" || table.status === "A_NETTOYER") {
+          delete updatedCommandes[tableId];
+          hasChanges = true;
+        }
+      });
+      
+      if (hasChanges) {
+        setCommandesEnCours(updatedCommandes);
+        localStorage.setItem("commandesEnCours", JSON.stringify(updatedCommandes));
+      }
+    }
+  }, [tables]);
 
   const handleLogout = () => {
     localStorage.removeItem("user");
@@ -94,9 +135,13 @@ export default function ServeurDashboard() {
     );
   };
 
-  const chargerTables = async () => {
+  const chargerTables = async (showLoading = false) => {
     try {
-      setLoading(true);
+      if (showLoading) {
+        setLoading(true);
+      } else {
+        setRefreshingTables(true);
+      }
       const data = await api.getTables();
       if (Array.isArray(data)) {
         setTables(data);
@@ -107,7 +152,11 @@ export default function ServeurDashboard() {
       console.error("Erreur chargement tables:", error);
       setError("Impossible de charger les tables");
     } finally {
-      setLoading(false);
+      if (showLoading) {
+        setLoading(false);
+      } else {
+        setRefreshingTables(false);
+      }
     }
   };
 
@@ -130,16 +179,49 @@ export default function ServeurDashboard() {
     setShowPOS(true);
   };
 
+  // ⭐ MODIFIÉ: Priorité au statut backend pour LIBRE et A_NETTOYER
+  const getTableStatus = (table) => {
+    const backendStatus = (table.status || "").toUpperCase();
+    
+    // Si la table est LIBRE ou A_NETTOYER, ignorer le localStorage
+    if (backendStatus === "LIBRE" || backendStatus === "A_NETTOYER") {
+      // Nettoyage silencieux du localStorage si nécessaire
+      if (commandesEnCours[table.id]?.length > 0) {
+        setTimeout(() => {
+          setCommandesEnCours(prev => {
+            const newCommandes = { ...prev };
+            delete newCommandes[table.id];
+            localStorage.setItem("commandesEnCours", JSON.stringify(newCommandes));
+            return newCommandes;
+          });
+        }, 0);
+      }
+      return backendStatus;
+    }
+    
+    // Pour OCCUPEE, vérifier si commande en cours
+    const hasCommande = commandesEnCours[table.id]?.length > 0;
+    if (hasCommande) return "COMMANDE_EN_COURS";
+    
+    return backendStatus;
+  };
+
   const handleCommandeValidee = (commande, tableId) => {
-    // ✅ Mise à jour locale immédiate
+    // Mise à jour locale immédiate
     setTables((prev) =>
       prev.map((t) => (t.id === tableId ? { ...t, status: "LIBRE" } : t)),
     );
+    
+    // Supprimer la table du localStorage
     setCommandesEnCours((prev) => {
       const newCommandes = { ...prev };
       delete newCommandes[tableId];
+      localStorage.setItem("commandesEnCours", JSON.stringify(newCommandes));
       return newCommandes;
     });
+    
+    // Forcer le rechargement des tables
+    setTimeout(() => chargerTables(false), 100);
     showNotification(
       `Commande #${commande.id} enregistrée, table libérée`,
       "success",
@@ -147,7 +229,16 @@ export default function ServeurDashboard() {
   };
 
   const handleUpdatePanier = (tableId, panier) => {
-    setCommandesEnCours((prev) => ({ ...prev, [tableId]: panier }));
+    setCommandesEnCours((prev) => {
+      const updated = { ...prev };
+      if (!panier || panier.length === 0) {
+        delete updated[tableId];
+      } else {
+        updated[tableId] = panier;
+      }
+      localStorage.setItem("commandesEnCours", JSON.stringify(updated));
+      return updated;
+    });
   };
 
   const handleClosePOS = () => {
@@ -156,12 +247,6 @@ export default function ServeurDashboard() {
   };
 
   const getPanierForTable = (tableId) => commandesEnCours[tableId] || [];
-
-  const getTableStatus = (table) => {
-    const hasCommande = commandesEnCours[table.id]?.length > 0;
-    if (hasCommande) return "COMMANDE_EN_COURS";
-    return (table.status || "").toUpperCase();
-  };
 
   const getStatutClass = (status) => {
     const classes = {
@@ -210,6 +295,57 @@ export default function ServeurDashboard() {
     );
   };
 
+  const handleNettoyerTable = async (tableId, event) => {
+    event.stopPropagation();
+    
+    try {
+      await api.updateTableStatus(tableId, "LIBRE");
+      setTables((prev) =>
+        prev.map((t) =>
+          t.id === tableId ? { ...t, status: "LIBRE" } : t
+        )
+      );
+      showNotification(`Table nettoyée et disponible`, "success");
+      
+      // Vider les commandes en cours associées
+      setCommandesEnCours((prev) => {
+        const newCommandes = { ...prev };
+        delete newCommandes[tableId];
+        localStorage.setItem("commandesEnCours", JSON.stringify(newCommandes));
+        return newCommandes;
+      });
+    } catch (error) {
+      console.error("Erreur nettoyage:", error);
+      showNotification("Erreur lors du nettoyage", "error");
+    }
+  };
+
+  const getTableActions = (table, statusInfo) => {
+    const tableStatus = getTableStatus(table);
+    
+    if (tableStatus === "A_NETTOYER") {
+      return (
+        <button
+          onClick={(e) => handleNettoyerTable(table.id, e)}
+          className={`w-full py-4 bg-emerald-500 text-white rounded-xl font-bold text-sm flex items-center justify-center gap-2 shadow-lg transition-all active:scale-[0.98]`}
+        >
+          <span className="material-symbols-outlined text-sm">cleaning</span>
+          Nettoyer & Libérer
+        </button>
+      );
+    }
+    
+    return (
+      <button
+        onClick={() => handleTableClick(table)}
+        className={`w-full py-4 ${statusInfo.btnBg} text-white rounded-xl font-bold text-sm flex items-center justify-center gap-2 shadow-lg transition-all active:scale-[0.98]`}
+      >
+        {statusInfo.btnText}
+        <span className="material-symbols-outlined text-sm">arrow_forward</span>
+      </button>
+    );
+  };
+
   const tablesFiltrees = tables.filter((table) => {
     if (!table) return false;
     const statutUpper = getTableStatus(table);
@@ -253,7 +389,11 @@ export default function ServeurDashboard() {
 
       {/* ========== NAVBAR ========== */}
       <nav className="fixed top-0 right-0 left-0 h-20 bg-surface-container-low backdrop-blur-md z-30 border-b border-outline-variant/10">
-        <div className="flex justify-end items-center px-8 w-full h-full">
+        <div className="flex justify-between items-center px-8 w-full h-full gap-4">
+          <div>
+            <h1 className="text-xl font-semibold text-on-surface">Dashboard Serveur</h1>
+            <p className="text-sm text-secondary">Gestion des tables et commandes</p>
+          </div>
           <div className="relative" ref={dropdownRef}>
             <button
               onClick={() => setIsDropdownOpen(!isDropdownOpen)}
@@ -380,7 +520,7 @@ export default function ServeurDashboard() {
               return (
                 <div
                   key={table.id}
-                  className="bg-white p-8 rounded-[2rem] shadow-premium hover:shadow-premium-hover transition-all duration-500 border border-slate-100 group"
+                  className="bg-white p-8 rounded-[2rem] shadow-lg hover:shadow-xl transition-all duration-500 border border-slate-100 group"
                 >
                   <div className="flex justify-between items-start mb-8">
                     <div className="w-14 h-14 rounded-2xl bg-slate-50 flex items-center justify-center text-slate-400">
@@ -408,15 +548,7 @@ export default function ServeurDashboard() {
                       </span>
                     </div>
                   </div>
-                  <button
-                    onClick={() => handleTableClick(table)}
-                    className={`w-full py-4 ${statusInfo.btnBg} text-white rounded-xl font-bold text-sm flex items-center justify-center gap-2 shadow-lg transition-all active:scale-[0.98]`}
-                  >
-                    {statusInfo.btnText}
-                    <span className="material-symbols-outlined text-sm">
-                      arrow_forward
-                    </span>
-                  </button>
+                  {getTableActions(table, statusInfo)}
                 </div>
               );
             })}
@@ -454,8 +586,8 @@ export default function ServeurDashboard() {
         <POSModal
           table={selectedTable}
           initialPanier={getPanierForTable(selectedTable.id)}
-          onUpdatePanier={(panier) =>
-            handleUpdatePanier(selectedTable.id, panier)
+          onUpdatePanier={(tableId, panier) =>
+            handleUpdatePanier(tableId, panier)
           }
           onClose={handleClosePOS}
           onCommandeValidee={handleCommandeValidee}

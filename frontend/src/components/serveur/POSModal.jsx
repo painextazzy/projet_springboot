@@ -19,6 +19,7 @@ export default function POSModal({
   const [tableOccupee, setTableOccupee] = useState(false);
   const [showCart, setShowCart] = useState(false);
   const [showConfirmationInCart, setShowConfirmationInCart] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const [ticketId, setTicketId] = useState(Math.floor(Math.random() * 1000));
   const [notification, setNotification] = useState({
     show: false,
@@ -38,9 +39,16 @@ export default function POSModal({
 
   useEffect(() => {
     if (onUpdatePanier) {
-      onUpdatePanier(panier);
+      onUpdatePanier(table.id, panier);
     }
-  }, [panier, onUpdatePanier]);
+  }, [panier, onUpdatePanier, table.id]);
+
+  // Supprimer ce useEffect pour éviter les conflits
+  // useEffect(() => {
+  //   if (onUpdatePanier) {
+  //     onUpdatePanier(panier);
+  //   }
+  // }, [panier, onUpdatePanier]);
 
   useEffect(() => {
     chargerMenu();
@@ -141,10 +149,12 @@ export default function POSModal({
       showNotification("Veuillez ajouter des plats", "error");
       return;
     }
-    setShowConfirmationInCart(true);
+    confirmerCommande();
   };
 
   const confirmerCommande = async () => {
+    if (isSubmitting) return;
+    setIsSubmitting(true);
     setShowConfirmationInCart(false);
     setShowCart(false);
     try {
@@ -160,6 +170,8 @@ export default function POSModal({
       const response = await api.createCommande(commande);
       await api.updateTableStatus(table.id, "LIBRE");
 
+      // Vider le panier immédiatement
+      if (onUpdatePanier) onUpdatePanier(table.id, []);
       setPanier([]);
       setTableOccupee(false);
 
@@ -175,6 +187,8 @@ export default function POSModal({
         error.message || "Erreur lors de l'enregistrement",
         "error",
       );
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -332,14 +346,20 @@ export default function POSModal({
                 <button
                   onClick={annulerConfirmation}
                   className="flex-1 py-3 border border-slate-200 rounded-xl text-sm font-medium hover:bg-slate-50 transition"
+                  disabled={isSubmitting}
                 >
                   Annuler
                 </button>
                 <button
                   onClick={confirmerCommande}
-                  className="flex-1 py-3 bg-green-500 text-white rounded-xl text-sm font-medium hover:bg-green-600 transition shadow-md"
+                  disabled={isSubmitting}
+                  className={`flex-1 py-3 rounded-xl text-sm font-medium transition shadow-md ${
+                    isSubmitting
+                      ? "bg-slate-300 text-slate-600 cursor-not-allowed"
+                      : "bg-green-500 text-white hover:bg-green-600"
+                  }`}
                 >
-                  Confirmer
+                  {isSubmitting ? "En cours..." : "Confirmer"}
                 </button>
               </div>
             </div>
@@ -347,14 +367,29 @@ export default function POSModal({
         </main>
 
         {!showConfirmationInCart && panier.length > 0 && (
-          <div className="fixed bottom-0 left-0 right-0 px-6 pb-8 bg-gradient-to-t from-surface-bright via-surface-bright to-transparent pt-4">
+          <div className="fixed bottom-0 left-0 right-0 px-6 pb-6 bg-gradient-to-t from-white via-white to-transparent pt-4">
+            <div className="mb-3 rounded-3xl bg-white p-4 shadow-lg border border-slate-200 flex items-center justify-between">
+              <div>
+                <p className="text-xs uppercase tracking-[0.18em] text-secondary font-bold">
+                  Total commande
+                </p>
+                <p className="text-lg font-bold text-slate-900 mt-1">
+                  {formatPrix(calculerTotal())}
+                </p>
+              </div>
+            </div>
             <button
               onClick={demanderAddition}
-              className="w-full h-14 bg-gradient-to-br from-[#00307d] to-[#0045ab] text-white rounded-xl shadow-xl shadow-primary/20 flex items-center justify-center gap-3 transition-transform active:scale-95"
+              disabled={isSubmitting}
+              className={`w-full h-14 rounded-xl shadow-xl shadow-primary/20 flex items-center justify-center gap-3 transition-transform active:scale-95 ${
+                isSubmitting
+                  ? "bg-slate-300 text-slate-600 cursor-not-allowed"
+                  : "bg-gradient-to-br from-[#00307d] to-[#0045ab] text-white"
+              }`}
             >
               <span className="material-symbols-outlined">receipt_long</span>
               <span className="font-headline font-bold text-base uppercase tracking-wider">
-                Demander l'Addition
+                {isSubmitting ? "En cours..." : "Demander l'Addition"}
               </span>
             </button>
           </div>
@@ -458,7 +493,7 @@ export default function POSModal({
                 platsFiltres.map((plat) => (
                   <div
                     key={plat.id}
-                    className="bg-white rounded-3xl p-3 shadow-sm border border-surface-container-high flex flex-col gap-3 group"
+                    className="bg-white rounded-3xl p-3 shadow-lg border border-surface-container-high flex flex-col gap-3 group"
                   >
                     <div className="aspect-square rounded-2xl overflow-hidden bg-surface-container relative">
                       {plat.imageUrl ? (
@@ -612,7 +647,7 @@ export default function POSModal({
                       receipt
                     </span>
                   </div>
-                  <h3 className="text-lg font-bold text-slate-900">
+                  <h3 className="text-lg font-bold text-on-surface">
                     Confirmer la commande
                   </h3>
                   <p className="text-slate-500 text-sm mt-1">
@@ -626,14 +661,20 @@ export default function POSModal({
                   <button
                     onClick={annulerConfirmation}
                     className="flex-1 py-2 border border-slate-200 rounded-lg text-sm font-medium hover:bg-slate-50 transition"
+                    disabled={isSubmitting}
                   >
                     Annuler
                   </button>
                   <button
                     onClick={confirmerCommande}
-                    className="flex-1 py-2 bg-green-500 text-white rounded-lg text-sm font-medium hover:bg-green-600 transition"
+                    disabled={isSubmitting}
+                    className={`flex-1 py-2 rounded-lg text-sm font-medium transition ${
+                      isSubmitting
+                        ? "bg-slate-300 text-slate-600 cursor-not-allowed"
+                        : "bg-green-500 text-white hover:bg-green-600"
+                    }`}
                   >
-                    Confirmer
+                    {isSubmitting ? "En cours..." : "Confirmer"}
                   </button>
                 </div>
               </div>
@@ -650,10 +691,13 @@ export default function POSModal({
               </div>
               <button
                 onClick={demanderAddition}
-                className="w-full py-3 bg-gradient-to-r from-green-500 to-green-600 text-white rounded-xl font-semibold text-base hover:from-green-600 hover:to-green-700 transition-all shadow-md flex items-center justify-center gap-2"
+                disabled={isSubmitting}
+                className={`w-full py-3 bg-gradient-to-r from-green-500 to-green-600 text-white rounded-xl font-semibold text-base hover:from-green-600 hover:to-green-700 transition-all shadow-md flex items-center justify-center gap-2 ${
+                  isSubmitting ? "opacity-50 cursor-not-allowed" : ""
+                }`}
               >
                 <span className="material-symbols-outlined">receipt</span>
-                Valider la commande
+                {isSubmitting ? "En cours..." : "Valider la commande"}
               </button>
             </div>
           )}

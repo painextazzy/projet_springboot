@@ -38,9 +38,9 @@ class WebSocketService {
           console.log("📡 Message tables reçu:", message.body);
           try {
             const data = JSON.parse(message.body);
-            this.listeners.forEach((listener) => data);
+            this.listeners.forEach((listener) => listener(data));
           } catch (e) {
-            this.listeners.forEach((listener) => message.body);
+            this.listeners.forEach((listener) => listener(message.body));
           }
         });
       },
