@@ -369,7 +369,7 @@ export default function GestionMenu() {
         {/* Filters and Search Bar - Responsive */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
           {/* Filtres - scroll horizontal sur mobile */}
-          <div className="flex items-center gap-2 bg-surface-container-low p-1.5 rounded-2xl overflow-x-auto whitespace-nowrap">
+          <div className="flex items-center gap-2 bg-white shadow-sm p-1.5 rounded-2xl overflow-x-auto whitespace-nowrap">
             <button
               onClick={() => {
                 setFiltreCategorie("TOUS");
@@ -377,8 +377,8 @@ export default function GestionMenu() {
               }}
               className={`px-3 sm:px-4 py-1.5 rounded-xl transition-all text-xs sm:text-sm ${
                 filtreCategorie === "TOUS" && !filtreEpuise
-                  ? "bg-surface-container-lowest shadow-sm text-primary font-semibold"
-                  : "text-secondary hover:bg-surface-container-high font-medium"
+                  ? "bg-primary/10 text-primary font-semibold"
+                  : "text-secondary hover:bg-white/50 font-medium"
               }`}
             >
               Tous
@@ -392,8 +392,8 @@ export default function GestionMenu() {
                 }}
                 className={`px-3 sm:px-4 py-1.5 rounded-xl transition-all text-xs sm:text-sm ${
                   filtreCategorie === cat && !filtreEpuise
-                    ? "bg-surface-container-lowest shadow-sm text-primary font-semibold"
-                    : "text-secondary hover:bg-surface-container-high font-medium"
+                    ? "bg-primary/10 text-primary font-semibold"
+                    : "text-secondary hover:bg-white/50 font-medium"
                 }`}
               >
                 {cat === "ENTREE"
@@ -412,8 +412,8 @@ export default function GestionMenu() {
               }}
               className={`relative px-3 sm:px-4 py-1.5 rounded-xl transition-all text-xs sm:text-sm ${
                 filtreEpuise
-                  ? "bg-surface-container-lowest shadow-sm text-primary font-semibold"
-                  : "text-secondary hover:bg-surface-container-high font-medium"
+                  ? "bg-primary/10 text-primary font-semibold"
+                  : "text-secondary hover:bg-white/50 font-medium"
               }`}
             >
               Épuisé
@@ -433,7 +433,7 @@ export default function GestionMenu() {
               type="text"
               value={recherche}
               onChange={(e) => setRecherche(e.target.value)}
-              className="w-full bg-surface-container-lowest border border-outline-variant/30 rounded-xl py-2 pl-10 pr-4 text-sm focus:ring-2 focus:ring-primary/20 transition-all outline-none"
+              className="w-full bg-white shadow-sm border border-outline-variant/30 rounded-xl py-2 pl-10 pr-4 text-sm focus:ring-2 focus:ring-primary/20 transition-all outline-none"
               placeholder="Rechercher un plat..."
             />
           </div>
@@ -465,7 +465,7 @@ export default function GestionMenu() {
             return (
               <div
                 key={plat.id}
-                className="bg-surface-container-lowest rounded-2xl shadow-[0px_20px_40px_rgba(25,28,30,0.04)] border border-outline-variant/10 flex flex-col overflow-hidden transition-transform hover:-translate-y-1 relative"
+                className="bg-white rounded-2xl shadow-lg border border-outline-variant/10 flex flex-col overflow-hidden transition-transform hover:-translate-y-1 relative"
               >
                 <div className="relative h-36 sm:h-44 w-full overflow-hidden">
                   {plat.imageUrl ? (

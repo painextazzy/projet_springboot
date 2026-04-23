@@ -248,7 +248,7 @@ export default function GestionTables() {
         </div>
 
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
-          <div className="flex gap-2 bg-surface-container-low p-1.5 rounded-2xl overflow-x-auto whitespace-nowrap">
+          <div className="flex gap-2 bg-white shadow-sm p-1.5 rounded-2xl overflow-x-auto whitespace-nowrap">
             {[
               { id: "TOUTES", label: "Toutes" },
               { id: "LIBRES", label: "Libres" },
@@ -258,7 +258,7 @@ export default function GestionTables() {
               <button
                 key={f.id}
                 onClick={() => setFiltreActif(f.id)}
-                className={`px-4 py-2 rounded-xl text-sm ${filtreActif === f.id ? "bg-surface-container-lowest shadow-sm text-primary font-semibold" : "text-secondary hover:bg-surface-container-high font-medium"}`}
+                className={`px-4 py-2 rounded-xl text-sm ${filtreActif === f.id ? "bg-primary/10 text-primary font-semibold" : "text-secondary hover:bg-white/50 font-medium"}`}
               >
                 {f.label}
               </button>
@@ -272,7 +272,7 @@ export default function GestionTables() {
               type="text"
               value={recherche}
               onChange={(e) => setRecherche(e.target.value)}
-              className="w-full bg-surface-container-lowest border border-outline-variant/30 rounded-xl py-2 pl-10 pr-4 text-sm focus:ring-2 focus:ring-primary/20 outline-none"
+              className="w-full bg-white shadow-sm border border-outline-variant/30 rounded-xl py-2 pl-10 pr-4 text-sm focus:ring-2 focus:ring-primary/20 outline-none"
               placeholder="Rechercher une table..."
             />
           </div>
@@ -281,7 +281,7 @@ export default function GestionTables() {
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
           <button
             onClick={openAddModal}
-            className="bg-surface-container-lowest p-6 rounded-3xl border-2 border-dashed border-outline-variant/30 hover:border-primary/50 hover:bg-surface-container-low transition-all group flex flex-col items-center justify-center min-h-[280px] text-secondary hover:text-primary"
+            className="bg-white shadow-lg p-6 rounded-3xl border-2 border-dashed border-outline-variant/30 hover:border-primary/50 hover:bg-primary/5 transition-all group flex flex-col items-center justify-center min-h-[280px] text-secondary hover:text-primary"
           >
             <div className="flex flex-col items-center gap-4">
               <span className="material-symbols-outlined text-5xl">
@@ -298,7 +298,7 @@ export default function GestionTables() {
             return (
               <div
                 key={table.id}
-                className="bg-surface-container-lowest p-6 rounded-3xl border border-outline-variant/10 shadow-sm hover:shadow-xl transition-all group flex flex-col min-h-[280px] relative"
+                className="bg-white p-6 rounded-3xl border border-outline-variant/10 shadow-lg hover:shadow-xl transition-all group flex flex-col min-h-[280px] relative"
               >
                 <div className="flex justify-between items-start mb-2">
                   <h3 className="font-headline text-lg font-bold text-on-surface">
@@ -340,7 +340,7 @@ export default function GestionTables() {
                     <div className="absolute bottom-12 right-0 bg-white rounded-xl shadow-lg border border-outline-variant/10 overflow-hidden z-10 min-w-[140px]">
                       <button
                         onClick={() => openEditModal(table)}
-                        className="w-full px-4 py-2 text-left text-sm text-secondary hover:bg-surface-container-low flex items-center gap-2 transition"
+                        className="w-full px-4 py-2 text-left text-sm text-secondary hover:bg-white/50 flex items-center gap-2 transition"
                       >
                         <span className="material-symbols-outlined text-lg">
                           edit
@@ -349,7 +349,7 @@ export default function GestionTables() {
                       </button>
                       <button
                         onClick={() => handleChangerStatus(table.id, "libre")}
-                        className="w-full px-4 py-2 text-left text-sm text-secondary hover:bg-surface-container-low flex items-center gap-2 transition"
+                        className="w-full px-4 py-2 text-left text-sm text-secondary hover:bg-white/50 flex items-center gap-2 transition"
                       >
                         <span className="material-symbols-outlined text-lg">
                           check_circle
@@ -358,7 +358,7 @@ export default function GestionTables() {
                       </button>
                       <button
                         onClick={() => handleChangerStatus(table.id, "occupee")}
-                        className="w-full px-4 py-2 text-left text-sm text-secondary hover:bg-surface-container-low flex items-center gap-2 transition"
+                        className="w-full px-4 py-2 text-left text-sm text-secondary hover:bg-white/50 flex items-center gap-2 transition"
                       >
                         <span className="material-symbols-outlined text-lg">
                           person
@@ -369,7 +369,7 @@ export default function GestionTables() {
                         onClick={() =>
                           handleChangerStatus(table.id, "a_nettoyer")
                         }
-                        className="w-full px-4 py-2 text-left text-sm text-secondary hover:bg-surface-container-low flex items-center gap-2 transition"
+                        className="w-full px-4 py-2 text-left text-sm text-secondary hover:bg-white/50 flex items-center gap-2 transition"
                       >
                         <span className="material-symbols-outlined text-lg">
                           cleaning
