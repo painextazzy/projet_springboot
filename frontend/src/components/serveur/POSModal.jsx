@@ -160,6 +160,7 @@ export default function POSModal({
     try {
       const commande = {
         tableId: table.id,
+        dateOuverture: new Date().toISOString(),
         lignes: panier.map((item) => ({
           platId: item.id,
           quantite: item.quantite,

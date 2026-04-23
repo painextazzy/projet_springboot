@@ -1,13 +1,15 @@
 package com.restaurant.dto;
 
 import lombok.Data;
+import java.time.LocalDateTime;
 import java.util.List;
 
 @Data
 public class CommandeRequest {
     private Long tableId;
+    private LocalDateTime dateOuverture;
     private List<LigneRequest> lignes;
-    
+
     @Data
     public static class LigneRequest {
         private Long platId;
