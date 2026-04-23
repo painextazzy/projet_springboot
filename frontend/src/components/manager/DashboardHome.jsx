@@ -517,22 +517,22 @@ const DashboardHome = () => {
               </p>
             </div>
             <div className="flex flex-wrap items-center gap-4">
-              <div className="bg-surface-container-high p-1 rounded-2xl flex items-center">
+              <div className="bg-white p-1 rounded-2xl flex items-center shadow-sm">
                 <button
                   onClick={() => setTimeFilter("hour")}
-                  className={`px-6 py-2 rounded-xl text-sm font-bold transition-all ${timeFilter === "hour" ? "bg-surface-container-lowest text-primary shadow-sm" : "text-secondary hover:text-on-surface"}`}
+                  className={`px-6 py-2 rounded-xl text-sm font-bold transition-all ${timeFilter === "hour" ? "bg-white text-primary shadow-md" : "text-secondary hover:text-on-surface"}`}
                 >
                   Heure
                 </button>
                 <button
                   onClick={() => setTimeFilter("day")}
-                  className={`px-6 py-2 rounded-xl text-sm font-bold transition-all ${timeFilter === "day" ? "bg-surface-container-lowest text-primary shadow-sm" : "text-secondary hover:text-on-surface"}`}
+                  className={`px-6 py-2 rounded-xl text-sm font-bold transition-all ${timeFilter === "day" ? "bg-white text-primary shadow-md" : "text-secondary hover:text-on-surface"}`}
                 >
                   Jour
                 </button>
                 <button
                   onClick={() => setTimeFilter("month")}
-                  className={`px-6 py-2 rounded-xl text-sm font-bold transition-all ${timeFilter === "month" ? "bg-surface-container-lowest text-primary shadow-sm" : "text-secondary hover:text-on-surface"}`}
+                  className={`px-6 py-2 rounded-xl text-sm font-bold transition-all ${timeFilter === "month" ? "bg-white text-primary shadow-md" : "text-secondary hover:text-on-surface"}`}
                 >
                   Mois
                 </button>
@@ -674,7 +674,7 @@ const DashboardHome = () => {
 
           {/* Distribution des temps de service */}
           {orderDurationData.some((val) => val > 0) && (
-            <div className="mb-8 p-6 rounded-2xl bg-surface-container-lowest border border-outline-variant/10">
+            <div className="mb-8 p-6 rounded-2xl bg-white shadow-lg border border-outline-variant/10">
               <h4 className="text-lg font-bold font-headline text-on-surface mb-4">
                 Distribution des temps de service (minutes)
               </h4>
@@ -865,7 +865,7 @@ const DashboardHome = () => {
                 {currentData.slice(-5).map((item, idx) => (
                   <div
                     key={idx}
-                    className="text-center p-2 rounded-lg bg-gray-50"
+                    className="text-center p-2 rounded-lg bg-white shadow-sm"
                   >
                     <p className="text-[9px] text-secondary">{item.label}</p>
                     <p className="text-xs font-bold text-primary">
@@ -989,7 +989,7 @@ const DashboardHome = () => {
                         </td>
                         <td className="py-3">
                           <div className="flex items-center gap-2">
-                            <div className="w-20 h-1 bg-gray-100 rounded-full overflow-hidden">
+                            <div className="w-20 h-1 bg-white rounded-full overflow-hidden shadow-inner">
                               <div
                                 className="h-full bg-primary rounded-full"
                                 style={{
@@ -1033,7 +1033,7 @@ const DashboardHome = () => {
                   outOfStockProducts.slice(0, 4).map((product) => (
                     <div
                       key={product.id}
-                      className="flex justify-between items-center p-2 bg-white/80 rounded-lg"
+                      className="flex justify-between items-center p-2 bg-white rounded-lg shadow-sm"
                     >
                       <span className="text-sm font-medium">{product.nom}</span>
                       <span className="text-[10px] text-red-500 font-semibold bg-red-50 px-2 py-0.5 rounded-full">
@@ -1066,7 +1066,7 @@ const DashboardHome = () => {
                   {lowStockProducts.slice(0, 4).map((product) => (
                     <div
                       key={product.id}
-                      className="flex justify-between items-center p-2 bg-white/80 rounded-lg"
+                      className="flex justify-between items-center p-2 bg-white rounded-lg shadow-sm"
                     >
                       <span className="text-sm font-medium">{product.nom}</span>
                       <span className="text-[10px] text-amber-600 font-semibold bg-amber-50 px-2 py-0.5 rounded-full">
