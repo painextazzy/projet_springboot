@@ -5,10 +5,12 @@ import { api } from "../../services/api";
 import webSocketService from "../../services/websocketService";
 import POSModal from "../../components/serveur/POSModal";
 import SkeletonServeurDashboard from "./skeletons/SkeletonServeurDashboard";
+import ProfileModal from "../../components/manager/ProfileModal";
 
 export default function ServeurDashboard() {
   const navigate = useNavigate();
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+  const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
   const dropdownRef = useRef(null);
   const [tables, setTables] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -433,6 +435,18 @@ export default function ServeurDashboard() {
                 </div>
                 <div className="py-1">
                   <button
+                    onClick={() => {
+                      setIsDropdownOpen(false);
+                      setIsProfileModalOpen(true);
+                    }}
+                    className="w-full px-4 py-2.5 text-left text-sm text-on-surface hover:bg-surface-container-high transition-colors flex items-center gap-3"
+                  >
+                    <span className="material-symbols-outlined text-lg">
+                      settings
+                    </span>
+                    Paramètres
+                  </button>
+                  <button
                     onClick={handleLogout}
                     className="w-full px-4 py-2.5 text-left text-sm text-error hover:bg-error-container/20 transition-colors flex items-center gap-3"
                   >
@@ -593,6 +607,16 @@ export default function ServeurDashboard() {
           onCommandeValidee={handleCommandeValidee}
         />
       )}
+
+      {/* Modal de modification du profil */}
+      <ProfileModal
+        isOpen={isProfileModalOpen}
+        onClose={() => setIsProfileModalOpen(false)}
+        user={user}
+        onUpdate={(updatedUser) => {
+          window.location.reload();
+        }}
+      />
     </div>
   );
 }
