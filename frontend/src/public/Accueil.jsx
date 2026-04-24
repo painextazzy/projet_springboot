@@ -60,7 +60,7 @@ export default function Accueil() {
     try {
       const response = await api.login({ email, password });
 
-      console.log("📝 Réponse login:", response);
+      console.log(" Réponse login:", response);
 
       if (response && response.role) {
         // ✅ Sauvegarder TOUTES les données
@@ -198,7 +198,7 @@ export default function Accueil() {
               </div>
               <div className="flex justify-end pt-0.5">
                 <a
-                  href="#"
+                  href="/reset-password"
                   className="text-[12px] font-semibold text-primary hover:underline transition-all"
                 >
                   Mot de passe oublié ?
