@@ -29,7 +29,6 @@ export default function ProfileModal({ isOpen, onClose, user, onUpdate }) {
     setError("");
     setSuccess("");
 
-    // Validation
     if (!formData.nom.trim()) {
       setError("Le nom est requis");
       return;
@@ -40,7 +39,6 @@ export default function ProfileModal({ isOpen, onClose, user, onUpdate }) {
       return;
     }
 
-    // Vérifier si un nouveau mot de passe est fourni
     if (formData.nouveauMotDePasse || formData.motDePasseActuel) {
       if (!formData.motDePasseActuel) {
         setError("Veuillez entrer votre mot de passe actuel");
@@ -69,17 +67,13 @@ export default function ProfileModal({ isOpen, onClose, user, onUpdate }) {
         nouveauMotDePasse: formData.nouveauMotDePasse || null,
       });
 
-      // Mettre à jour le localStorage
       localStorage.setItem("user", JSON.stringify(response));
-
       setSuccess("Profil mis à jour avec succès!");
       
-      // Appeler le callback onUpdate si fourni
       if (onUpdate) {
         onUpdate(response);
       }
 
-      // Fermer le modal après 1.5 secondes
       setTimeout(() => {
         onClose();
         setFormData({
@@ -99,204 +93,188 @@ export default function ProfileModal({ isOpen, onClose, user, onUpdate }) {
   };
 
   return (
-    <div className="fixed inset-0 z-[100] flex items-center justify-center p-md bg-[#051a3e]/30 backdrop-blur-sm">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
       {/* Modal */}
-      <div className="bg-surface-container-lowest ambient-shadow rounded-2xl w-full max-w-[640px] overflow-hidden flex flex-col border border-outline-variant/30">
-        {/* Modal Header */}
-        <div className="px-xxl pt-xxl pb-lg flex items-center justify-between">
-          <div>
-            <h1 className="font-headline-md text-[28px] tracking-tight text-on-surface">
-              Paramètres du compte
-            </h1>
-            <p className="text-on-surface-variant text-body-md mt-1">
-              Gérez vos informations personnelles et vos préférences de sécurité.
-            </p>
+      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl overflow-hidden">
+        {/* Header */}
+        <div className="px-8 pt-8 pb-4 border-b border-gray-100">
+          <div className="flex items-center justify-between">
+            <div>
+              <h1 className="text-2xl font-bold text-gray-900 tracking-tight">
+                Paramètres du compte
+              </h1>
+              <p className="text-gray-500 text-sm mt-1">
+                Gérez vos informations personnelles et vos préférences de sécurité.
+              </p>
+            </div>
+            <button
+              onClick={onClose}
+              className="text-gray-400 hover:text-gray-600 hover:bg-gray-100 p-2 rounded-full transition-all"
+            >
+              <span className="material-symbols-outlined">close</span>
+            </button>
           </div>
-          <button
-            onClick={onClose}
-            className="text-on-surface-variant/60 hover:text-on-surface hover:bg-surface-container-low p-2 rounded-full transition-all active:scale-95"
-          >
-            <span className="material-symbols-outlined text-[24px]">close</span>
-          </button>
         </div>
 
-        {/* Modal Content (Form) */}
+        {/* Form */}
         <form onSubmit={handleSubmit}>
-          <div className="px-xxl pb-xxl space-y-xxl overflow-y-auto max-h-[640px]">
-            {/* Messages d'erreur et de succès */}
+          <div className="px-8 py-6 space-y-8 max-h-[60vh] overflow-y-auto">
+            {/* Messages */}
             {error && (
-              <div className="bg-error-container/20 border border-error/30 text-error px-4 py-3 rounded-lg text-sm flex items-center gap-2">
+              <div className="bg-red-50 border border-red-200 text-red-600 px-4 py-3 rounded-lg text-sm flex items-center gap-2">
                 <span className="material-symbols-outlined text-lg">error</span>
                 {error}
               </div>
             )}
 
             {success && (
-              <div className="bg-success-container/20 border border-success/30 text-success px-4 py-3 rounded-lg text-sm flex items-center gap-2">
+              <div className="bg-green-50 border border-green-200 text-green-600 px-4 py-3 rounded-lg text-sm flex items-center gap-2">
                 <span className="material-symbols-outlined text-lg">check_circle</span>
                 {success}
               </div>
             )}
 
-            {/* Section: Personal Info */}
-            <section className="space-y-xl">
-              <div className="grid grid-cols-1 gap-lg">
-                <div className="flex flex-col gap-2">
-                  <label
-                    className="font-semibold text-xs uppercase tracking-wider text-on-surface-variant"
-                    htmlFor="name"
-                  >
-                    Nom complet
-                  </label>
-                  <div className="relative group">
-                    <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-on-surface-variant/40 group-focus-within:text-primary/60 transition-colors text-[20px]">
-                      person
-                    </span>
-                    <input
-                      type="text"
-                      name="nom"
-                      id="name"
-                      value={formData.nom}
-                      onChange={handleChange}
-                      className="w-full bg-[#f8f9fc] border border-outline-variant/60 rounded-xl pl-10 pr-md py-[10px] font-body-md text-on-surface placeholder:text-on-surface-variant/40 focus:bg-white focus:border-primary/40 outline-none transition-all duration-200"
-                      placeholder="Entrez votre nom"
-                    />
-                  </div>
+            {/* Section Informations personnelles */}
+            <section className="space-y-4">
+              <div>
+                <label className="block text-xs font-semibold uppercase tracking-wider text-gray-500 mb-2">
+                  Nom complet
+                </label>
+                <div className="relative">
+                  <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-gray-400">
+                    person
+                  </span>
+                  <input
+                    type="text"
+                    name="nom"
+                    value={formData.nom}
+                    onChange={handleChange}
+                    className="w-full bg-gray-50 border border-gray-200 rounded-xl pl-10 pr-4 py-2.5 text-gray-900 placeholder:text-gray-400 focus:bg-white focus:border-blue-400 focus:outline-none focus:ring-2 focus:ring-blue-100 transition-all"
+                    placeholder="Entrez votre nom"
+                  />
                 </div>
+              </div>
 
-                <div className="flex flex-col gap-2">
-                  <label
-                    className="font-semibold text-xs uppercase tracking-wider text-on-surface-variant"
-                    htmlFor="email"
-                  >
-                    Adresse e-mail
-                  </label>
-                  <div className="relative group">
-                    <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-on-surface-variant/40 group-focus-within:text-primary/60 transition-colors text-[20px]">
-                      mail
-                    </span>
-                    <input
-                      type="email"
-                      name="email"
-                      id="email"
-                      value={formData.email}
-                      onChange={handleChange}
-                      className="w-full bg-[#f8f9fc] border border-outline-variant/60 rounded-xl pl-10 pr-md py-[10px] font-body-md text-on-surface placeholder:text-on-surface-variant/40 focus:bg-white focus:border-primary/40 outline-none transition-all duration-200"
-                      placeholder="nom@entreprise.com"
-                    />
-                  </div>
+              <div>
+                <label className="block text-xs font-semibold uppercase tracking-wider text-gray-500 mb-2">
+                  Adresse e-mail
+                </label>
+                <div className="relative">
+                  <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-gray-400">
+                    mail
+                  </span>
+                  <input
+                    type="email"
+                    name="email"
+                    value={formData.email}
+                    onChange={handleChange}
+                    className="w-full bg-gray-50 border border-gray-200 rounded-xl pl-10 pr-4 py-2.5 text-gray-900 placeholder:text-gray-400 focus:bg-white focus:border-blue-400 focus:outline-none focus:ring-2 focus:ring-blue-100 transition-all"
+                    placeholder="nom@entreprise.com"
+                  />
                 </div>
               </div>
             </section>
 
-            {/* Section: Password Change */}
-            <section className="pt-xxl border-t border-outline-variant/30 space-y-xl">
-              <div className="flex items-center gap-3 mb-2">
-                <div className="w-8 h-8 rounded-lg bg-surface-container-high flex items-center justify-center text-primary">
-                  <span className="material-symbols-outlined text-[20px]">security</span>
+            {/* Section Sécurité */}
+            <section className="pt-6 border-t border-gray-100 space-y-4">
+              <div className="flex items-center gap-3 mb-4">
+                <div className="w-8 h-8 rounded-lg bg-blue-50 flex items-center justify-center">
+                  <span className="material-symbols-outlined text-blue-600 text-xl">security</span>
                 </div>
-                <h2 className="font-headline-md text-title-lg text-on-surface">
+                <h2 className="text-lg font-semibold text-gray-900">
                   Sécurité et accès
                 </h2>
               </div>
 
-              <div className="flex flex-col gap-2">
-                <label
-                  className="font-semibold text-xs uppercase tracking-wider text-on-surface-variant"
-                  htmlFor="current-password"
-                >
+              <div>
+                <label className="block text-xs font-semibold uppercase tracking-wider text-gray-500 mb-2">
                   Mot de passe actuel
                 </label>
-                <div className="relative group">
-                  <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-on-surface-variant/40 group-focus-within:text-primary/60 transition-colors text-[20px]">
+                <div className="relative">
+                  <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-gray-400">
                     lock
                   </span>
                   <input
                     type={showCurrentPassword ? "text" : "password"}
                     name="motDePasseActuel"
-                    id="current-password"
                     value={formData.motDePasseActuel}
                     onChange={handleChange}
-                    className="w-full bg-[#f8f9fc] border border-outline-variant/60 rounded-xl py-[10px] font-body-md text-on-surface placeholder:text-on-surface-variant/40 focus:bg-white focus:border-primary/40 outline-none transition-all duration-200 pl-10 pr-10"
+                    className="w-full bg-gray-50 border border-gray-200 rounded-xl pl-10 pr-10 py-2.5 text-gray-900 placeholder:text-gray-400 focus:bg-white focus:border-blue-400 focus:outline-none focus:ring-2 focus:ring-blue-100 transition-all"
                     placeholder="••••••••"
                   />
                   <button
                     type="button"
                     onClick={() => setShowCurrentPassword(!showCurrentPassword)}
-                    className="material-symbols-outlined absolute right-3 top-1/2 -translate-y-1/2 text-on-surface-variant/60 hover:text-on-surface transition-colors cursor-pointer text-[20px]"
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
                   >
-                    {showCurrentPassword ? "visibility_off" : "visibility"}
+                    <span className="material-symbols-outlined text-xl">
+                      {showCurrentPassword ? "visibility_off" : "visibility"}
+                    </span>
                   </button>
                 </div>
               </div>
 
-              <div className="grid grid-cols-2 gap-lg">
-                <div className="flex flex-col gap-2">
-                  <label
-                    className="font-semibold text-xs uppercase tracking-wider text-on-surface-variant"
-                    htmlFor="new-password"
-                  >
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-xs font-semibold uppercase tracking-wider text-gray-500 mb-2">
                     Nouveau mot de passe
                   </label>
-                  <div className="relative group">
-                    <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-on-surface-variant/40 group-focus-within:text-primary/60 transition-colors text-[20px]">
+                  <div className="relative">
+                    <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-gray-400">
                       lock_reset
                     </span>
                     <input
                       type={showNewPassword ? "text" : "password"}
                       name="nouveauMotDePasse"
-                      id="new-password"
                       value={formData.nouveauMotDePasse}
                       onChange={handleChange}
-                      className="w-full bg-[#f8f9fc] border border-outline-variant/60 rounded-xl py-[10px] font-body-md text-on-surface placeholder:text-on-surface-variant/40 focus:bg-white focus:border-primary/40 outline-none transition-all duration-200 pl-10 pr-10"
+                      className="w-full bg-gray-50 border border-gray-200 rounded-xl pl-10 pr-10 py-2.5 text-gray-900 placeholder:text-gray-400 focus:bg-white focus:border-blue-400 focus:outline-none focus:ring-2 focus:ring-blue-100 transition-all"
                       placeholder="Min. 8 caractères"
                     />
                     <button
                       type="button"
                       onClick={() => setShowNewPassword(!showNewPassword)}
-                      className="material-symbols-outlined absolute right-3 top-1/2 -translate-y-1/2 text-on-surface-variant/60 hover:text-on-surface transition-colors cursor-pointer text-[20px]"
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
                     >
-                      {showNewPassword ? "visibility_off" : "visibility"}
+                      <span className="material-symbols-outlined text-xl">
+                        {showNewPassword ? "visibility_off" : "visibility"}
+                      </span>
                     </button>
                   </div>
                 </div>
 
-                <div className="flex flex-col gap-2">
-                  <label
-                    className="font-semibold text-xs uppercase tracking-wider text-on-surface-variant"
-                    htmlFor="confirm-password"
-                  >
+                <div>
+                  <label className="block text-xs font-semibold uppercase tracking-wider text-gray-500 mb-2">
                     Confirmation
                   </label>
-                  <div className="relative group">
-                    <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-on-surface-variant/40 group-focus-within:text-primary/60 transition-colors text-[20px]">
+                  <div className="relative">
+                    <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-gray-400">
                       lock
                     </span>
                     <input
                       type={showConfirmPassword ? "text" : "password"}
                       name="confirmerMotDePasse"
-                      id="confirm-password"
                       value={formData.confirmerMotDePasse}
                       onChange={handleChange}
-                      className="w-full bg-[#f8f9fc] border border-outline-variant/60 rounded-xl py-[10px] font-body-md text-on-surface placeholder:text-on-surface-variant/40 focus:bg-white focus:border-primary/40 outline-none transition-all duration-200 pl-10 pr-10"
+                      className="w-full bg-gray-50 border border-gray-200 rounded-xl pl-10 pr-10 py-2.5 text-gray-900 placeholder:text-gray-400 focus:bg-white focus:border-blue-400 focus:outline-none focus:ring-2 focus:ring-blue-100 transition-all"
                       placeholder="Répéter le mot de passe"
                     />
                     <button
                       type="button"
                       onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                      className="material-symbols-outlined absolute right-3 top-1/2 -translate-y-1/2 text-on-surface-variant/60 hover:text-on-surface transition-colors cursor-pointer text-[20px]"
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
                     >
-                      {showConfirmPassword ? "visibility_off" : "visibility"}
+                      <span className="material-symbols-outlined text-xl">
+                        {showConfirmPassword ? "visibility_off" : "visibility"}
+                      </span>
                     </button>
                   </div>
                 </div>
               </div>
 
-              <div className="flex items-start gap-3 p-lg bg-surface-container-low/50 rounded-xl border border-outline-variant/20">
-                <span className="material-symbols-outlined text-on-surface-variant text-[20px] mt-0.5">
-                  info
-                </span>
-                <p className="text-body-md text-on-surface-variant leading-relaxed">
+              <div className="flex items-start gap-3 p-4 bg-blue-50/50 rounded-xl border border-blue-100">
+                <span className="material-symbols-outlined text-blue-500 text-xl">info</span>
+                <p className="text-sm text-gray-600 leading-relaxed">
                   Le mot de passe doit contenir au moins 8 caractères, incluant des lettres,
                   des chiffres et au moins un caractère spécial pour une sécurité optimale.
                 </p>
@@ -304,25 +282,23 @@ export default function ProfileModal({ isOpen, onClose, user, onUpdate }) {
             </section>
           </div>
 
-          {/* Modal Footer */}
-          <div className="bg-surface-container-low/30 px-xxl py-xl flex justify-end items-center gap-md border-t border-outline-variant/20">
+          {/* Footer */}
+          <div className="bg-gray-50 px-8 py-4 flex justify-end gap-3 border-t border-gray-100">
             <button
               type="button"
               onClick={onClose}
-              className="px-lg py-sm font-semibold text-body-md text-on-surface-variant hover:text-on-surface hover:bg-surface-container-high rounded-xl transition-all active:scale-95"
+              className="px-6 py-2 font-medium text-gray-700 hover:text-gray-900 hover:bg-gray-100 rounded-xl transition-all"
             >
               Annuler
             </button>
             <button
               type="submit"
               disabled={loading}
-              className="bg-[#003d9b] hover:bg-[#002d72] text-white px-xl py-[10px] font-semibold text-body-md rounded-xl shadow-lg shadow-primary/20 transition-all active:scale-95 hover:translate-y-[-1px] disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:translate-y-0 flex items-center gap-2"
+              className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 font-medium rounded-xl shadow-lg shadow-blue-200 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
             >
               {loading ? (
                 <>
-                  <span className="material-symbols-outlined animate-spin text-[20px]">
-                    sync
-                  </span>
+                  <span className="material-symbols-outlined animate-spin">sync</span>
                   Enregistrement...
                 </>
               ) : (
