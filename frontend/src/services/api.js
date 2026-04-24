@@ -225,4 +225,14 @@ export const api = {
     });
     return handleResponse(response);
   },
+
+  // ========== PROFIL UTILISATEUR ==========
+  updateProfile: async (profileData) => {
+    const response = await fetch(`${API_URL}/auth/profile`, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(profileData),
+    });
+    return handleResponse(response);
+  },
 };

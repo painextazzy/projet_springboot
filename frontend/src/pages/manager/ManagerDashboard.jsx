@@ -8,12 +8,14 @@ import GestionCommandes from "../../components/manager/GestionCommandes";
 import Sauvegarde from "../../components/manager/Sauvegarde";
 import GestionUtilisateurs from "../../components/manager/GestionUtilisateurs";
 import NotFound from "../../pages/NotFound";
+import ProfileModal from "../../components/manager/ProfileModal";
 
 export default function ManagerDashboard() {
   const navigate = useNavigate();
   const location = useLocation();
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+  const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
   const dropdownRef = useRef(null);
   const sidebarRef = useRef(null);
 
@@ -162,6 +164,18 @@ export default function ManagerDashboard() {
                   </div>
                   <div className="py-1">
                     <button
+                      onClick={() => {
+                        setIsDropdownOpen(false);
+                        setIsProfileModalOpen(true);
+                      }}
+                      className="w-full px-4 py-2.5 text-left text-sm text-on-surface hover:bg-surface-container-high transition-colors flex items-center gap-3"
+                    >
+                      <span className="material-symbols-outlined text-lg">
+                        edit
+                      </span>
+                      Modifier le profil
+                    </button>
+                    <button
                       onClick={handleLogout}
                       className="w-full px-4 py-2.5 text-left text-sm text-error hover:bg-error-container/20 transition-colors flex items-center gap-3"
                     >
@@ -189,6 +203,17 @@ export default function ManagerDashboard() {
           </Routes>
         </main>
       </div>
+
+      {/* Modal de modification du profil */}
+      <ProfileModal
+        isOpen={isProfileModalOpen}
+        onClose={() => setIsProfileModalOpen(false)}
+        user={user}
+        onUpdate={(updatedUser) => {
+          // Mettre à jour les données utilisateur dans le state
+          window.location.reload();
+        }}
+      />
     </div>
   );
 }
