@@ -84,7 +84,7 @@ export default function Accueil() {
     <div className="font-body text-on-surface antialiased">
       <main className="relative min-h-screen w-full flex items-center justify-center p-4 md:p-8 bg-[#f3f4f6]">
         <div 
-          className="relative z-10 w-full max-w-4xl min-h-[600px] bg-white rounded-2xl md:rounded-[4rem] shadow-2xl overflow-hidden flex flex-col md:flex-row"
+          className="relative z-10 w-full max-w-5xl min-h-[600px] bg-white rounded-2xl md:rounded-[4rem] shadow-2xl overflow-hidden flex flex-col md:flex-row"
           data-aos="fade-up"
           data-aos-duration="800"
         >
