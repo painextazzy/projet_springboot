@@ -84,7 +84,7 @@ export default function Accueil() {
     <div className="font-body text-on-surface antialiased">
       <main className="relative min-h-screen w-full flex items-center justify-center p-4 md:p-8 bg-[#f3f4f6]">
         {/* Login Card */}
-        <div className="relative z-10 w-full max-w-6xl min-h-[650px] bg-white rounded-2xl md:rounded-[4rem] custom-shadow overflow-hidden flex flex-col md:flex-row shadow-2xl">
+        <div className="relative z-10 w-full max-w-5xl min-h-[600px] bg-white rounded-2xl md:rounded-[4rem] custom-shadow overflow-hidden flex flex-col md:flex-row shadow-2xl">
           
           {/* Left Column: Login Form */}
           <div className="w-full md:w-1/2 flex flex-col justify-center px-6 md:px-16 py-12 bg-white">
@@ -151,7 +151,7 @@ export default function Accueil() {
                     className="absolute inset-y-0 right-0 pr-5 flex items-center text-gray-400 hover:text-[#004A99] transition-colors cursor-pointer focus:outline-none"
                   >
                     <span className="material-symbols-outlined text-xl">
-                      {showPassword ? "visibility_off" : "visibility"}
+                      {showPassword ? "visibility" : "visibility_off"}
                     </span>
                   </button>
                 </div>
@@ -160,7 +160,7 @@ export default function Accueil() {
               {/* Forgot Password */}
               <div className="flex items-center text-sm px-2 justify-end">
                 <a
-                  href="#"
+                  href="/reset-password"
                   onClick={handleForgotPassword}
                   className="text-[#004A99] font-bold hover:underline underline-offset-2"
                 >
