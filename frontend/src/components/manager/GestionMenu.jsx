@@ -36,6 +36,7 @@ export default function GestionMenu() {
     disponible: true,
     imageUrl: "",
   });
+  const [fieldErrors, setFieldErrors] = useState({});
 
   // Notification toast
   const showNotification = (message, type = "success") => {
@@ -163,13 +164,57 @@ export default function GestionMenu() {
     return true;
   });
 
+  // Validation du formulaire plat
+  const validateFormMenu = () => {
+    const errors = {};
+    let isValid = true;
+
+    if (!formData.nom.trim()) {
+      errors.nom = "Le nom du plat est requis";
+      isValid = false;
+    } else if (formData.nom.trim().length < 2) {
+      errors.nom = "Le nom doit contenir au moins 2 caractères";
+      isValid = false;
+    } else if (formData.nom.trim().length > 100) {
+      errors.nom = "Le nom ne peut pas dépasser 100 caractères";
+      isValid = false;
+    }
+
+    if (formData.description && formData.description.length > 500) {
+      errors.description = "La description ne peut pas dépasser 500 caractères";
+      isValid = false;
+    }
+
+    if (!formData.categorie) {
+      errors.categorie = "Sélectionner une catégorie est requis";
+      isValid = false;
+    }
+
+    if (!formData.prix) {
+      errors.prix = "Le prix est requis";
+      isValid = false;
+    } else if (isNaN(parseFloat(formData.prix)) || parseFloat(formData.prix) < 0) {
+      errors.prix = "Le prix doit être un nombre positif";
+      isValid = false;
+    } else if (parseFloat(formData.prix) > 999999) {
+      errors.prix = "Le prix est trop élevé";
+      isValid = false;
+    }
+
+    if (formData.quantite !== "") {
+      if (isNaN(parseInt(formData.quantite)) || parseInt(formData.quantite) < 0) {
+        errors.quantite = "La quantité doit être un nombre positif";
+        isValid = false;
+      }
+    }
+
+    setFieldErrors(errors);
+    return isValid;
+  };
+  
   // Ajouter un plat
   const handleAjouter = async () => {
-    if (!formData.nom || !formData.prix || !formData.categorie) {
-      showNotification(
-        "Veuillez remplir tous les champs obligatoires",
-        "error",
-      );
+    if (!validateFormMenu()) {
       return;
     }
 
@@ -207,11 +252,7 @@ export default function GestionMenu() {
 
   // Modifier un plat
   const handleModifier = async () => {
-    if (!formData.nom || !formData.prix || !formData.categorie) {
-      showNotification(
-        "Veuillez remplir tous les champs obligatoires",
-        "error",
-      );
+    if (!validateFormMenu()) {
       return;
     }
 
@@ -299,6 +340,7 @@ export default function GestionMenu() {
     });
     setImagePreview("");
     setImageFile(null);
+    setFieldErrors({});
   };
 
   const getCategorieClass = (categorie) => {
@@ -676,12 +718,24 @@ export default function GestionMenu() {
                 <input
                   type="text"
                   value={formData.nom}
-                  onChange={(e) =>
-                    setFormData({ ...formData, nom: e.target.value })
-                  }
-                  className="w-full h-10 sm:h-12 px-3 sm:px-4 bg-surface-container-low border-none rounded-xl focus:ring-2 focus:ring-primary/20 focus:bg-white transition-all text-sm text-on-surface placeholder:text-outline/50"
+                  onChange={(e) => {
+                    setFormData({ ...formData, nom: e.target.value });
+                    if (fieldErrors.nom) setFieldErrors({ ...fieldErrors, nom: "" });
+                  }}
+                  maxLength={100}
+                  className={`w-full h-10 sm:h-12 px-3 sm:px-4 bg-surface-container-low border-2 rounded-xl focus:ring-2 focus:bg-white transition-all text-sm text-on-surface placeholder:text-outline/50 ${
+                    fieldErrors.nom
+                      ? "border-red-400 focus:ring-red-100 focus:border-red-400"
+                      : "border-transparent focus:ring-primary/20 focus:border-primary/30"
+                  }`}
                   placeholder="Ex: Risotto aux Morilles"
                 />
+                {fieldErrors.nom && (
+                  <p className="text-red-600 text-xs sm:text-sm flex items-center gap-1">
+                    <span className="material-symbols-outlined text-sm">error</span>
+                    {fieldErrors.nom}
+                  </p>
+                )}
               </div>
 
               {/* Description */}
@@ -691,13 +745,28 @@ export default function GestionMenu() {
                 </label>
                 <textarea
                   value={formData.description}
-                  onChange={(e) =>
-                    setFormData({ ...formData, description: e.target.value })
-                  }
-                  className="w-full p-3 sm:p-4 bg-surface-container-low border-none rounded-xl focus:ring-2 focus:ring-primary/20 focus:bg-white transition-all text-sm text-on-surface placeholder:text-outline/50 resize-none"
+                  onChange={(e) => {
+                    setFormData({ ...formData, description: e.target.value });
+                    if (fieldErrors.description) setFieldErrors({ ...fieldErrors, description: "" });
+                  }}
+                  maxLength={500}
+                  className={`w-full p-3 sm:p-4 bg-surface-container-low border-2 rounded-xl focus:ring-2 focus:bg-white transition-all text-sm text-on-surface placeholder:text-outline/50 resize-none ${
+                    fieldErrors.description
+                      ? "border-red-400 focus:ring-red-100 focus:border-red-400"
+                      : "border-transparent focus:ring-primary/20 focus:border-primary/30"
+                  }`}
                   placeholder="Décrivez les ingrédients et la préparation..."
                   rows="3"
                 />
+                <div className="text-[10px] sm:text-xs text-secondary">
+                  {formData.description.length}/500 caractères
+                </div>
+                {fieldErrors.description && (
+                  <p className="text-red-600 text-xs sm:text-sm flex items-center gap-1">
+                    <span className="material-symbols-outlined text-sm">error</span>
+                    {fieldErrors.description}
+                  </p>
+                )}
               </div>
 
               {/* Catégorie */}
@@ -708,10 +777,15 @@ export default function GestionMenu() {
                 <div className="relative">
                   <select
                     value={formData.categorie}
-                    onChange={(e) =>
-                      setFormData({ ...formData, categorie: e.target.value })
-                    }
-                    className="w-full h-10 sm:h-12 px-3 sm:px-4 bg-surface-container-low border-none rounded-xl focus:ring-2 focus:ring-primary/20 focus:bg-white transition-all text-sm text-on-surface appearance-none cursor-pointer"
+                    onChange={(e) => {
+                      setFormData({ ...formData, categorie: e.target.value });
+                      if (fieldErrors.categorie) setFieldErrors({ ...fieldErrors, categorie: "" });
+                    }}
+                    className={`w-full h-10 sm:h-12 px-3 sm:px-4 bg-surface-container-low border-2 rounded-xl focus:ring-2 focus:bg-white transition-all text-sm text-on-surface appearance-none cursor-pointer ${
+                      fieldErrors.categorie
+                        ? "border-red-400 focus:ring-red-100 focus:border-red-400"
+                        : "border-transparent focus:ring-primary/20 focus:border-primary/30"
+                    }`}
                   >
                     <option value="">Sélectionner une catégorie</option>
                     <option value="ENTREE">Entrée</option>
@@ -723,6 +797,12 @@ export default function GestionMenu() {
                     expand_more
                   </span>
                 </div>
+                {fieldErrors.categorie && (
+                  <p className="text-red-600 text-xs sm:text-sm flex items-center gap-1">
+                    <span className="material-symbols-outlined text-sm">error</span>
+                    {fieldErrors.categorie}
+                  </p>
+                )}
               </div>
 
               {/* Prix et Stock */}
@@ -736,16 +816,27 @@ export default function GestionMenu() {
                       type="number"
                       step="100"
                       value={formData.prix}
-                      onChange={(e) =>
-                        setFormData({ ...formData, prix: e.target.value })
-                      }
-                      className="w-full h-10 sm:h-12 pl-3 sm:pl-4 pr-10 sm:pr-12 bg-surface-container-low border-none rounded-xl focus:ring-2 focus:ring-primary/20 focus:bg-white transition-all text-sm text-on-surface"
+                      onChange={(e) => {
+                        setFormData({ ...formData, prix: e.target.value });
+                        if (fieldErrors.prix) setFieldErrors({ ...fieldErrors, prix: "" });
+                      }}
+                      className={`w-full h-10 sm:h-12 pl-3 sm:pl-4 pr-10 sm:pr-12 bg-surface-container-low border-2 rounded-xl focus:ring-2 focus:bg-white transition-all text-sm text-on-surface ${
+                        fieldErrors.prix
+                          ? "border-red-400 focus:ring-red-100 focus:border-red-400"
+                          : "border-transparent focus:ring-primary/20 focus:border-primary/30"
+                      }`}
                       placeholder="0"
                     />
                     <span className="absolute right-3 sm:right-4 top-1/2 -translate-y-1/2 text-outline font-medium text-xs sm:text-sm">
                       Ar
                     </span>
                   </div>
+                  {fieldErrors.prix && (
+                    <p className="text-red-600 text-xs flex items-center gap-1">
+                      <span className="material-symbols-outlined text-sm">error</span>
+                      {fieldErrors.prix}
+                    </p>
+                  )}
                 </div>
                 <div className="space-y-2">
                   <label className="block font-label text-[10px] sm:text-xs font-semibold uppercase tracking-widest text-secondary">
@@ -754,12 +845,23 @@ export default function GestionMenu() {
                   <input
                     type="number"
                     value={formData.quantite}
-                    onChange={(e) =>
-                      setFormData({ ...formData, quantite: e.target.value })
-                    }
-                    className="w-full h-10 sm:h-12 px-3 sm:px-4 bg-surface-container-low border-none rounded-xl focus:ring-2 focus:ring-primary/20 focus:bg-white transition-all text-sm text-on-surface"
+                    onChange={(e) => {
+                      setFormData({ ...formData, quantite: e.target.value });
+                      if (fieldErrors.quantite) setFieldErrors({ ...fieldErrors, quantite: "" });
+                    }}
+                    className={`w-full h-10 sm:h-12 px-3 sm:px-4 bg-surface-container-low border-2 rounded-xl focus:ring-2 focus:bg-white transition-all text-sm text-on-surface ${
+                      fieldErrors.quantite
+                        ? "border-red-400 focus:ring-red-100 focus:border-red-400"
+                        : "border-transparent focus:ring-primary/20 focus:border-primary/30"
+                    }`}
                     placeholder="0"
                   />
+                  {fieldErrors.quantite && (
+                    <p className="text-red-600 text-xs flex items-center gap-1">
+                      <span className="material-symbols-outlined text-sm">error</span>
+                      {fieldErrors.quantite}
+                    </p>
+                  )}
                 </div>
               </div>
 

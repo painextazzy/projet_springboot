@@ -26,8 +26,8 @@ const GestionUtilisateurs = () => {
 
   // Récupérer l'utilisateur connecté (manager)
   const currentUser = JSON.parse(localStorage.getItem("user") || "{}");
-
-  useEffect(() => {
+  
+  const [fieldErrors, setFieldErrors] = useState({});
     const handleClickOutside = (event) => {
       if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
         setOpenDropdown(null);
@@ -53,16 +53,63 @@ const GestionUtilisateurs = () => {
     }
   };
 
+  const validateEmail = (email) => {
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    return emailRegex.test(email);
+  };
+
+  const validateFormUtilisateur = () => {
+    const errors = {};
+    let isValid = true;
+
+    if (!formData.nom.trim()) {
+      errors.nom = "Le nom est requis";
+      isValid = false;
+    } else if (formData.nom.trim().length < 2) {
+      errors.nom = "Le nom doit contenir au moins 2 caractères";
+      isValid = false;
+    } else if (formData.nom.trim().length > 100) {
+      errors.nom = "Le nom ne peut pas dépasser 100 caractères";
+      isValid = false;
+    }
+
+    if (!formData.email.trim()) {
+      errors.email = "L'email est requis";
+      isValid = false;
+    } else if (!validateEmail(formData.email.trim())) {
+      errors.email = "L'email doit être valide (exemple@domaine.com)";
+      isValid = false;
+    }
+
+    if (!editingUser) {
+      if (!formData.password) {
+        errors.password = "Le mot de passe est requis";
+        isValid = false;
+      } else if (formData.password.length < 8) {
+        errors.password = "Le mot de passe doit contenir au moins 8 caractères";
+        isValid = false;
+      } else if (formData.password.length > 100) {
+        errors.password = "Le mot de passe ne peut pas dépasser 100 caractères";
+        isValid = false;
+      }
+
+      if (!formData.confirmPassword) {
+        errors.confirmPassword = "Veuillez confirmer le mot de passe";
+        isValid = false;
+      } else if (formData.password !== formData.confirmPassword) {
+        errors.confirmPassword = "Les mots de passe ne correspondent pas";
+        isValid = false;
+      }
+    }
+
+    setFieldErrors(errors);
+    return isValid;
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
 
-    if (!editingUser && formData.password !== formData.confirmPassword) {
-      alert("Les mots de passe ne correspondent pas");
-      return;
-    }
-
-    if (!editingUser && formData.password.length < 6) {
-      alert("Le mot de passe doit contenir au moins 6 caractères");
+    if (!validateFormUtilisateur()) {
       return;
     }
 
@@ -140,6 +187,7 @@ const GestionUtilisateurs = () => {
     setShowPassword(false);
     setShowConfirmPassword(false);
     setShowModal(false);
+    setFieldErrors({});
   };
 
   const getRoleBadge = (role) => {
@@ -401,13 +449,25 @@ const GestionUtilisateurs = () => {
                   <input
                     type="text"
                     value={formData.nom}
-                    onChange={(e) =>
-                      setFormData({ ...formData, nom: e.target.value })
-                    }
-                    className="w-full bg-surface-container-highest border-none rounded-lg px-4 py-2.5 text-on-surface placeholder:text-outline focus:ring-2 focus:ring-primary/20 focus:bg-surface-container-lowest transition-all text-sm"
+                    onChange={(e) => {
+                      setFormData({ ...formData, nom: e.target.value });
+                      if (fieldErrors.nom) setFieldErrors({ ...fieldErrors, nom: "" });
+                    }}
+                    maxLength={100}
+                    className={`w-full bg-surface-container-highest border-2 rounded-lg px-4 py-2.5 text-on-surface placeholder:text-outline focus:ring-2 focus:bg-surface-container-lowest transition-all text-sm ${
+                      fieldErrors.nom
+                        ? "border-red-400 focus:ring-red-100 focus:border-red-400"
+                        : "border-transparent focus:ring-primary/20 focus:border-primary/30"
+                    }`}
                     placeholder="Jean Dupont"
                     required
                   />
+                  {fieldErrors.nom && (
+                    <p className="text-red-600 text-xs mt-1 flex items-center gap-1">
+                      <span className="material-symbols-outlined text-sm">error</span>
+                      {fieldErrors.nom}
+                    </p>
+                  )}
                 </div>
 
                 <div className="space-y-1">
@@ -417,13 +477,24 @@ const GestionUtilisateurs = () => {
                   <input
                     type="email"
                     value={formData.email}
-                    onChange={(e) =>
-                      setFormData({ ...formData, email: e.target.value })
-                    }
-                    className="w-full bg-surface-container-highest border-none rounded-lg px-4 py-2.5 text-on-surface placeholder:text-outline focus:ring-2 focus:ring-primary/20 focus:bg-surface-container-lowest transition-all text-sm"
+                    onChange={(e) => {
+                      setFormData({ ...formData, email: e.target.value });
+                      if (fieldErrors.email) setFieldErrors({ ...fieldErrors, email: "" });
+                    }}
+                    className={`w-full bg-surface-container-highest border-2 rounded-lg px-4 py-2.5 text-on-surface placeholder:text-outline focus:ring-2 focus:bg-surface-container-lowest transition-all text-sm ${
+                      fieldErrors.email
+                        ? "border-red-400 focus:ring-red-100 focus:border-red-400"
+                        : "border-transparent focus:ring-primary/20 focus:border-primary/30"
+                    }`}
                     placeholder="jean@petitebouffe.com"
                     required
                   />
+                  {fieldErrors.email && (
+                    <p className="text-red-600 text-xs mt-1 flex items-center gap-1">
+                      <span className="material-symbols-outlined text-sm">error</span>
+                      {fieldErrors.email}
+                    </p>
+                  )}
                 </div>
 
                 <div className="space-y-1">
@@ -459,16 +530,22 @@ const GestionUtilisateurs = () => {
                         <input
                           type={showPassword ? "text" : "password"}
                           value={formData.password}
-                          onChange={(e) =>
+                          onChange={(e) => {
                             setFormData({
                               ...formData,
                               password: e.target.value,
-                            })
-                          }
-                          className="w-full bg-surface-container-highest border-none rounded-lg px-4 py-2.5 text-on-surface placeholder:text-outline focus:ring-2 focus:ring-primary/20 focus:bg-surface-container-lowest transition-all text-sm pr-10"
+                            });
+                            if (fieldErrors.password) setFieldErrors({ ...fieldErrors, password: "" });
+                          }}
+                          maxLength={100}
+                          className={`w-full bg-surface-container-highest border-2 rounded-lg px-4 py-2.5 text-on-surface placeholder:text-outline focus:ring-2 focus:bg-surface-container-lowest transition-all text-sm pr-10 ${
+                            fieldErrors.password
+                              ? "border-red-400 focus:ring-red-100 focus:border-red-400"
+                              : "border-transparent focus:ring-primary/20 focus:border-primary/30"
+                          }`}
                           placeholder="••••••••"
                           required={!editingUser}
-                          minLength={6}
+                          minLength={8}
                         />
                         <button
                           type="button"
@@ -480,6 +557,12 @@ const GestionUtilisateurs = () => {
                           </span>
                         </button>
                       </div>
+                      {fieldErrors.password && (
+                        <p className="text-red-600 text-xs mt-1 flex items-center gap-1">
+                          <span className="material-symbols-outlined text-sm">error</span>
+                          {fieldErrors.password}
+                        </p>
+                      )}
                     </div>
 
                     <div className="space-y-1">
@@ -490,13 +573,19 @@ const GestionUtilisateurs = () => {
                         <input
                           type={showConfirmPassword ? "text" : "password"}
                           value={formData.confirmPassword}
-                          onChange={(e) =>
+                          onChange={(e) => {
                             setFormData({
                               ...formData,
                               confirmPassword: e.target.value,
-                            })
-                          }
-                          className="w-full bg-surface-container-highest border-none rounded-lg px-4 py-2.5 text-on-surface placeholder:text-outline focus:ring-2 focus:ring-primary/20 focus:bg-surface-container-lowest transition-all text-sm pr-10"
+                            });
+                            if (fieldErrors.confirmPassword) setFieldErrors({ ...fieldErrors, confirmPassword: "" });
+                          }}
+                          maxLength={100}
+                          className={`w-full bg-surface-container-highest border-2 rounded-lg px-4 py-2.5 text-on-surface placeholder:text-outline focus:ring-2 focus:bg-surface-container-lowest transition-all text-sm pr-10 ${
+                            fieldErrors.confirmPassword
+                              ? "border-red-400 focus:ring-red-100 focus:border-red-400"
+                              : "border-transparent focus:ring-primary/20 focus:border-primary/30"
+                          }`}
                           placeholder="••••••••"
                           required={!editingUser}
                         />
@@ -514,22 +603,28 @@ const GestionUtilisateurs = () => {
                           </span>
                         </button>
                       </div>
+                      {fieldErrors.confirmPassword && (
+                        <p className="text-red-600 text-xs mt-1 flex items-center gap-1">
+                          <span className="material-symbols-outlined text-sm">error</span>
+                          {fieldErrors.confirmPassword}
+                        </p>
+                      )}
                     </div>
                   </>
                 )}
               </div>
 
-              <div className="px-6 py-4 bg-surface-container-low flex flex-col sm:flex-row items-center justify-end gap-3 border-t border-outline-variant/10">
+              <div className="px-6 py-4 bg-surface-container-low flex flex-col-reverse sm:flex-row items-center justify-end gap-3 border-t border-outline-variant/10">
                 <button
                   type="button"
                   onClick={resetForm}
-                  className="w-full sm:w-auto px-5 py-2 text-sm font-semibold text-secondary hover:text-on-surface hover:bg-surface-container-high rounded-lg transition-all"
+                  className="w-full sm:w-auto px-6 sm:px-5 py-3 sm:py-2 text-sm font-semibold text-secondary hover:text-on-surface hover:bg-surface-container-high rounded-lg transition-all"
                 >
                   Annuler
                 </button>
                 <button
                   type="submit"
-                  className="w-full sm:w-auto px-6 py-2 text-sm font-semibold text-white rounded-lg shadow-sm hover:opacity-90 active:scale-95 transition-all"
+                  className="w-full sm:w-auto px-6 sm:px-6 py-3 sm:py-2 text-sm font-semibold text-white rounded-lg shadow-sm hover:opacity-90 active:scale-95 transition-all"
                   style={{
                     background:
                       "linear-gradient(135deg, #00307d 0%, #0045ab 100%)",

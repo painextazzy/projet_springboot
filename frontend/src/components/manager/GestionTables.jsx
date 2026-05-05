@@ -23,6 +23,7 @@ export default function GestionTables() {
     message: "",
     type: "",
   });
+  const [fieldErrors, setFieldErrors] = useState({});
 
   // ✅ WebSocket avec mise à jour ciblée
   useEffect(() => {
@@ -58,6 +59,36 @@ export default function GestionTables() {
       () => setNotification({ show: false, message: "", type: "" }),
       3000,
     );
+  };
+
+  const validateFormTable = () => {
+    const errors = {};
+    let isValid = true;
+
+    if (!formData.nom.trim()) {
+      errors.nom = "Le nom de la table est requis";
+      isValid = false;
+    } else if (formData.nom.trim().length < 2) {
+      errors.nom = "Le nom doit contenir au moins 2 caractères";
+      isValid = false;
+    } else if (formData.nom.trim().length > 50) {
+      errors.nom = "Le nom ne peut pas dépasser 50 caractères";
+      isValid = false;
+    }
+
+    if (!formData.capacite) {
+      errors.capacite = "La capacité est requise";
+      isValid = false;
+    } else if (isNaN(parseInt(formData.capacite)) || parseInt(formData.capacite) < 1) {
+      errors.capacite = "La capacité doit être au minimum 1 personne";
+      isValid = false;
+    } else if (parseInt(formData.capacite) > 100) {
+      errors.capacite = "La capacité ne peut pas dépasser 100 personnes";
+      isValid = false;
+    }
+
+    setFieldErrors(errors);
+    return isValid;
   };
 
   const chargerTables = async () => {
@@ -124,8 +155,7 @@ export default function GestionTables() {
   });
 
   const handleAjouter = async () => {
-    if (!formData.nom || !formData.capacite) {
-      showNotification("Veuillez remplir tous les champs", "error");
+    if (!validateFormTable()) {
       return;
     }
     try {
@@ -144,8 +174,7 @@ export default function GestionTables() {
   };
 
   const handleModifier = async () => {
-    if (!formData.nom || !formData.capacite) {
-      showNotification("Veuillez remplir tous les champs", "error");
+    if (!validateFormTable()) {
       return;
     }
     try {
@@ -209,8 +238,10 @@ export default function GestionTables() {
     setShowModal(true);
   };
 
-  const resetForm = () =>
+  const resetForm = () => {
     setFormData({ nom: "", capacite: "", status: "libre" });
+    setFieldErrors({});
+  };
 
   if (loading) return <SkeletonTables />;
   if (error)
@@ -416,12 +447,24 @@ export default function GestionTables() {
                 <input
                   type="text"
                   value={formData.nom}
-                  onChange={(e) =>
-                    setFormData({ ...formData, nom: e.target.value })
-                  }
-                  className="w-full border border-outline-variant/30 rounded-xl px-4 py-2 focus:ring-2 focus:ring-primary/20 outline-none"
+                  onChange={(e) => {
+                    setFormData({ ...formData, nom: e.target.value });
+                    if (fieldErrors.nom) setFieldErrors({ ...fieldErrors, nom: "" });
+                  }}
+                  maxLength={50}
+                  className={`w-full border-2 rounded-xl px-4 py-2 focus:ring-2 focus:ring-primary/20 outline-none transition-all ${
+                    fieldErrors.nom
+                      ? "border-red-400 bg-red-50"
+                      : "border-outline-variant/30"
+                  }`}
                   placeholder="Ex: Table 21"
                 />
+                {fieldErrors.nom && (
+                  <p className="text-red-600 text-xs sm:text-sm mt-1.5 flex items-center gap-1">
+                    <span className="material-symbols-outlined text-sm">error</span>
+                    {fieldErrors.nom}
+                  </p>
+                )}
               </div>
               <div>
                 <label className="block text-sm font-medium text-secondary mb-1">
@@ -430,12 +473,23 @@ export default function GestionTables() {
                 <input
                   type="number"
                   value={formData.capacite}
-                  onChange={(e) =>
-                    setFormData({ ...formData, capacite: e.target.value })
-                  }
-                  className="w-full border border-outline-variant/30 rounded-xl px-4 py-2 focus:ring-2 focus:ring-primary/20 outline-none"
+                  onChange={(e) => {
+                    setFormData({ ...formData, capacite: e.target.value });
+                    if (fieldErrors.capacite) setFieldErrors({ ...fieldErrors, capacite: "" });
+                  }}
+                  className={`w-full border-2 rounded-xl px-4 py-2 focus:ring-2 focus:ring-primary/20 outline-none transition-all ${
+                    fieldErrors.capacite
+                      ? "border-red-400 bg-red-50"
+                      : "border-outline-variant/30"
+                  }`}
                   placeholder="Nombre de personnes"
                 />
+                {fieldErrors.capacite && (
+                  <p className="text-red-600 text-xs sm:text-sm mt-1.5 flex items-center gap-1">
+                    <span className="material-symbols-outlined text-sm">error</span>
+                    {fieldErrors.capacite}
+                  </p>
+                )}
               </div>
               <div>
                 <label className="block text-sm font-medium text-secondary mb-1">
@@ -454,16 +508,16 @@ export default function GestionTables() {
                 </select>
               </div>
             </div>
-            <div className="flex gap-3 mt-6">
+            <div className="flex flex-col sm:flex-row gap-3 mt-6">
               <button
                 onClick={tableEdit ? handleModifier : handleAjouter}
-                className="flex-1 bg-primary text-white py-2 rounded-xl font-semibold hover:bg-primary/90 transition"
+                className="flex-1 bg-primary text-white py-3 sm:py-2 rounded-xl font-semibold hover:bg-primary/90 transition text-sm sm:text-base"
               >
                 {tableEdit ? "Modifier" : "Ajouter"}
               </button>
               <button
                 onClick={() => setShowModal(false)}
-                className="flex-1 bg-gray-200 text-gray-700 py-2 rounded-xl font-semibold hover:bg-gray-300 transition"
+                className="flex-1 bg-gray-200 text-gray-700 py-3 sm:py-2 rounded-xl font-semibold hover:bg-gray-300 transition text-sm sm:text-base"
               >
                 Annuler
               </button>
