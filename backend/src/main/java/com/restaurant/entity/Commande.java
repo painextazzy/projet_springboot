@@ -12,7 +12,7 @@ import java.util.List;
 public class Commande {
 
     @Id
-    @GeneratedValue(strategy = GenerationType.AUTO) // ← Changé pour Railway (MySQL)
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
     @Column(name = "numero_facture")

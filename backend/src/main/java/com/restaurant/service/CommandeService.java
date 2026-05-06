@@ -86,7 +86,6 @@ public class CommandeService {
             ligne.setPrixUnitaire(plat.getPrix());
             ligne.setTotal(ligneReq.getQuantite() * plat.getPrix());
 
-            ligneCommandeRepository.save(ligne);
             lignes.add(ligne);
 
             plat.setQuantite(plat.getQuantite() - ligneReq.getQuantite());
@@ -94,6 +93,9 @@ public class CommandeService {
 
             total += ligneReq.getQuantite() * plat.getPrix();
         }
+
+        // ✅ Save all lignes at once (better for ID generation)
+        ligneCommandeRepository.saveAll(lignes);
 
         commande.setLignes(lignes);
         commande.setTotal(total);
