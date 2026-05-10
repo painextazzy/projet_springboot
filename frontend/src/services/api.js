@@ -235,4 +235,44 @@ export const api = {
     });
     return handleResponse(response);
   },
+    // ========== ⭐ NOUVEAU : RÉINITIALISATION DU MOT DE PASSE ⭐ ==========
+
+  /**
+   * Étape 1 : Demander un lien de réinitialisation
+   * @param {string} email - L'email de l'utilisateur
+   */
+  requestPasswordReset: async (email) => {
+    const response = await fetch(`${API_URL}/auth/reset-password-request`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ email }),
+    });
+    return handleResponse(response);
+  },
+
+  /**
+   * Étape 2 : Vérifier si le token est valide
+   * @param {string} token - Le token reçu par email
+   */
+  verifyResetToken: async (token) => {
+    const response = await fetch(`${API_URL}/auth/verify-reset-token?token=${token}`, {
+      method: "GET",
+      headers: { "Content-Type": "application/json" },
+    });
+    return handleResponse(response);
+  },
+
+  /**
+   * Étape 3 : Réinitialiser le mot de passe
+   * @param {string} token - Le token reçu par email
+   * @param {string} newPassword - Le nouveau mot de passe
+   */
+  resetPassword: async (token, newPassword) => {
+    const response = await fetch(`${API_URL}/auth/reset-password`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ token, newPassword }),
+    });
+    return handleResponse(response);
+  },
 };

@@ -5,6 +5,8 @@ import ManagerDashboard from "./pages/manager/ManagerDashboard";
 import ServeurDashboard from "./pages/serveur/ServeurDashboard";
 import NotFound from "./pages/NotFound";
 import ResetPassword from "./pages/ResetPassword";
+import NewPassword from './pages/NewPassword';
+
 function App() {
   const [isLoading, setIsLoading] = useState(true);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
@@ -80,6 +82,9 @@ function App() {
         }
       />
         <Route path="/reset-password" element={<ResetPassword />} />
+        <Route path="/reset-password/:token" element={<NewPassword />} />
+      
+         
       {/* Page 404 */}
       <Route path="*" element={<NotFound />} />
     </Routes>
