@@ -1,7 +1,7 @@
 // src/pages/ResetPassword.jsx
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { api } from "../services/api";  // ⭐ Importez api
+import { api } from "../services/api";  // ⚠️ Importez l'objet api
 
 export default function ResetPassword() {
   const navigate = useNavigate();
@@ -23,7 +23,7 @@ export default function ResetPassword() {
     setLoading(true);
 
     try {
-      // ⭐ Appel à la nouvelle méthode
+      // ⭐ CORRECTION ICI : utilisez requestPasswordReset, pas resetPassword
       await api.requestPasswordReset(email);
       
       setSuccess("Un email de réinitialisation a été envoyé !");
@@ -41,7 +41,7 @@ export default function ResetPassword() {
 
   return (
     <div className="min-h-screen relative flex items-center justify-center p-6 overflow-hidden">
-      {/* Votre background ici */}
+      {/* Background */}
       <div className="absolute inset-0 z-0">
         <img
           alt="Background"
@@ -51,6 +51,7 @@ export default function ResetPassword() {
         <div className="absolute inset-0 bg-black/20"></div>
       </div>
 
+      {/* Formulaire */}
       <div className="relative z-10 w-full max-w-md">
         <div className="bg-white/85 backdrop-blur-md rounded-2xl shadow-2xl p-8 border border-white/30">
           <div className="text-center mb-8">
