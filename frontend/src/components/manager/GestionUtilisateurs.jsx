@@ -27,15 +27,21 @@ const GestionUtilisateurs = () => {
   // Récupérer l'utilisateur connecté (manager)
   const currentUser = JSON.parse(localStorage.getItem("user") || "{}");
   
-  const [fieldErrors, setFieldErrors] = useState({});
-    const handleClickOutside = (event) => {
-      if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
-        setOpenDropdown(null);
-      }
-    };
-    document.addEventListener("mousedown", handleClickOutside);
-    return () => document.removeEventListener("mousedown", handleClickOutside);
-  
+const [fieldErrors, setFieldErrors] = useState({});
+
+useEffect(() => {
+  const handleClickOutside = (event) => {
+    if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
+      setOpenDropdown(null);
+    }
+  };
+  document.addEventListener("mousedown", handleClickOutside);
+  return () => document.removeEventListener("mousedown", handleClickOutside);
+}, []);
+
+useEffect(() => {
+  fetchUtilisateurs();
+}, []);
 
   useEffect(() => {
     fetchUtilisateurs();
