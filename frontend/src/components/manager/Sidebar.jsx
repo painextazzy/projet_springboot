@@ -94,7 +94,7 @@ export default function Sidebar({ onLinkClick }) {
   return (
     <aside className="h-full w-64 bg-surface-container-low border-r border-outline-variant/15 flex flex-col overflow-y-auto">
       {/* Logo */}
-      <div className="mb-10 px-2 pt-6">
+      <div className="mb-10 px-6 pt-6">
         <h1 className="font-headline text-lg font-extrabold text-on-surface">
           Petite Bouffe
         </h1>
