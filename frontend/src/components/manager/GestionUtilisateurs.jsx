@@ -35,7 +35,7 @@ const GestionUtilisateurs = () => {
     };
     document.addEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
-  }, []);
+  
 
   useEffect(() => {
     fetchUtilisateurs();
