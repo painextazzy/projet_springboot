@@ -4,8 +4,8 @@ import Accueil from "./public/Accueil";
 import ManagerDashboard from "./pages/manager/ManagerDashboard";
 import ServeurDashboard from "./pages/serveur/ServeurDashboard";
 import NotFound from "./pages/NotFound";
-import ResetPassword from "./pages/ResetPassword";
-import NewPassword from './pages/NewPassword';
+import ResetPassword from "./public/ResetPassword";
+import NewPassword from './public/NewPassword';
 
 function App() {
   const [isLoading, setIsLoading] = useState(true);
