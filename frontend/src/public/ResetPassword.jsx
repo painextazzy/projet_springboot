@@ -1,7 +1,7 @@
 // src/pages/ResetPassword.jsx
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { api } from "./services/api";  // ⚠️ Importez l'objet api
+import { api } from "../services/api";  // ⚠️ Importez l'objet api
 
 export default function ResetPassword() {
   const navigate = useNavigate();

@@ -1,7 +1,7 @@
 // src/pages/NewPassword.jsx
 import React, { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { api } from "./services/api";
+import { api } from "../services/api";
 
 export default function NewPassword() {
   const { token } = useParams();
