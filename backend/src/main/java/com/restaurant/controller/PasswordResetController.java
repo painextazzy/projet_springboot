@@ -15,7 +15,9 @@ import java.util.UUID;
 
 @RestController
 @RequestMapping("/api/auth")
-@CrossOrigin(origins = { "https://projet-springboot.vercel.app" })
+@CrossOrigin(origins = {
+        "https://projet-springboot.vercel.app"
+})
 public class PasswordResetController {
 
     @Autowired
@@ -26,38 +28,33 @@ public class PasswordResetController {
 
     private final BCryptPasswordEncoder passwordEncoder = new BCryptPasswordEncoder();
 
-    // ÉTAPE 1: L'utilisateur entre son email → on lui envoie un lien
+    // Étape 1: Demander la réinitialisation (envoi email)
     @PostMapping("/reset-password-request")
     public ResponseEntity<?> requestPasswordReset(@RequestBody Map<String, String> request) {
         String email = request.get("email");
+        System.out.println("Demande de réinitialisation pour: " + email);
 
         Optional<User> userOpt = userRepository.findByEmail(email);
 
         if (userOpt.isPresent()) {
             User user = userOpt.get();
-
-            // Générer un token unique
             String token = UUID.randomUUID().toString();
             user.setResetToken(token);
             user.setResetTokenExpiry(LocalDateTime.now().plusHours(1));
-
             userRepository.save(user);
 
-            // Envoyer l'email avec le lien
             try {
                 emailService.sendResetPasswordEmail(user, token);
-                return ResponseEntity.ok(Map.of("message", "Un email de réinitialisation a été envoyé"));
+                return ResponseEntity.ok(Map.of("message", "Email de réinitialisation envoyé"));
             } catch (Exception e) {
-                return ResponseEntity.status(500).body(Map.of("error", "Erreur lors de l'envoi de l'email"));
+                return ResponseEntity.status(500).body(Map.of("error", "Erreur envoi email: " + e.getMessage()));
             }
         }
 
-        // Pour des raisons de sécurité, on ne dit pas si l'email existe ou non
-        return ResponseEntity.ok(Map.of("message", "Si l'email existe, vous recevrez un lien de réinitialisation"));
+        return ResponseEntity.ok(Map.of("message", "Si cet email existe, vous recevrez un lien"));
     }
 
-    // ÉTAPE 2: Vérifier si le token est valide (quand l'utilisateur clique sur le
-    // lien)
+    // Étape 2: Vérifier si le token est valide
     @GetMapping("/verify-reset-token")
     public ResponseEntity<?> verifyResetToken(@RequestParam String token) {
         Optional<User> userOpt = userRepository.findByResetToken(token);
@@ -67,23 +64,21 @@ public class PasswordResetController {
         }
 
         User user = userOpt.get();
-
         if (user.getResetTokenExpiry().isBefore(LocalDateTime.now())) {
-            return ResponseEntity.badRequest().body(Map.of("valid", false, "message", "Ce lien a expiré"));
+            return ResponseEntity.badRequest().body(Map.of("valid", false, "message", "Lien expiré"));
         }
 
         return ResponseEntity.ok(Map.of("valid", true));
     }
 
-    // ÉTAPE 3: L'utilisateur choisit son nouveau mot de passe
+    // Étape 3: Réinitialiser le mot de passe
     @PostMapping("/reset-password")
     public ResponseEntity<?> resetPassword(@RequestBody Map<String, String> request) {
         String token = request.get("token");
         String newPassword = request.get("newPassword");
 
         if (newPassword == null || newPassword.length() < 8) {
-            return ResponseEntity.badRequest()
-                    .body(Map.of("error", "Le mot de passe doit contenir au moins 8 caractères"));
+            return ResponseEntity.badRequest().body(Map.of("error", "8 caractères minimum"));
         }
 
         Optional<User> userOpt = userRepository.findByResetToken(token);
@@ -93,16 +88,13 @@ public class PasswordResetController {
         }
 
         User user = userOpt.get();
-
         if (user.getResetTokenExpiry().isBefore(LocalDateTime.now())) {
-            return ResponseEntity.badRequest().body(Map.of("error", "Ce lien a expiré"));
+            return ResponseEntity.badRequest().body(Map.of("error", "Lien expiré"));
         }
 
-        // Mettre à jour le mot de passe (sans toucher au localStorage)
         user.setPassword(passwordEncoder.encode(newPassword));
         user.setResetToken(null);
         user.setResetTokenExpiry(null);
-
         userRepository.save(user);
 
         return ResponseEntity.ok(Map.of("message", "Mot de passe réinitialisé avec succès"));
