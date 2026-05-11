@@ -181,4 +181,20 @@
     right: 0;
     border-right-color: var(--border);
   }
+  /* App.css ou index.css */
+
+/* Gradient background pour la page de login */
+.gradient-bg {
+  background: radial-gradient(circle at top left, #dbeafe 0%, #bfdbfe 25%, #93c5fd 50%, #c084fc 75%, #e879f9 100%);
+}
+
+/* Ombre de la carte de login */
+.login-card {
+  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1);
+}
+
+/* Material Symbols configuration */
+.material-symbols-outlined {
+  font-variation-settings: "FILL" 0, "wght" 400, "GRAD" 0, "opsz" 24;
+}
 }
