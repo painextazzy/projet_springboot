@@ -235,7 +235,19 @@ export const api = {
     });
     return handleResponse(response);
   },
-    // ========== ⭐ NOUVEAU : RÉINITIALISATION DU MOT DE PASSE ⭐ ==========
+  // ========== RÉINITIALISATION DU MOT DE PASSE ==========
+
+  /**
+   * Étape 0 : Vérifier si l'email existe dans la base
+   * @param {string} email - L'email à vérifier
+   */
+  checkEmail: async (email) => {
+    const response = await fetch(`${API_URL}/auth/check-email?email=${encodeURIComponent(email)}`, {
+      method: "GET",
+      headers: { "Content-Type": "application/json" },
+    });
+    return handleResponse(response);
+  },
 
   /**
    * Étape 1 : Demander un lien de réinitialisation
@@ -253,9 +265,15 @@ export const api = {
   /**
    * Étape 2 : Vérifier si le token est valide
    * @param {string} token - Le token reçu par email
+   * @param {number|null} userId - L'ID utilisateur (optionnel mais recommandé)
    */
-  verifyResetToken: async (token) => {
-    const response = await fetch(`${API_URL}/auth/verify-reset-token?token=${token}`, {
+  verifyResetToken: async (token, userId = null) => {
+    let url = `${API_URL}/auth/verify-reset-token?token=${encodeURIComponent(token)}`;
+    if (userId) {
+      url += `&userId=${userId}`;
+    }
+    
+    const response = await fetch(url, {
       method: "GET",
       headers: { "Content-Type": "application/json" },
     });
@@ -264,15 +282,28 @@ export const api = {
 
   /**
    * Étape 3 : Réinitialiser le mot de passe
-   * @param {string} token - Le token reçu par email
-   * @param {string} newPassword - Le nouveau mot de passe
+   * @param {Object} data - Les données de réinitialisation
+   * @param {string} data.token - Le token reçu par email
+   * @param {number|null} data.userId - L'ID utilisateur
+   * @param {string} data.newPassword - Le nouveau mot de passe
    */
-  resetPassword: async (token, newPassword) => {
+  resetPassword: async (data) => {
+    const body = {
+      token: data.token,
+      newPassword: data.newPassword,
+    };
+    
+    // Ajouter userId seulement s'il existe
+    if (data.userId) {
+      body.userId = data.userId.toString();
+    }
+    
     const response = await fetch(`${API_URL}/auth/reset-password`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ token, newPassword }),
+      body: JSON.stringify(body),
     });
     return handleResponse(response);
   },
+
 };
