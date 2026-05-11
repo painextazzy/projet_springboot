@@ -82,7 +82,7 @@ function App() {
         }
       />
         <Route path="/reset-password" element={<ResetPassword />} />
-        <Route path="/reset-password/:token" element={<NewPassword />} />
+        <Route path="/new-password" element={<NewPassword />} />
       
          
       {/* Page 404 */}
