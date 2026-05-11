@@ -4,7 +4,7 @@ import { useNavigate } from "react-router-dom";
 import { api } from "../services/api";
 import AOS from "aos";
 import "aos/dist/aos.css";
-import "../app.css";
+import bgImage from "../assets/logo.jpg"; // Votre image de fond (à adapter selon le nom)
 
 export default function Accueil() {
   const navigate = useNavigate();
@@ -39,7 +39,7 @@ export default function Accueil() {
 
   if (isCheckingAuth) {
     return (
-      <div className="min-h-screen flex items-center justify-center gradient-bg">
+      <div className="min-h-screen flex items-center justify-center bg-gray-100">
         <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-indigo-500"></div>
       </div>
     );
@@ -84,13 +84,28 @@ export default function Accueil() {
 
   return (
     <div className="antialiased">
-      {/* Main Container avec gradient background */}
-      <main className="gradient-bg min-h-screen flex items-center justify-center p-4 sm:p-6 lg:p-8">
-        <div className="w-full max-w-md flex flex-col items-center">
+      {/* Main Container avec image de fond */}
+      <main className="relative min-h-screen flex items-center justify-center p-4 sm:p-6 lg:p-8">
+        {/* Image de fond */}
+        <div className="absolute inset-0 z-0">
+          <img
+            src={bgImage}
+            alt="Background"
+            className="w-full h-full object-cover"
+          />
+          {/* Overlay pour meilleure lisibilité */}
+          <div className="absolute inset-0 bg-white/60"></div>
+        </div>
+
+        {/* Contenu */}
+        <div className="relative z-10 w-full max-w-md flex flex-col items-center">
           
           {/* Login Card */}
           <div
-            className="login-card w-full bg-white rounded-[2rem] p-8 sm:p-12"
+            className="w-full bg-white rounded-[2rem] p-8 sm:p-12"
+            style={{
+              boxShadow: '0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1)'
+            }}
             data-aos="fade-up"
             data-aos-duration="800"
           >
@@ -157,7 +172,6 @@ export default function Accueil() {
                     placeholder="Entrez votre mot de passe"
                     required
                   />
-                  {/* Toggle Password Visibility */}
                   <button
                     className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-colors"
                     type="button"
@@ -170,7 +184,7 @@ export default function Accueil() {
                 </div>
               </div>
 
-              {/* Links Section */}
+              {/* Forgot Password */}
               <div className="flex items-center justify-end">
                 <a
                   href="/reset-password"
