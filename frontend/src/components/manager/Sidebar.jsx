@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { api } from "../../services/api";
+import logoBar from "../../assets/logoBar.png"; // ou logoBar.svg
 
 export default function Sidebar({ onLinkClick }) {
   const navigate = useNavigate();
@@ -95,12 +96,26 @@ export default function Sidebar({ onLinkClick }) {
     <aside className="h-full w-64 bg-surface-container-low border-r border-outline-variant/15 flex flex-col overflow-y-auto">
       {/* Logo */}
       <div className="mb-10 px-6 pt-6">
-        <h1 className="font-headline text-lg font-extrabold text-on-surface">
-          Petite Bouffe
-        </h1>
-        <p className="font-body text-xs tracking-wide text-secondary uppercase mt-1">
-          Restaurant Management
-        </p>
+        <div className="flex items-center gap-3">
+          {/* Logo sidebar - logoBar */}
+          <img 
+            src={logoBar} 
+            alt="Logo Petite Bouffe" 
+            className="w-10 h-10 object-contain rounded-lg"
+            onError={(e) => {
+              // Fallback si l'image ne charge pas
+              e.target.style.display = 'none';
+            }}
+          />
+          <div>
+            <h1 className="font-headline text-lg font-extrabold text-on-surface">
+              Petite Bouffe
+            </h1>
+            <p className="font-body text-xs tracking-wide text-secondary uppercase mt-1">
+              Restaurant Management
+            </p>
+          </div>
+        </div>
       </div>
 
       {/* Navigation */}
