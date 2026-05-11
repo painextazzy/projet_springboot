@@ -179,7 +179,7 @@ export default function Accueil() {
                     onClick={() => setShowPassword(!showPassword)}
                   >
                     <span className="material-symbols-outlined text-xl">
-                      {showPassword ? "visibility_off" : "visibility"}
+                      {showPassword ? "visibility" : "visibility_off"}
                     </span>
                   </button>
                 </div>
