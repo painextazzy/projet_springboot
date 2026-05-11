@@ -4,6 +4,7 @@ import { useNavigate } from "react-router-dom";
 import { api } from "../services/api";
 import AOS from "aos";
 import "aos/dist/aos.css";
+import "../app.css";
 
 export default function Accueil() {
   const navigate = useNavigate();
