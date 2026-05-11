@@ -173,7 +173,7 @@ export default function Accueil() {
                     className="absolute inset-y-0 right-0 pr-4 flex items-center text-white/50 hover:text-white/80 transition-colors cursor-pointer focus:outline-none"
                   >
                     <span className="material-symbols-outlined text-xl">
-                      {showPassword ? "visibility" : "visibility_off"}
+                      {showPassword ? "visibility_off" : "visibility"}
                     </span>
                   </button>
                 </div>
@@ -228,7 +228,7 @@ export default function Accueil() {
 
             {/* Footer */}
             <p className="text-center text-white/40 text-xs mt-8">
-              © 2024 Votre Application. Tous droits réservés.
+              © 2026 Votre Application. Tous droits réservés.
             </p>
           </div>
         </div>

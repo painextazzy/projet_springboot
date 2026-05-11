@@ -393,8 +393,8 @@ export default function ServeurDashboard() {
       <nav className="fixed top-0 right-0 left-0 h-20 bg-surface-container-low backdrop-blur-md z-30 border-b border-outline-variant/10">
         <div className="flex justify-between items-center px-8 w-full h-full gap-4">
           <div>
-            <h1 className="text-xl font-semibold text-on-surface">Dashboard Serveur</h1>
-            <p className="text-sm text-secondary">Gestion des tables et commandes</p>
+            <h1 className="text-xl font-semibold text-on-surface"> Serveur</h1>
+            
           </div>
           <div className="relative" ref={dropdownRef}>
             <button
