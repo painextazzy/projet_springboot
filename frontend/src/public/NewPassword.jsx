@@ -2,7 +2,7 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { api } from "../services/api";
-import bgImage from "../assets/logo.png"; // Même image de fond que l'accueil
+import bgImage from "../assets/logo.jpg"; // Même image de fond que l'accueil
 
 export default function NewPassword() {
   const navigate = useNavigate();
