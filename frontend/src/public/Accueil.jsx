@@ -92,7 +92,7 @@ export default function Accueil() {
           <img
             src={bgImage}
             alt="Background"
-            className="w-full h-full object-cover blur-[2px] scale-105"
+            className="w-full h-full object-cover blur-[1px] scale-105"
           />
           {/* Overlay pour meilleure lisibilité */}
           <div className="absolute inset-0 bg-white/40"></div>
@@ -179,7 +179,7 @@ export default function Accueil() {
                     onClick={() => setShowPassword(!showPassword)}
                   >
                     <span className="material-symbols-outlined text-xl">
-                      {showPassword ? "visibility" : "visibility_off"}
+                      {showPassword ? "visibility_off" : "visibility_on"}
                     </span>
                   </button>
                 </div>
