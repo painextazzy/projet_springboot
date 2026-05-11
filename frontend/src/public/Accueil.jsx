@@ -4,7 +4,7 @@ import { useNavigate } from "react-router-dom";
 import { api } from "../services/api";
 import AOS from "aos";
 import "aos/dist/aos.css";
-import bgImage from "../assets/logo"; // Votre image de fond
+import bgImage from "../assets/logo.jpg"; // Votre image de fond
 
 export default function Accueil() {
   const navigate = useNavigate();
