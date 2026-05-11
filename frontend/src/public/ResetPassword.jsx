@@ -11,33 +11,43 @@ export default function ResetPassword() {
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    setError("");
-    setSuccess("");
+ 
+const handleSubmit = async (e) => {
+  e.preventDefault();
+  setError("");
+  setSuccess("");
 
-    if (!email.trim()) {
-      setError("L'email est requis");
+  if (!email.trim()) {
+    setError("L'email est requis");
+    return;
+  }
+
+  setLoading(true);
+
+  try {
+    // Vérifier d'abord si l'email existe
+    const checkResult = await api.checkEmail(email);
+    
+    if (!checkResult.exists) {
+      setError("Aucun compte trouvé avec cet email");
+      setLoading(false);
       return;
     }
-
-    setLoading(true);
-
-    try {
-      await api.requestPasswordReset(email);
-      
-      setSuccess("Un email de réinitialisation a été envoyé !");
-      
-      setTimeout(() => {
-        navigate("/");
-      }, 3000);
-      
-    } catch (err) {
-      setError(err.message || "Une erreur est survenue");
-    } finally {
-      setLoading(false);
-    }
-  };
+    
+    // Si l'email existe, envoyer le lien
+    const result = await api.requestPasswordReset(email);
+    setSuccess("Un email de réinitialisation a été envoyé ! Vérifiez votre boîte de réception.");
+    
+    setTimeout(() => {
+      navigate("/");
+    }, 3000);
+    
+  } catch (err) {
+    setError(err.message || "Une erreur est survenue");
+  } finally {
+    setLoading(false);
+  }
+};
 
   return (
     <div className="antialiased">
