@@ -1,67 +1,69 @@
 package com.restaurant.service;
 
 import com.restaurant.entity.User;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.mail.javamail.JavaMailSender;
-import org.springframework.mail.javamail.MimeMessageHelper;
 import org.springframework.stereotype.Service;
-import jakarta.mail.internet.MimeMessage;
+import org.springframework.web.client.RestTemplate;
+import org.springframework.http.*;
+
+import java.util.HashMap;
+import java.util.Map;
 
 @Service
 public class EmailService {
 
-    @Autowired
-    private JavaMailSender mailSender;
+    @Value("${mailjet.api.key}")
+    private String apiKey;
 
-    @Value("${spring.mail.username}")
-    private String fromEmail;
+    @Value("${mailjet.secret.key}")
+    private String secretKey;
 
     @Value("${app.frontend.url}")
     private String frontendUrl;
+
+    private final RestTemplate restTemplate = new RestTemplate();
 
     public void sendResetPasswordEmail(User user, String token) {
         try {
             String resetUrl = frontendUrl + "/reset-password/" + token;
 
-            String htmlContent = String.format("""
-                    <!DOCTYPE html>
-                    <html>
-                    <head><meta charset="UTF-8"></head>
-                    <body style="font-family: Arial, sans-serif;">
-                        <div style="max-width: 600px; margin: auto; padding: 20px;">
-                            <div style="background: #00307d; color: white; padding: 20px; text-align: center;">
-                                <h2>Petite Bouffe</h2>
-                            </div>
-                            <div style="padding: 30px; background: #f9f9f9;">
-                                <h3>Bonjour %s,</h3>
-                                <p>Vous avez demandé à réinitialiser votre mot de passe.</p>
-                                <div style="text-align: center;">
-                                    <a href="%s" style="display: inline-block; padding: 12px 24px;
-                                        background: #00307d; color: white; text-decoration: none;
-                                        border-radius: 5px;">Réinitialiser mon mot de passe</a>
-                                </div>
-                                <p>Ce lien expirera dans 1 heure.</p>
-                                <p>Si vous n'avez pas demandé cette réinitialisation, ignorez cet email.</p>
-                            </div>
-                        </div>
-                    </body>
-                    </html>
-                    """, user.getNom(), resetUrl);
+            // Création du corps de la requête pour l'API Mailjet
+            Map<String, Object> payload = new HashMap<>();
+            payload.put("FromEmail", "votre-email-valide@mailjet.com"); // À remplacer par un email validé
+            payload.put("FromName", "Petite Bouffe");
+            payload.put("Subject", "Réinitialisation de votre mot de passe");
+            payload.put("Text-part", "Cliquez sur le lien pour réinitialiser votre mot de passe : " + resetUrl);
+            payload.put("Html-part",
+                    "<h3>Bonjour " + user.getNom()
+                            + ",</h3><p>Réinitialisez votre mot de passe en cliquant sur <a href='" + resetUrl
+                            + "'>ce lien</a>.</p>");
+            payload.put("Recipients", new Object[] {
+                    Map.of("Email", user.getEmail())
+            });
 
-            MimeMessage message = mailSender.createMimeMessage();
-            MimeMessageHelper helper = new MimeMessageHelper(message, true, "UTF-8");
+            // Configuration des headers pour l'authentification Basic
+            HttpHeaders headers = new HttpHeaders();
+            headers.setContentType(MediaType.APPLICATION_JSON);
+            headers.setBasicAuth(this.apiKey, this.secretKey); // Utilise vos identifiants Mailjet
 
-            helper.setTo(user.getEmail());
-            helper.setSubject("Réinitialisation de votre mot de passe - Petite Bouffe");
-            helper.setText(htmlContent, true);
-            helper.setFrom(fromEmail, "Petite Bouffe");
+            HttpEntity<Map<String, Object>> entity = new HttpEntity<>(payload, headers);
 
-            mailSender.send(message);
-            System.out.println("✅ Email envoyé avec succès à " + user.getEmail());
+            // Appel à l'API REST de Mailjet sur le port 443
+            ResponseEntity<String> response = restTemplate.exchange(
+                    "https://api.mailjet.com/v3.1/send",
+                    HttpMethod.POST,
+                    entity,
+                    String.class);
+
+            if (response.getStatusCode().is2xxSuccessful()) {
+                System.out.println("✅ Email envoyé avec succès à " + user.getEmail() + " via l'API Mailjet.");
+            } else {
+                System.err.println("❌ Erreur de l'API Mailjet: " + response.getBody());
+                throw new RuntimeException("Erreur lors de l'envoi de l'email");
+            }
 
         } catch (Exception e) {
-            System.err.println("❌ Erreur envoi email: " + e.getMessage());
+            System.err.println("❌ Erreur lors de l'envoi: " + e.getMessage());
             throw new RuntimeException("Erreur lors de l'envoi de l'email: " + e.getMessage());
         }
     }
