@@ -4,7 +4,7 @@ import { useNavigate } from "react-router-dom";
 import { api } from "../services/api";
 import AOS from "aos";
 import "aos/dist/aos.css";
-import bgImage from "../assets/logo.jpg"; // Votre image de fond (à adapter selon le nom)
+import bgImage from "../assets/logo.png"; // Votre image de fond
 
 export default function Accueil() {
   const navigate = useNavigate();
@@ -84,17 +84,18 @@ export default function Accueil() {
 
   return (
     <div className="antialiased">
-      {/* Main Container avec image de fond */}
-      <main className="relative min-h-screen flex items-center justify-center p-4 sm:p-6 lg:p-8">
-        {/* Image de fond */}
+      {/* Main Container avec image de fond floutée */}
+      <main className="relative min-h-screen flex items-center justify-center p-4 sm:p-6 lg:p-8 overflow-hidden">
+        
+        {/* Image de fond avec flou */}
         <div className="absolute inset-0 z-0">
           <img
             src={bgImage}
             alt="Background"
-            className="w-full h-full object-cover"
+            className="w-full h-full object-cover blur-[2px] scale-105"
           />
           {/* Overlay pour meilleure lisibilité */}
-          <div className="absolute inset-0 bg-white/60"></div>
+          <div className="absolute inset-0 bg-white/40"></div>
         </div>
 
         {/* Contenu */}
@@ -102,7 +103,7 @@ export default function Accueil() {
           
           {/* Login Card */}
           <div
-            className="w-full bg-white rounded-[2rem] p-8 sm:p-12"
+            className="w-full bg-white/95 backdrop-blur-sm rounded-[2rem] p-8 sm:p-12"
             style={{
               boxShadow: '0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1)'
             }}
