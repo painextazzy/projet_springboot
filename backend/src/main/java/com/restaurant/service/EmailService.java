@@ -24,7 +24,7 @@ public class EmailService {
         try {
             String resetUrl = frontendUrl + "/reset-password/" + token;
 
-            // Email en HTML
+            // Contenu HTML de l'email
             String htmlContent = String.format("""
                     <!DOCTYPE html>
                     <html>
@@ -43,41 +43,48 @@ public class EmailService {
                                         border-radius: 5px;">Réinitialiser mon mot de passe</a>
                                 </div>
                                 <p>Ce lien expirera dans 1 heure.</p>
-                                <p>Si vous n'avez pas demandé cette réinitialisation, ignorez cet email.</p>
-                            </div>
-                            <div style="text-align: center; padding: 20px; font-size: 12px; color: #666;">
-                                <p>© 2024 Petite Bouffe</p>
                             </div>
                         </div>
                     </body>
                     </html>
                     """, user.getNom(), resetUrl);
 
-            // Construction de la requête Keplars
+            // Construction du payload selon la documentation Keplars
             Map<String, Object> payload = new HashMap<>();
             payload.put("to", user.getEmail());
             payload.put("subject", "Réinitialisation de votre mot de passe - Petite Bouffe");
             payload.put("html", htmlContent);
 
-            // AUTHENTIFICATION KEPLARS
+            // ⚠️ Ajoutez votre email expéditeur (celui connecté à Keplars)
+            payload.put("from", "painextazzy@gmail.com");
+
+            // Configuration des headers
             HttpHeaders headers = new HttpHeaders();
             headers.setContentType(MediaType.APPLICATION_JSON);
+
+            // Authentification - vérifiez le format exact sur votre dashboard
+            // Option 1: Bearer token
             headers.set("Authorization", "Bearer " + apiKey);
+            // Option 2: Clé API directe (si Bearer ne fonctionne pas)
+            // headers.set("X-API-Key", apiKey);
 
             HttpEntity<Map<String, Object>> entity = new HttpEntity<>(payload, headers);
 
-            // Envoi via API Keplars
+            // ⭐ UTILISEZ LE BON ENDPOINT - Format complet
+            String apiUrl = "https://api.keplars.com/send-email/instant";
+
             ResponseEntity<String> response = restTemplate.exchange(
-                    "https://api.keplars.com/v1/emails",
+                    apiUrl,
                     HttpMethod.POST,
                     entity,
                     String.class);
 
             if (response.getStatusCode().is2xxSuccessful()) {
                 System.out.println("✅ Email envoyé avec succès à " + user.getEmail());
+                System.out.println("   Réponse: " + response.getBody());
             } else {
                 System.err.println("❌ Erreur Keplars: " + response.getBody());
-                throw new RuntimeException("Erreur API Keplars");
+                throw new RuntimeException("Erreur API Keplars: " + response.getBody());
             }
 
         } catch (Exception e) {
