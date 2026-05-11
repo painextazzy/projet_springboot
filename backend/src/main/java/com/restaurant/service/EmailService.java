@@ -68,7 +68,7 @@ public class EmailService {
                                         <!-- Header -->
                                         <tr>
                                             <td style="background: linear-gradient(135deg, #e67e22, #d35400); padding: 30px; text-align: center;">
-                                                <h1 style="color: white; margin: 0; font-size: 28px;">🍽️ Petite Bouffe</h1>
+                                                <h1 style="color: white; margin: 0; font-size: 28px;"> Petite Bouffe</h1>
                                                 <p style="color: rgba(255,255,255,0.9); margin: 5px 0 0; font-size: 14px;">Restaurant Management</p>
                                             </td>
                                         </tr>

@@ -5,7 +5,6 @@ import com.restaurant.repository.UserRepository;
 import com.restaurant.service.EmailService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.web.bind.annotation.*;
 
 import java.time.LocalDateTime;
@@ -16,7 +15,8 @@ import java.util.UUID;
 @RestController
 @RequestMapping("/api/auth")
 @CrossOrigin(origins = {
-        "https://projet-springboot.vercel.app"
+        "https://projet-springboot.vercel.app",
+        "http://localhost:3000"
 })
 public class PasswordResetController {
 
@@ -26,59 +26,129 @@ public class PasswordResetController {
     @Autowired
     private EmailService emailService;
 
-    private final BCryptPasswordEncoder passwordEncoder = new BCryptPasswordEncoder();
+    // ✅ PAS de BCryptPasswordEncoder - mots de passe en clair
 
-    // Étape 1: Vérifier si l'email existe
+    // Étape 1 : Vérifier si l'email existe
     @GetMapping("/check-email")
     public ResponseEntity<?> checkEmail(@RequestParam String email) {
+        System.out.println("🔍 Vérification email : " + email);
+
         Optional<User> userOpt = userRepository.findByEmail(email);
-        return ResponseEntity.ok(Map.of("exists", userOpt.isPresent()));
+
+        return ResponseEntity.ok(Map.of(
+                "exists", userOpt.isPresent(),
+                "message", userOpt.isPresent() ? "Email trouvé" : "Aucun compte trouvé"));
     }
 
-    // Étape 2: Demander la réinitialisation (envoi email avec ID utilisateur)
+    // Étape 2 : Demander la réinitialisation
     @PostMapping("/reset-password-request")
     public ResponseEntity<?> requestPasswordReset(@RequestBody Map<String, String> request) {
         String email = request.get("email");
-        System.out.println("Demande de réinitialisation pour: " + email);
+        System.out.println("📧 Demande de réinitialisation pour : " + email);
 
         Optional<User> userOpt = userRepository.findByEmail(email);
 
         if (userOpt.isEmpty()) {
             return ResponseEntity.ok(Map.of(
-                    "message", "Aucun compte trouvé avec cet email",
+                    "message", "Si cet email existe, vous recevrez un lien",
                     "emailExists", false));
         }
 
         User user = userOpt.get();
-
-        // Générer un token unique
         String token = UUID.randomUUID().toString();
         user.setResetToken(token);
         user.setResetTokenExpiry(LocalDateTime.now().plusHours(1));
         userRepository.save(user);
 
         try {
-            // Envoyer l'email avec l'ID utilisateur dans le lien
             emailService.sendResetPasswordEmail(user, token);
 
             return ResponseEntity.ok(Map.of(
                     "message", "Email de réinitialisation envoyé",
                     "emailExists", true,
-                    "userId", user.getId() // Retourner l'ID pour le frontend
-            ));
+                    "userId", user.getId()));
         } catch (Exception e) {
-            System.err.println("Erreur envoi email: " + e.getMessage());
+            System.err.println("❌ Erreur envoi email : " + e.getMessage());
             return ResponseEntity.status(500).body(Map.of(
-                    "error", "Erreur lors de l'envoi de l'email: " + e.getMessage()));
+                    "error", "Erreur lors de l'envoi de l'email"));
         }
     }
 
-    // Étape 3: Vérifier si le token est valide (avec vérification ID utilisateur)
-    @GetMapping("/verify-reset-token")
-    public ResponseEntity<?> verifyResetToken(
-            @RequestParam String token,
-            @RequestParam(required = false) Long userId) {
+    // Étape 3 : RÉINITIALISER LE MOT DE PASSE (EN CLAIR)
+    @PostMapping("/reset-password")
+    public ResponseEntity<?> resetPassword(@RequestBody Map<String, String> request) {
+        String token = request.get("token");
+        String newPassword = request.get("newPassword");
+        String userIdStr = request.get("userId");
 
+        System.out.println("🔑 Réinitialisation mot de passe");
+        System.out.println("   Token reçu : " + (token != null ? token.substring(0, 8) + "..." : "null"));
+        System.out.println("   Nouveau mot de passe : " + (newPassword != null ? newPassword : "null"));
+        System.out.println("   UserID : " + userIdStr);
+
+        // Validation
+        if (newPassword == null || newPassword.isEmpty()) {
+            return ResponseEntity.badRequest().body(Map.of(
+                    "error", "Le mot de passe est requis"));
+        }
+
+        if (newPassword.length() < 8) {
+            return ResponseEntity.badRequest().body(Map.of(
+                    "error", "Le mot de passe doit contenir au moins 8 caractères"));
+        }
+
+        // Trouver l'utilisateur par token
+        Optional<User> userOpt = userRepository.findByResetToken(token);
+
+        if (userOpt.isEmpty()) {
+            System.out.println("❌ Token invalide ou déjà utilisé");
+            return ResponseEntity.badRequest().body(Map.of(
+                    "error", "Token invalide ou déjà utilisé"));
+        }
+
+        User user = userOpt.get();
+
+        // Vérifier userId si fourni
+        if (userIdStr != null && !userIdStr.isEmpty()) {
+            try {
+                Long userId = Long.parseLong(userIdStr);
+                if (!user.getId().equals(userId)) {
+                    return ResponseEntity.badRequest().body(Map.of(
+                            "error", "Token ne correspond pas à l'utilisateur"));
+                }
+            } catch (NumberFormatException e) {
+                System.out.println("⚠️ UserId invalide ignoré : " + userIdStr);
+            }
+        }
+
+        // Vérifier l'expiration du token
+        if (user.getResetTokenExpiry() != null &&
+                user.getResetTokenExpiry().isBefore(LocalDateTime.now())) {
+            System.out.println("❌ Token expiré");
+            return ResponseEntity.badRequest().body(Map.of(
+                    "error", "Lien expiré (valable 1 heure)"));
+        }
+
+        // ✅ ENREGISTRER LE MOT DE PASSE EN CLAIR (PAS DE HASHAGE)
+        user.setPassword(newPassword); // Mot de passe stocké tel quel
+
+        // Nettoyer le token
+        user.setResetToken(null);
+        user.setResetTokenExpiry(null);
+
+        userRepository.save(user);
+
+        System.out.println("✅ Mot de passe réinitialisé avec succès pour : " + user.getEmail());
+        System.out.println("   Nouveau mot de passe : " + newPassword);
+
+        return ResponseEntity.ok(Map.of(
+                "message", "Mot de passe réinitialisé avec succès"));
+    }
+
+    // Étape 4 : Vérifier le token (optionnel)
+    @GetMapping("/verify-reset-token")
+    public ResponseEntity<?> verifyResetToken(@RequestParam String token,
+            @RequestParam(required = false) Long userId) {
         Optional<User> userOpt = userRepository.findByResetToken(token);
 
         if (userOpt.isEmpty()) {
@@ -89,80 +159,21 @@ public class PasswordResetController {
 
         User user = userOpt.get();
 
-        // Vérifier l'ID utilisateur si fourni
         if (userId != null && !user.getId().equals(userId)) {
             return ResponseEntity.badRequest().body(Map.of(
                     "valid", false,
                     "message", "Token ne correspond pas à l'utilisateur"));
         }
 
-        // Vérifier l'expiration
-        if (user.getResetTokenExpiry().isBefore(LocalDateTime.now())) {
+        if (user.getResetTokenExpiry() != null &&
+                user.getResetTokenExpiry().isBefore(LocalDateTime.now())) {
             return ResponseEntity.badRequest().body(Map.of(
                     "valid", false,
-                    "message", "Lien expiré (valable 1 heure)"));
+                    "message", "Lien expiré"));
         }
 
         return ResponseEntity.ok(Map.of(
                 "valid", true,
-                "userId", user.getId(),
                 "message", "Token valide"));
-    }
-
-    // Étape 4: Réinitialiser le mot de passe (avec ID utilisateur)
-    @PostMapping("/reset-password")
-    public ResponseEntity<?> resetPassword(@RequestBody Map<String, String> request) {
-        String token = request.get("token");
-        String newPassword = request.get("newPassword");
-        String userIdStr = request.get("userId");
-
-        // Validation du mot de passe
-        if (newPassword == null || newPassword.length() < 8) {
-            return ResponseEntity.badRequest().body(Map.of(
-                    "error", "Le mot de passe doit contenir au moins 8 caractères"));
-        }
-
-        // Vérifier le token
-        Optional<User> userOpt = userRepository.findByResetToken(token);
-
-        if (userOpt.isEmpty()) {
-            return ResponseEntity.badRequest().body(Map.of(
-                    "error", "Token invalide ou déjà utilisé"));
-        }
-
-        User user = userOpt.get();
-
-        // Vérifier l'ID utilisateur si fourni
-        if (userIdStr != null && !userIdStr.isEmpty()) {
-            try {
-                Long userId = Long.parseLong(userIdStr);
-                if (!user.getId().equals(userId)) {
-                    return ResponseEntity.badRequest().body(Map.of(
-                            "error", "Token ne correspond pas à l'utilisateur"));
-                }
-            } catch (NumberFormatException e) {
-                return ResponseEntity.badRequest().body(Map.of(
-                        "error", "ID utilisateur invalide"));
-            }
-        }
-
-        // Vérifier l'expiration du token
-        if (user.getResetTokenExpiry().isBefore(LocalDateTime.now())) {
-            return ResponseEntity.badRequest().body(Map.of(
-                    "error", "Lien expiré (valable 1 heure)"));
-        }
-
-        // Mettre à jour le mot de passe
-        user.setPassword(passwordEncoder.encode(newPassword));
-        user.setResetToken(null);
-        user.setResetTokenExpiry(null);
-        userRepository.save(user);
-
-        System.out.println(
-                "Mot de passe réinitialisé pour l'utilisateur: " + user.getEmail() + " (ID: " + user.getId() + ")");
-
-        return ResponseEntity.ok(Map.of(
-                "message", "Mot de passe réinitialisé avec succès",
-                "userId", user.getId()));
     }
 }
