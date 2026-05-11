@@ -1,34 +1,30 @@
 package com.restaurant.service;
 
 import com.restaurant.entity.User;
-import com.resend.Resend;
-import com.resend.core.exception.ResendException;
-import com.resend.services.emails.model.CreateEmailOptions;
-import com.resend.services.emails.model.CreateEmailResponse;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
+import org.springframework.web.client.RestTemplate;
+import org.springframework.http.*;
+
+import java.util.HashMap;
+import java.util.Map;
 
 @Service
 public class EmailService {
 
-    @Value("${resend.api.key}")
+    @Value("${keplars.api.key}")
     private String apiKey;
 
     @Value("${app.frontend.url}")
     private String frontendUrl;
 
-    // Email expéditeur (vérifié par Resend par défaut)
-    private final String fromEmail = "onboarding@resend.dev";
+    private final RestTemplate restTemplate = new RestTemplate();
 
     public void sendResetPasswordEmail(User user, String token) {
         try {
-            // Créer le client Resend
-            Resend resend = new Resend(apiKey);
-
-            // Construire le lien de réinitialisation
             String resetUrl = frontendUrl + "/reset-password/" + token;
 
-            // Contenu HTML de l'email
+            // Email en HTML
             String htmlContent = String.format("""
                     <!DOCTYPE html>
                     <html>
@@ -57,22 +53,35 @@ public class EmailService {
                     </html>
                     """, user.getNom(), resetUrl);
 
-            // Construire l'email
-            CreateEmailOptions params = CreateEmailOptions.builder()
-                    .from(fromEmail)
-                    .to(user.getEmail())
-                    .subject("Réinitialisation de votre mot de passe - Petite Bouffe")
-                    .html(htmlContent)
-                    .build();
+            // Construction de la requête Keplars
+            Map<String, Object> payload = new HashMap<>();
+            payload.put("to", user.getEmail());
+            payload.put("subject", "Réinitialisation de votre mot de passe - Petite Bouffe");
+            payload.put("html", htmlContent);
 
-            // Envoyer
-            CreateEmailResponse response = resend.emails().send(params);
+            // AUTHENTIFICATION KEPLARS
+            HttpHeaders headers = new HttpHeaders();
+            headers.setContentType(MediaType.APPLICATION_JSON);
+            headers.set("Authorization", "Bearer " + apiKey);
 
-            System.out.println("✅ Email envoyé à " + user.getEmail());
-            System.out.println("   ID Resend: " + response.getId());
+            HttpEntity<Map<String, Object>> entity = new HttpEntity<>(payload, headers);
 
-        } catch (ResendException e) {
-            System.err.println("❌ Erreur Resend: " + e.getMessage());
+            // Envoi via API Keplars
+            ResponseEntity<String> response = restTemplate.exchange(
+                    "https://api.keplars.com/v1/emails",
+                    HttpMethod.POST,
+                    entity,
+                    String.class);
+
+            if (response.getStatusCode().is2xxSuccessful()) {
+                System.out.println("✅ Email envoyé avec succès à " + user.getEmail());
+            } else {
+                System.err.println("❌ Erreur Keplars: " + response.getBody());
+                throw new RuntimeException("Erreur API Keplars");
+            }
+
+        } catch (Exception e) {
+            System.err.println("❌ Erreur: " + e.getMessage());
             throw new RuntimeException("Erreur lors de l'envoi de l'email: " + e.getMessage());
         }
     }
