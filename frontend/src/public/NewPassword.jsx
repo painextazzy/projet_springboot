@@ -2,7 +2,7 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { api } from "../services/api";
-import bgImage from "../assets/logo.jpg"; // Même image de fond que l'accueil
+import bgImage from "../assets/logo.jpg";
 
 export default function NewPassword() {
   const navigate = useNavigate();
@@ -16,37 +16,13 @@ export default function NewPassword() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
-  const [isValidToken, setIsValidToken] = useState(false);
-  const [verifying, setVerifying] = useState(true);
 
-  // Vérifier le token au chargement
+  // Vérifier juste si le token existe dans l'URL
   useEffect(() => {
-    const checkToken = async () => {
-      if (!token) {
-        setError("Lien invalide : token manquant");
-        setVerifying(false);
-        return;
-      }
-
-      try {
-        // Vérifier le token avec l'ID utilisateur si disponible
-        const result = await api.verifyResetToken(token, userId ? parseInt(userId) : null);
-        
-        if (result.valid) {
-          setIsValidToken(true);
-        } else {
-          setError(result.message || "Lien invalide ou expiré");
-        }
-      } catch (err) {
-        console.error("Erreur vérification token:", err);
-        setError("Lien invalide ou expiré");
-      } finally {
-        setVerifying(false);
-      }
-    };
-    
-    checkToken();
-  }, [token, userId]);
+    if (!token) {
+      setError("Lien invalide : token manquant");
+    }
+  }, [token]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -77,7 +53,7 @@ export default function NewPassword() {
     setLoading(true);
     
     try {
-      // ✅ Envoyer token, userId et newPassword
+      // ✅ Envoyer directement token, userId et newPassword
       await api.resetPassword({
         token: token,
         userId: userId ? parseInt(userId) : null,
@@ -86,6 +62,7 @@ export default function NewPassword() {
       
       setSuccess("Mot de passe réinitialisé avec succès ! Redirection...");
       
+      // Redirection après 3 secondes
       setTimeout(() => {
         navigate("/");
       }, 3000);
@@ -98,26 +75,8 @@ export default function NewPassword() {
     }
   };
 
-  // Écran de chargement
-  if (verifying) {
-    return (
-      <div className="antialiased">
-        <main className="relative min-h-screen flex items-center justify-center overflow-hidden">
-          <div className="absolute inset-0 z-0">
-            <img src={bgImage} alt="Background" className="w-full h-full object-cover blur-[2px] scale-105" />
-            <div className="absolute inset-0 bg-white/40"></div>
-          </div>
-          <div className="relative z-10 text-center">
-            <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-indigo-500 mx-auto"></div>
-            <p className="text-gray-600 mt-4">Vérification du lien...</p>
-          </div>
-        </main>
-      </div>
-    );
-  }
-
-  // Lien invalide ou expiré
-  if (!isValidToken) {
+  // Si pas de token dans l'URL
+  if (!token) {
     return (
       <div className="antialiased">
         <main className="relative min-h-screen flex items-center justify-center p-4 overflow-hidden">
@@ -135,7 +94,7 @@ export default function NewPassword() {
               </div>
               
               <h2 className="text-xl font-bold text-gray-900 mb-2">Lien invalide</h2>
-              <p className="text-gray-500 mb-6">{error || "Ce lien est invalide ou a expiré."}</p>
+              <p className="text-gray-500 mb-6">{error || "Ce lien est invalide."}</p>
               
               <button
                 onClick={() => navigate("/reset-password")}
@@ -157,7 +116,7 @@ export default function NewPassword() {
     );
   }
 
-  // Formulaire de nouveau mot de passe
+  // Formulaire de nouveau mot de passe (affiché directement si token présent)
   return (
     <div className="antialiased">
       <main className="relative min-h-screen flex items-center justify-center p-4 sm:p-6 lg:p-8 overflow-hidden">
@@ -180,8 +139,6 @@ export default function NewPassword() {
             style={{
               boxShadow: '0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1)'
             }}
-            data-aos="fade-up"
-            data-aos-duration="800"
           >
             {/* Icône cadenas */}
             <div className="text-center mb-6">
@@ -272,7 +229,7 @@ export default function NewPassword() {
               <div className="pt-2">
                 <button
                   type="submit"
-                  disabled={loading}
+                  disabled={loading || success !== ""}
                   className="w-full bg-indigo-500 text-white font-semibold py-3 rounded-xl hover:bg-indigo-600 transition-all shadow-lg shadow-indigo-500/30 text-sm disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
                 >
                   {loading ? (
@@ -295,6 +252,7 @@ export default function NewPassword() {
               <button
                 onClick={() => navigate("/")}
                 className="text-sm text-gray-500 hover:text-indigo-500 transition-colors font-medium"
+                disabled={loading}
               >
                 ← Retour à la connexion
               </button>
