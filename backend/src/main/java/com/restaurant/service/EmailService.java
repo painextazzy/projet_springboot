@@ -8,6 +8,7 @@ import org.springframework.http.*;
 
 import java.util.HashMap;
 import java.util.Map;
+import java.util.List;
 
 @Service
 public class EmailService {
@@ -23,48 +24,55 @@ public class EmailService {
 
     private final RestTemplate restTemplate = new RestTemplate();
 
-    public void sendResetPasswordEmail(User user, String token) {
-        try {
-            String resetUrl = frontendUrl + "/reset-password/" + token;
+ public void sendResetPasswordEmail(User user, String token) {
+    try {
+        String resetUrl = frontendUrl + "/reset-password/" + token;
 
-            // Création du corps de la requête pour l'API Mailjet
-            Map<String, Object> payload = new HashMap<>();
-            payload.put("FromEmail", "votre-email-valide@mailjet.com"); // À remplacer par un email validé
-            payload.put("FromName", "Petite Bouffe");
-            payload.put("Subject", "Réinitialisation de votre mot de passe");
-            payload.put("Text-part", "Cliquez sur le lien pour réinitialiser votre mot de passe : " + resetUrl);
-            payload.put("Html-part",
-                    "<h3>Bonjour " + user.getNom()
-                            + ",</h3><p>Réinitialisez votre mot de passe en cliquant sur <a href='" + resetUrl
-                            + "'>ce lien</a>.</p>");
-            payload.put("Recipients", new Object[] {
-                    Map.of("Email", user.getEmail())
-            });
+        // 1. Création de l'objet message unique
+        Map<String, Object> message = new HashMap<>();
+        
+        message.put("From", Map.of(
+            "Email", "painextazzy@gmail.com", // DOIT être validé sur Mailjet
+            "Name", "Petite Bouffe"
+        ));
+        
+        message.put("To", List.of(
+            Map.of("Email", user.getEmail(), "Name", user.getNom())
+        ));
+        
+        message.put("Subject", "Réinitialisation de votre mot de passe");
+        
+        message.put("TextPart", "Cliquez sur le lien pour réinitialiser : " + resetUrl);
+        
+        message.put("HTMLPart", "<h3>Bonjour " + user.getNom() + ",</h3>" +
+                   "<p>Réinitialisez votre mot de passe en cliquant sur <a href='" + resetUrl + "'>ce lien</a>.</p>");
 
-            // Configuration des headers pour l'authentification Basic
-            HttpHeaders headers = new HttpHeaders();
-            headers.setContentType(MediaType.APPLICATION_JSON);
-            headers.setBasicAuth(this.apiKey, this.secretKey); // Utilise vos identifiants Mailjet
+        // 2. Encapsulation dans la clé "Messages" (obligatoire en v3.1)
+        Map<String, Object> payload = new HashMap<>();
+        payload.put("Messages", List.of(message));
 
-            HttpEntity<Map<String, Object>> entity = new HttpEntity<>(payload, headers);
+        // Configuration des headers
+        HttpHeaders headers = new HttpHeaders();
+        headers.setContentType(MediaType.APPLICATION_JSON);
+        headers.setBasicAuth(this.apiKey, this.secretKey);
 
-            // Appel à l'API REST de Mailjet sur le port 443
-            ResponseEntity<String> response = restTemplate.exchange(
-                    "https://api.mailjet.com/v3.1/send",
-                    HttpMethod.POST,
-                    entity,
-                    String.class);
+        HttpEntity<Map<String, Object>> entity = new HttpEntity<>(payload, headers);
 
-            if (response.getStatusCode().is2xxSuccessful()) {
-                System.out.println("✅ Email envoyé avec succès à " + user.getEmail() + " via l'API Mailjet.");
-            } else {
-                System.err.println("❌ Erreur de l'API Mailjet: " + response.getBody());
-                throw new RuntimeException("Erreur lors de l'envoi de l'email");
-            }
+        // Appel à l'API Mailjet
+        ResponseEntity<String> response = restTemplate.exchange(
+                "https://api.mailjet.com/v3.1/send",
+                HttpMethod.POST,
+                entity,
+                String.class);
 
-        } catch (Exception e) {
-            System.err.println("❌ Erreur lors de l'envoi: " + e.getMessage());
-            throw new RuntimeException("Erreur lors de l'envoi de l'email: " + e.getMessage());
+        if (response.getStatusCode().is2xxSuccessful()) {
+            System.out.println("✅ Email envoyé avec succès !");
+        } else {
+            throw new RuntimeException("Erreur API Mailjet: " + response.getBody());
         }
+
+    } catch (Exception e) {
+        System.err.println("❌ Erreur lors de l'envoi: " + e.getMessage());
+        throw new RuntimeException("Erreur lors de l'envoi de l'email: " + e.getMessage());
     }
-}
+}}
